@@ -12,7 +12,7 @@ export interface SideState {
   towers: Towers
   revealed: Record<StackKey, boolean> // top card face-up (used for the enemy)
 }
-export interface Rules { regen: number; enemyRegen: number; startElixir: number; cap: number; wheel: number; laneLen: number; underdog: number }
+export interface Rules { regen: number; enemyRegen: number; startElixir: number; cap: number; wheel: number; laneLen: number; acesBeatPictures: boolean } // wheel: rank multiplier for the winning suit (1 = off)
 export interface GameState {
   rules: Rules
   tick: number
@@ -31,7 +31,7 @@ export const label = (c: Card) => `${RANKS[c.rank]}${SUITS[c.suit]}`
 export const cost = (rank: number) => Math.floor((rank * 10) / 13 + 0.5)
 export const isRed = (c: Card) => c.suit === 1 || c.suit === 2
 
-export const DEFAULT_RULES: Rules = { regen: 3, enemyRegen: 5, startElixir: 5, cap: 10, wheel: 3, laneLen: 2, underdog: 10 }
+export const DEFAULT_RULES: Rules = { regen: 3, enemyRegen: 5, startElixir: 5, cap: 10, wheel: 2, laneLen: 2, acesBeatPictures: true }
 
 export function freshDeck(): Card[] {
   const d: Card[] = []
@@ -108,18 +108,18 @@ export function newGame(
 
 const clone = (g: GameState): GameState => structuredClone(g)
 
-/** +wheel rank when my suit beats the other suit (suit i beats suit (i+1)%4). */
+/** Rank times `wheel` when my suit beats the other suit (suit i beats suit (i+1)%4), so with wheel 2 the winning suit counts double. */
 export function effective(a: Card, b: Card, wheel: number) {
-  return a.rank + (b.suit === (a.suit + 1) % 4 ? wheel : 0)
+  return a.rank * (b.suit === (a.suit + 1) % 4 ? wheel : 1)
 }
 
-/** Underdog: a card at least `gap` ranks lower wins outright, ignoring the wheel (gap 10: A beats J/Q/K, 2 beats Q/K, 3 beats K). */
-export const underdogWins = (a: Card, b: Card, gap: number) => gap > 0 && b.rank - a.rank >= gap
+/** Aces beat picture cards (J, Q, K) outright, ignoring the wheel. */
+export const aceWins = (a: Card, b: Card, rules: Rules) => rules.acesBeatPictures && a.rank === 1 && b.rank >= 11
 
 /** Fight result for card a against card b: 1 = a wins, -1 = b wins, 0 = tie (both removed). */
 export function compare(a: Card, b: Card, rules: Rules): number {
-  if (underdogWins(a, b, rules.underdog)) return 1
-  if (underdogWins(b, a, rules.underdog)) return -1
+  if (aceWins(a, b, rules)) return 1
+  if (aceWins(b, a, rules)) return -1
   return Math.sign(effective(a, b, rules.wheel) - effective(b, a, rules.wheel))
 }
 
@@ -183,7 +183,7 @@ function fight(g: GameState, lane: 0 | 1) {
     const e = es.reduce((a, b) => (b.pos < a.pos ? b : a))
     if (p.pos < e.pos) return
     const res = compare(p.card, e.card, g.rules)
-    const bonus = (a: Card, b: Card) => (underdogWins(a, b, g.rules.underdog) ? ' (underdog)' : effective(a, b, g.rules.wheel) > a.rank ? ' (+suit)' : '')
+    const bonus = (a: Card, b: Card) => (aceWins(a, b, g.rules) ? ' (ace beats pictures)' : effective(a, b, g.rules.wheel) > a.rank ? ' (suit ×2)' : '')
     if (res === 0) {
       g.log.push(`${label(p.card)}${bonus(p.card, e.card)} ties ${label(e.card)}${bonus(e.card, p.card)}: both removed.`)
       kill(g, p)

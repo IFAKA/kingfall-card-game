@@ -116,11 +116,11 @@ check(cost(1) === 1 && cost(5) === 4 && cost(9) === 7 && cost(13) === 10, 'cost 
   // ranks with suits that give no wheel bonus either way (♠ vs ♦), unless noted
   const c = (rank: number, suit = 0): Card => ({ id: `${rank}-${suit}`, rank, suit })
   const R = DEFAULT_RULES
-  check(compare(c(1), c(11, 2), R) === 1 && compare(c(1), c(13, 2), R) === 1, 'underdog: A beats J and K')
-  check(compare(c(2), c(12, 2), R) === 1 && compare(c(3), c(13, 2), R) === 1, 'underdog: 2 beats Q, 3 beats K')
-  check(compare(c(2), c(11, 2), R) === -1 && compare(c(4), c(13, 2), R) === -1, 'underdog stops at 10 ranks: J beats 2, K beats 4')
-  check(compare(c(13, 0), c(1, 1), R) === -1, 'underdog ignores the wheel: A♥ beats K♠ even though ♠ beats ♥')
-  check(compare(c(9, 0), c(11, 1), R) === 1 && compare(c(7), c(7, 2), R) === 0, 'normal fights unchanged: 9♠ (+3 vs ♥) beats J♥, equal ranks tie')
+  check(compare(c(1), c(11, 2), R) === 1 && compare(c(1), c(13, 2), R) === 1, 'aces beat picture cards: A beats J and K')
+  check(compare(c(2), c(11, 2), R) === -1 && compare(c(1), c(10, 2), R) === -1, 'only aces, only against pictures: J beats 2, 10 beats A')
+  check(compare(c(13, 0), c(1, 1), R) === -1, 'aces ignore the wheel: A♥ beats K♠ even though ♠ beats ♥')
+  check(compare(c(6, 0), c(11, 1), R) === 1 && compare(c(6, 0), c(12, 1), R) === 0 && compare(c(5, 0), c(11, 1), R) === -1, 'winning suit counts double: 6♠ beats J♥, ties Q♥; 5♠ loses to J♥')
+  check(compare(c(7), c(9, 2), R) === -1 && compare(c(7), c(7, 2), R) === 0, 'no wheel between ♠ and ♦: higher rank wins, equal ranks tie')
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nall checks passed')

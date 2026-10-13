@@ -1,6 +1,6 @@
 // Guide engine: you play with real cards; this runs the rules and tells you what to do physically.
 // The enemy's face-down cards are unknown (null) until you flip them and tell the app.
-import { DEFAULT_RULES, compare, cost, defendLane, effective, label, playerLaneInfo, shuffle, underdogWins } from './engine.ts'
+import { DEFAULT_RULES, compare, cost, defendLane, effective, label, playerLaneInfo, shuffle, aceWins } from './engine.ts'
 import type { Card, Rules, StackKey, Towers, Unit } from './engine.ts'
 
 export type Stage =
@@ -39,7 +39,7 @@ const laneName = (l: number) => (l === 0 ? 'LEFT' : 'RIGHT')
 const stackName = (k: StackKey) => (k === 'K' ? 'KING tower' : k === 'L' ? 'LEFT tower' : 'RIGHT tower')
 const clone = (g: GuideState): GuideState => structuredClone(g)
 const bonusNote = (a: Card, b: Card, r: Rules) =>
-  underdogWins(a, b, r.underdog) ? ' (underdog: wins)' : effective(a, b, r.wheel) > a.rank ? ` (+${r.wheel} suit bonus)` : ''
+  aceWins(a, b, r) ? ' (ace: beats pictures)' : effective(a, b, r.wheel) > a.rank ? ` (winning suit: counts double, ${effective(a, b, r.wheel)})` : ''
 
 export function makeGame(deck: Card[], towerSlots: Card[], my16: Card[], rules: Rules = DEFAULT_RULES): GuideState {
   const d = shuffle(deck)
@@ -284,7 +284,7 @@ function resolveNext(g: GuideState): GuideState {
     const e = es.reduce((a, b) => (b.pos < a.pos ? b : a))
     if (!clash(p, e)) continue
     const r = compare(p.card, e.card, g.rules)
-    const underdog = underdogWins(p.card, e.card, g.rules.underdog) || underdogWins(e.card, p.card, g.rules.underdog)
+    const ace = aceWins(p.card, e.card, g.rules) || aceWins(e.card, p.card, g.rules)
     const head = `${laneName(lane)} lane: your ${label(p.card)}${bonusNote(p.card, e.card, g.rules)} vs enemy ${label(e.card)}${bonusNote(e.card, p.card, g.rules)}.`
     let res: string[]
     if (r === 0) {
@@ -293,7 +293,7 @@ function resolveNext(g: GuideState): GuideState {
     } else if (r > 0) {
       res = [`YOUR ${label(p.card)} WINS${p.held ? ' and steps forward when the slot is clear' : ' and stays where it is'}.`, ...kill(g, e)]
       g.log.push(`Your ${label(p.card)} beats enemy ${label(e.card)}.`)
-      if (!underdog && cost(p.card.rank) - cost(e.card.rank) >= 4) {
+      if (!ace && cost(p.card.rank) - cost(e.card.rank) >= 4) {
         g.stats.overkills.push(`Round ${g.round}: your ${label(p.card)} (cost ${cost(p.card.rank)}) beat a ${label(e.card)} (cost ${cost(e.card.rank)}) — a cheaper card could have done it.`)
       }
     } else {
@@ -305,9 +305,9 @@ function resolveNext(g: GuideState): GuideState {
     if (!engaged(g, lane)) { advance(g, lane, 'P'); advance(g, lane, 'E') }
     g.stage = 'fight'
     g.lines = [head, ...res]
-    g.why = [underdog
-      ? `Underdog: a card ${g.rules.underdog} or more ranks lower wins (A beats J/Q/K, 2 beats Q/K, 3 beats K). The winner stays and keeps fighting; the loser goes to the bottom of its pile.`
-      : `The front-most cards fight first. Higher rank wins; a suit that beats the other adds +${g.rules.wheel}. The winner stays and keeps fighting; the loser goes to the bottom of its pile.`]
+    g.why = [ace
+      ? 'Aces beat picture cards (J, Q, K), whatever the suits. The winner stays and keeps fighting; the loser goes to the bottom of its pile.'
+      : 'The front-most cards fight first. Higher rank wins; a card of the suit that beats the other counts double. The winner stays and keeps fighting; the loser goes to the bottom of its pile.']
     return g
   }
   g.hitQueue = g.units

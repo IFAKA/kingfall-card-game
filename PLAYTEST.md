@@ -10,11 +10,11 @@ Rank: A=1, 2–10 face value, J=11, Q=12, K=13. Suits only matter for the wheel.
 | Cost | 1 | 2 | 2 | 3 | 4 | 5 | 5 | 6 | 7 | 8 | 8 | 9 | 10 |
 
 ## Suit wheel
-In a fight, a card gets **+3 rank** against the suit it beats:
+In a fight, a card **counts double** against the suit it beats (6♠ vs J♥ fights as 12 and wins):
 ♠ beats ♥ · ♥ beats ♦ · ♦ beats ♣ · ♣ beats ♠
 
-## Underdog
-In a fight, a card **10 or more ranks lower wins** (suits don't matter): **A beats J, Q, K · 2 beats Q, K · 3 beats K**. Both sides use it. Fights only, not tower hits.
+## Aces beat picture cards
+In a fight, an **ace beats a J, Q or K** (suits don't matter). Both sides use it. Fights only, not tower hits.
 
 ## Setup (52 cards = 16 + 16 + 10 + 10)
 1. Shuffle. Deal **16 to you**, **16 to the enemy** (face-down, do not look), then **10 face-down row for you** (your elixir bar) and **10 face-down row for the enemy** (its bar).
@@ -29,7 +29,7 @@ In a fight, a card **10 or more ranks lower wins** (suits don't matter): **A bea
 2. **You play** as many cards from your hand as you like and can afford: move your marker left by the cost, put the card in slot 1 of a lane, then refill your hand to 4 from the top of your queue.
 3. **Enemy plays.** Turn its top pile card face-up. While its cost ≤ enemy elixir: it pays (its marker moves left by the cost), the card goes to slot 2 of the lane where **you have more units** (tie: left): it defends against your biggest push, then turn up the next top card. When it can't afford the face-up top card, stop; that card stays face-up (its known next play).
 4. **Move.** Every unit steps one slot toward the other side, **except** the front units that already face each other (same slot, or neighbouring slots): those do not move, they clash in place. Cards never pass through each other. A unit that steps off the last slot is "at the tower".
-5. **Fight.** In each lane that has units from both sides: your front-most unit fights the enemy's front-most (front-most = furthest advanced; tie: placed first). Compare rank (+3 wheel bonus if it applies; the underdog rule beats both). **Higher wins; loser goes to the bottom of its owner's pile/queue.** Equal: both go. The winner steps forward into the slot it cleared (if no other enemy card is still in its way), then fights the next enemy card, until one side has no units in that lane. Refill your hand to 4 whenever a card returns to your queue.
+5. **Fight.** In each lane that has units from both sides: your front-most unit fights the enemy's front-most (front-most = furthest advanced; tie: placed first). Compare rank, doubled for the winning suit (an ace against a picture card always wins). **Higher wins; loser goes to the bottom of its owner's pile/queue.** Equal: both go. The winner steps forward into the slot it cleared (if no other enemy card is still in its way), then fights the next enemy card, until one side has no units in that lane. Refill your hand to 4 whenever a card returns to your queue.
 6. **Tower hits.** Each unit still at the tower hits that lane's princess stack (or the king stack if that princess stack is empty). The unit goes to the bottom of its owner's pile. Turn the top tower card face-up. If the unit's rank ≥ that card's rank, **or the card is already cracked (sideways)**, discard the tower card. **Otherwise the tower holds, but the card cracks: turn it sideways and move it to the BOTTOM of that tower** (face-up if it is an enemy card: you now know it), so the next card is on top. Any later hit breaks a cracked card, so small cards can wear any tower down.
    - **Last stand:** when a left or right tower loses its last card, its owner immediately places one card in that lane for free (marker doesn't move). You: any card from your hand into slot 1, then refill. Enemy: the top card of its pile (normally already face-up) into slot 2. Not for the king.
 7. **End check.** Enemy king stack empty = you win. Yours empty = you lose. Both = draw.
@@ -37,8 +37,8 @@ In a fight, a card **10 or more ranks lower wins** (suits don't matter): **A bea
 Enemy moves in the same way against your towers (it hits your stacks; you know your cards).
 
 ## What to look for (from the bot simulator)
-- Bots say mixed decks do best (strong player ≈ 90%), all-cheap is close (≈ 80%) thanks to the underdog rule, all-high is weakest (≈ 70%). Try them and see if you feel it.
-- Expected strength: random play ≈ 5% wins, a simple rule-follower ≈ 50%, a strong player ≈ 85–90%. Expect to lose your first games.
+- Bots say every deck type works for a strong player: mixed ≈ 88%, all-cheap ≈ 84%, all-high ≈ 82%. Try them and see if you feel it.
+- Expected strength: random play ≈ 4% wins, a simple rule-follower ≈ 40–45%, a strong player ≈ 85–90%. Expect to lose your first games.
 - Estimated length: ~20–25 rounds. Time yourself.
 
 ## Log (copy per game)
@@ -51,6 +51,7 @@ Enemy moves in the same way against your towers (it hits your stacks; you know y
 - Did the enemy defending your pushed lane feel smart, or predictable/exploitable? __
 - Did the sideways elixir marker feel quick, or still like bookkeeping? __
 - Did a last stand ever turn a game around? __
-- Did an underdog kill (A/2/3 beating a face card) feel fair, or cheap? __
+- Did an ace killing a picture card feel fair, or cheap? __
+- Was doubling for the winning suit quick in your head, or did you have to stop and count? __
 - Did cracking (sideways tower cards) feel natural? Did any tower feel impossible? __
 - Would I play again right now? (y/n) __  One thing I'd change: __
