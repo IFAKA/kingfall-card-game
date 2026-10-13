@@ -274,10 +274,10 @@ h3 { margin: 18px 0 8px; }
 
 /* suit wheel reminder at the end of the hand row: high-contrast suit chips, each one beats the next (clubs loop back to spades) */
 .hand .wheel { position: absolute; right: 12px; bottom: 0; display: flex; align-items: center; gap: 3px; padding: 6px 10px; background: #0b1220; border: 2px solid #ffd36b; border-radius: 12px; line-height: 1; }
-.hand .wheel b { color: #ffd36b; font-size: 11px; letter-spacing: .06em; margin-right: 4px; }
-.hand .wheel .chip { font-style: normal; width: calc(var(--cw) * .8); height: calc(var(--cw) * .8); border-radius: 50%; background: #fff; color: #111; display: flex; align-items: center; justify-content: center; font-size: calc(var(--cw) * .6); font-weight: 700; }
+.hand .wheel b { color: #ffd36b; font-size: 16px; letter-spacing: .06em; margin-right: 4px; }
+.hand .wheel .chip { font-style: normal; width: calc(var(--cw) * .55); height: calc(var(--cw) * .55); border-radius: 50%; background: #fff; color: #111; display: flex; align-items: center; justify-content: center; font-size: calc(var(--cw) * .42); font-weight: 700; }
 .hand .wheel .chip.r { color: #d4141f; }
-.hand .wheel em { font-style: normal; color: #ffd36b; font-size: calc(var(--cw) * .5); font-weight: 900; }
+.hand .wheel em { font-style: normal; color: #ffd36b; font-size: calc(var(--cw) * .36); font-weight: 900; }
 .hdrag.lifted { opacity: .35; }
 
 .modal { background: #0a2d20; color: inherit; border: 1px solid #4a9; border-radius: 10px; padding: 14px 18px; width: min(640px, 92vw); max-height: 85vh; overflow: auto; }
@@ -317,3 +317,10 @@ html.rot .modal, html.rot .gameover { transform: rotate(90deg); width: min(640px
 .play.compact button { padding: 3px 8px; font-size: 12px; }
 .play.compact .clabel { font-size: 9px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .play.compact .cell { padding-top: 12px; }
+
+/* phone (rotated table): keep the suit wheel in the hand row's flow and compact so it never overlaps the cards */
+.play.rot .hand, .play.compact .hand { gap: 4px; justify-content: flex-start; }
+.play.rot .hand .wheel, .play.compact .hand .wheel { position: static; margin-left: auto; margin-right: 6px; align-self: stretch; justify-content: center; padding: 4px 6px; gap: 1px; border-width: 1px; border-radius: 8px; flex: none; }
+.play.rot .hand .wheel b, .play.compact .hand .wheel b { font-size: 11px; margin-right: 2px; }
+.play.rot .hand .wheel .chip, .play.compact .hand .wheel .chip { width: calc(var(--cw) * .85); height: calc(var(--cw) * .85); font-size: calc(var(--cw) * .65); }
+.play.rot .hand .wheel em, .play.compact .hand .wheel em { font-size: calc(var(--cw) * .6); }
