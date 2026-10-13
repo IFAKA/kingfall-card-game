@@ -272,3 +272,10 @@ h3 { margin: 18px 0 8px; }
 .hdrag.off { cursor: not-allowed; }
 .lanecell.droppable { outline: 2px dashed #ffd36b; outline-offset: -2px; }
 .lanecell.droppable.over { background: #ffd36b33; outline-style: solid; }
+
+/* turn feedback: green glow + badge on your turn, red on the enemy's */
+.top { display: flex; align-items: center; gap: 12px; }
+.play { background: linear-gradient(to right, rgba(70, 130, 230, .16) 50%, rgba(235, 40, 70, .30) 50%); transition: box-shadow .3s; }
+.play.turn-me { box-shadow: inset 6px 0 0 #4ade80; }
+.play.turn-enemy { box-shadow: inset -6px 0 0 #ef4444; }
+.play.turn-enemy .hand { opacity: .55; }

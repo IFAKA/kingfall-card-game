@@ -114,6 +114,7 @@ function HStack({ items, own, mirror, cracked }: { items: ESlot[]; own: boolean;
   )
 }
 
+// Face-up where the card is known (all of yours); the enemy's is down only where unknown.
 function Pile({ items, spread }: { items: ESlot[]; spread?: boolean }) {
   const step = `calc((var(--ch) + 22px) / ${Math.max(1, items.length - 1)})`
   return (
@@ -171,9 +172,9 @@ function LaneCells({ idx, units, laneLen, row, at, dragging, onDropCard }: { idx
     <>
       {defs.map((d, k) => (
         <div key={k} className={`cell lanecell ${d.cls} ${dragging && k === 1 ? 'droppable' : ''} ${dragging && k === 1 && over ? 'over' : ''}`} style={at(4 + k, row)}
-          onDragOver={dragging && k === 1 ? e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' } : undefined}
+          onDragOver={dragging && k === 1 ? e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setOver(true) } : undefined}
           onDragEnter={dragging && k === 1 ? () => setOver(true) : undefined}
-          onDragLeave={dragging && k === 1 ? () => setOver(false) : undefined}
+          onDragLeave={dragging && k === 1 ? e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(false) } : undefined}
           onDrop={dragging && k === 1 ? e => { e.preventDefault(); setOver(false); onDropCard?.(idx) } : undefined}>
           <span className="clabel">{d.label}</span>
           <div className="cellbody">
@@ -418,13 +419,14 @@ export default function App() {
   const hitEnemy = stage === 'tower_enter'
   const picker = stage === 'enemy_enter' || stage === 'last_stand_enter' || hitEnemy
   const standing = stage === 'my_last_stand'
+  const side = stage === 'my_play' || standing ? 'me' : stage.startsWith('enemy_') || stage === 'last_stand_enter' ? 'enemy' : null
   const inform = ['round_start', 'enemy_play', 'enemy_stop', 'move', 'fight', 'tower_result'].includes(stage)
   const bottomKnown = g.E.queue.filter(x => x.card).length
   const mineSlots = (k: 'L' | 'R' | 'K'): ESlot[] => g.P.towers[k].map(c => ({ tid: c.id, card: c }))
   const at = atFor(portrait)
 
   return (
-    <div className={`play${portrait ? ' portrait' : ''}`}>
+    <div className={`play${portrait ? ' portrait' : ''}${side ? ' turn-' + side : ''}`}>
       <div className="top">{header}</div>
       {portrait && <div className="elixrow"><BarRow n={g.P.elixir} who="YOU" /><BarRow n={g.E.elixir} who="ENEMY" /></div>}
       <div className="board">
