@@ -1,0 +1,12 @@
+{
+  "name": "Solo Clash — table guide",
+  "short_name": "Solo Clash",
+  "description": "Companion app for Solo Clash, a one-player lane battle played with a standard 52-card deck.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d3b2a",
+  "theme_color": "#0d3b2a",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
