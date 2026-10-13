@@ -570,3 +570,17 @@ export function summary(g: GuideState): string[] {
   else out.push('You never used a much more expensive card than needed to win a fight.')
   return out
 }
+
+// ---------- on-screen play ----------
+/** On-screen mode: the app holds the enemy's real cards (by tid) and flips them itself whenever the guide would ask you to. */
+export function autoReveal(g0: GuideState, secret: Record<string, Card>): GuideState {
+  let g = g0
+  for (let n = 0; n < 8; n++) {
+    if (g.stage === 'enemy_enter' || g.stage === 'last_stand_enter') g = enterEnemyCard(g, secret[g.E.queue[0].tid])
+    else if (g.stage === 'tower_enter') {
+      const u = g.units.find(x => x.uid === g.hitQueue[0])!
+      g = enterTowerCard(g, secret[g.E.towers[hitTarget(g, u)][0].tid])
+    } else break
+  }
+  return g
+}

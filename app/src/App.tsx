@@ -2,16 +2,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { motion } from 'framer-motion'
 import './App.css'
-import { DEFAULT_RULES, RANKS, SUITS, autoTowers, cost, freshDeck, isRed, label, suggestDeck } from './engine'
+import { DEFAULT_RULES, RANKS, SUITS, autoTowers, cost, deal, freshDeck, isRed, label, shuffle, suggestDeck } from './engine'
 import type { Card, Unit } from './engine'
 import {
-  advise, canPlay, endMyTurn, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary,
+  advise, autoReveal, canPlay, endMyTurn, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary,
 } from './guide'
 import type { Discarded, ESlot, GuideState } from './guide'
 
 type Help = 'off' | 'explain' | 'suggest'
 type Screen = 'deal' | 'enter' | 'draft' | 'table' | 'play'
-interface Saved { screen: Screen; my16: string[]; deckIds: string[]; slotIds: string[]; help: Help; pre: GuideState | null; game: GuideState | null; history: GuideState[] }
+interface Saved { mode?: 'guide' | 'play'; secret?: Record<string, Card>; screen: Screen; my16: string[]; deckIds: string[]; slotIds: string[]; help: Help; pre: GuideState | null; game: GuideState | null; history: GuideState[] }
 
 const ALL = freshDeck()
 const byId = (id: string) => ALL.find(c => c.id === id)!
@@ -69,7 +69,7 @@ function TCard({ tid, card, down, selected, dim, showCost, onClick }: {
   )
 }
 
-// An elixir bar: a row of 10 face-down cards (5 + 5); the one turned sideways is the marker, its position = elixir.
+// An elixir bar: a row of 10 face-down cards; the one flipped face-up is the marker, its position = elixir.
 function BarRow({ n, who }: { n: number; who: string }) {
   return (
     <div className="hbar">
@@ -78,6 +78,20 @@ function BarRow({ n, who }: { n: number; who: string }) {
         <span key={i} className={`bslot${i === n - 1 ? ' marker' : ''}${i === 5 ? ' gap' : ''}`}>{i + 1}</span>
       ))}
     </div>
+  )
+}
+
+// The same bar as 10 board cells, one per column, so it lines up with the table below it.
+function BarCells({ n, who, row, at }: { n: number; who: string; row: number; at: At }) {
+  return (
+    <>
+      {Array.from({ length: 10 }, (_, i) => (
+        <div key={i} className="cell ecell" style={at(i + 1, row)}>
+          {i === 0 && <span className="clabel">{who} · elixir {n}/10</span>}
+          <span className={`bslot${i === n - 1 ? ' marker' : ''}`}>{i + 1}</span>
+        </div>
+      ))}
+    </>
   )
 }
 
@@ -101,7 +115,7 @@ function HStack({ items, own, mirror, cracked }: { items: ESlot[]; own: boolean;
 }
 
 function Pile({ items, spread }: { items: ESlot[]; spread?: boolean }) {
-  const step = `calc((2 * var(--ch) + 46px) / ${Math.max(1, items.length - 1)})`
+  const step = `calc((var(--ch) + 22px) / ${Math.max(1, items.length - 1)})`
   return (
     <div className={`spile ${spread ? 'spread' : ''}`}>
       {items.map((it, i) => (
@@ -114,7 +128,7 @@ function Pile({ items, spread }: { items: ESlot[]; spread?: boolean }) {
 }
 
 function Discard({ items }: { items: Discarded[] }) {
-  const step = items.length > 1 ? Math.min(0.3, 1.5 / (items.length - 1)) : 0
+  const step = items.length > 1 ? Math.min(0.3, 0.85 / (items.length - 1)) : 0
   return (
     <div className="dpile">
       {items.length === 0 && <div className="destroyed">empty</div>}
@@ -123,14 +137,15 @@ function Discard({ items }: { items: Discarded[] }) {
   )
 }
 
-// Board cells are placed for the wide layout: columns run from you (1) to the enemy (8), rows are left lane / middle / right lane.
-// On phones the board turns upright like Clash Royale: enemy on top, you at the bottom, lanes running vertically.
+// Board cells are placed for the wide layout: 10 columns run from you (1) to the enemy (10), rows are enemy elixir / left lane / right lane / your elixir.
+// On phones the board turns upright like Clash Royale: enemy on top, you at the bottom, lanes running vertically (the elixir bars sit above the board).
 type Span = number | string
 type At = (col: Span, row: Span) => CSSProperties
 const atFor = (portrait: boolean): At => (col, row) => {
   if (!portrait) return { gridColumn: col, gridRow: row }
   const [a, b] = typeof col === 'number' ? [col, col + 1] : col.split(' / ').map(Number)
-  return { gridColumn: row, gridRow: `${10 - b} / ${10 - a}` }
+  const [r1, r2] = typeof row === 'number' ? [row, row + 1] : row.split(' / ').map(Number)
+  return { gridColumn: `${r1 - 1} / ${r2 - 1}`, gridRow: `${11 - b} / ${11 - a}` }
 }
 const PORTRAIT = '(max-width: 760px)'
 function usePortrait() {
@@ -154,7 +169,7 @@ function LaneCells({ idx, units, laneLen, row, at }: { idx: 0 | 1; units: Unit[]
   return (
     <>
       {defs.map((d, k) => (
-        <div key={k} className={`cell lanecell ${d.cls}`} style={at(3 + k, row)}>
+        <div key={k} className={`cell lanecell ${d.cls}`} style={at(4 + k, row)}>
           <span className="clabel">{d.label}</span>
           <div className="cellbody">
             {units.filter(u => u.lane === idx && d.pred(u)).map(u => (
@@ -207,7 +222,10 @@ export default function App() {
   const [my16, setMy16] = useState<string[]>(saved?.my16 ?? [])
   const [deckIds, setDeckIds] = useState<string[]>(saved?.deckIds ?? [])
   const [slotIds, setSlotIds] = useState<string[]>(saved?.slotIds ?? [])
+  const [mode, setMode] = useState<'guide' | 'play'>(saved?.mode ?? 'guide')
+  const [secret, setSecret] = useState<Record<string, Card>>(saved?.secret ?? {})
   const [epile, setEpile] = useState(false)
+  const [qpile, setQpile] = useState(false)
   const [note, setNote] = useState<string | null>(null)
   const [swapFrom, setSwapFrom] = useState<number | null>(null)
   const [help, setHelp] = useState<Help>(saved?.help ?? 'suggest')
@@ -219,18 +237,19 @@ export default function App() {
   const portrait = usePortrait()
 
   useEffect(() => {
-    const s: Saved = { screen, my16, deckIds, slotIds, help, pre, game, history: history.slice(-60) }
+    const s: Saved = { mode, secret, screen, my16, deckIds, slotIds, help, pre, game, history: history.slice(-60) }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)) } catch { /* storage full: ignore */ }
-  }, [screen, my16, deckIds, slotIds, help, pre, game, history])
+  }, [mode, secret, screen, my16, deckIds, slotIds, help, pre, game, history])
   useEffect(() => { logRef.current?.scrollTo({ top: logRef.current.scrollHeight }) }, [game?.log.length])
 
   const mine = my16.map(byId).sort((a, b) => b.rank - a.rank || a.suit - b.suit)
   const deck = mine.filter(c => deckIds.includes(c.id))
 
   const reset = () => {
-    setScreen('deal'); setMy16([]); setDeckIds([]); setSlotIds([]); setPre(null); setGame(null); setHistory([]); setSel(null)
+    setScreen('deal'); setMy16([]); setDeckIds([]); setSlotIds([]); setPre(null); setGame(null); setHistory([]); setSel(null); setMode('guide'); setSecret({})
   }
-  const commit = (g: GuideState) => { setHistory(h => [...h, game!]); setGame(g); setSel(null); setNote(null) }
+  const settle = (g: GuideState) => (mode === 'play' ? autoReveal(g, secret) : g)
+  const commit = (g: GuideState) => { setHistory(h => [...h, game!]); setGame(settle(g)); setSel(null); setNote(null) }
   const undo = () => { if (!history.length) return; setGame(history[history.length - 1]); setHistory(h => h.slice(0, -1)); setSel(null) }
 
   const pickDeck = (ids: string[]) => {
@@ -247,12 +266,19 @@ export default function App() {
     if (swapFrom !== i) setSlotIds(s => { const x = [...s];[x[swapFrom], x[i]] = [x[i], x[swapFrom]]; return x })
     setSwapFrom(null)
   }
+  // on-screen play: deal both hands at random; the enemy's cards stay hidden inside the app (tid ep0-7 = pile, et0-7 = towers)
+  const startOnScreen = () => {
+    const d = deal()
+    const enemy = shuffle(d.theirs)
+    setSecret(Object.fromEntries(enemy.map((c, i) => [i < 8 ? `ep${i}` : `et${i - 8}`, c])))
+    setMode('play'); setMy16(d.mine.map(c => c.id)); setDeckIds([]); setSlotIds([]); setScreen('draft')
+  }
   const reshuffle = () => setPre(makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES))
 
   const header = (
     <div className="topbar">
-      <b>Solo Clash — table guide</b>
-      <span className="muted">You play with real cards; this page runs the rules and tells you what to do.</span>
+      <b>Solo Clash — {mode === 'play' ? 'on screen' : 'table guide'}</b>
+      <span className="muted">{mode === 'play' ? 'The app deals, plays the enemy and runs the rules.' : 'You play with real cards; this page runs the rules and tells you what to do.'}</span>
       <button onClick={() => { if (confirm('Start over? This discards the current game.')) reset() }}>Start over</button>
     </div>
   )
@@ -261,6 +287,10 @@ export default function App() {
   if (screen === 'deal') {
     return (
       <div className="page">{header}
+        <div className="row">
+          <button className="big" onClick={startOnScreen}>Play here on screen</button>
+          <span className="muted">or play with real cards and let this page guide you ↓</span>
+        </div>
         <h1>1. Deal the cards</h1>
         <ol className="steps">
           <li>Take a standard 52-card deck (no jokers) and <b>shuffle it well</b>.</li>
@@ -296,7 +326,7 @@ export default function App() {
     const slotName = ['Left (top)', 'Left 2', 'Left 3', 'Right (top)', 'Right 2', 'Right 3', 'King (top)', 'King 2']
     return (
       <div className="page">{header}
-        <h1>3. Build your deck</h1>
+        <h1>{mode === 'play' ? 'Your 16 cards: build your deck' : '3. Build your deck'}</h1>
         <div className="help">
           <b>First: what a card is.</b> Cards have <u>no special abilities</u>. A card is just a soldier with one number, its <b>rank</b> (2 … 10, J=11, Q=12, K=13, A=1). Higher rank wins fights. The only extra rules:
           <ul>
@@ -336,7 +366,9 @@ export default function App() {
                 </div>
               ))}
             </div>
-            <button className="big" onClick={() => { reshuffle(); setScreen('table') }}>Next: set up the table</button>
+            {mode === 'play'
+              ? <button className="big" onClick={() => { setGame(settle(startRound(makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES)))); setHistory([]); setScreen('play') }}>Start the game</button>
+              : <button className="big" onClick={() => { reshuffle(); setScreen('table') }}>Next: set up the table</button>}
           </>
         )}
       </div>
@@ -382,48 +414,53 @@ export default function App() {
   const standing = stage === 'my_last_stand'
   const inform = ['round_start', 'enemy_play', 'enemy_stop', 'move', 'fight', 'tower_result'].includes(stage)
   const bottomKnown = g.E.queue.filter(x => x.card).length
-  const stackNm = ['LEFT tower', 'KING tower', 'RIGHT tower']
-  const keys = ['L', 'K', 'R'] as const
   const mineSlots = (k: 'L' | 'R' | 'K'): ESlot[] => g.P.towers[k].map(c => ({ tid: c.id, card: c }))
   const at = atFor(portrait)
 
   return (
     <div className={`play${portrait ? ' portrait' : ''}`}>
       <div className="top">{header}</div>
-      <div className="elixrow"><BarRow n={g.P.elixir} who="YOU" /><BarRow n={g.E.elixir} who="ENEMY" /></div>
+      {portrait && <div className="elixrow"><BarRow n={g.P.elixir} who="YOU" /><BarRow n={g.E.elixir} who="ENEMY" /></div>}
       <div className="board">
-        {/* columns: 1-2 you (hand+queue | towers) · 3-6 lanes · 7-8 enemy (towers | pile) */}
-        <div className="cell" style={at(1, 1)}><span className="clabel">your queue (next on top)</span><Pile items={g.P.queue.map(c => ({ tid: c.id, card: c }))} /></div>
-        <div className="cell" style={at(1, '2 / 4')}>
-          <span className="clabel">your hand</span>
-          <div className="vhand">
-            {g.P.hand.map((c, i) => (
-              <div key={c.id} className="vcard" style={{ top: `calc(${i} * var(--voff))`, zIndex: i, transform: sel === i ? 'translateX(14px)' : undefined }}>
-                <TCard tid={c.id} card={c} down={false} showCost selected={sel === i} dim={!standing && !canPlay(g, i)} onClick={() => standing ? commit(lastStandPlay(g, i)) : canPlay(g, i) ? (setNote(null), setSel(sel === i ? null : i)) : (setSel(null), setNote(`${label(c)} costs ${cost(c.rank)} elixir but you only have ${g.P.elixir}. Pick a card whose purple number is ${g.P.elixir} or less.`))} />
-              </div>
-            ))}
-            {!g.P.hand.length && <span className="muted">no cards in hand</span>}
-          </div>
+        {/* columns: 1 queue/discard · 2 king · 3 tower · 4-7 lane · 8 tower · 9 king · 10 pile/discard; rows: enemy elixir · left lane · right lane · your elixir */}
+        {!portrait && <BarCells n={g.E.elixir} who="ENEMY" row={1} at={at} />}
+        <div className={`cell epilecell ${qpile ? 'open' : ''}`} style={at(1, 2)} onMouseEnter={() => setQpile(true)} onMouseLeave={() => setQpile(false)}><span className="clabel">your queue (next on top)</span><Pile items={g.P.queue.map(c => ({ tid: c.id, card: c }))} spread={qpile} /></div>
+        <div className="cell kingcell" style={at(2, '2 / 4')}>
+          <span className="clabel">YOUR KING tower · {g.P.towers.K.length}</span>
+          <HStack items={mineSlots('K')} own mirror={false} cracked={g.cracked ?? []} />
         </div>
-        {keys.map((k, r) => (
-          <div key={'pt' + k} className="cell" style={at(2, r + 1)}>
-            <span className="clabel">YOUR {stackNm[r]} · {g.P.towers[k].length}</span>
+        {(['L', 'R'] as const).map((k, r) => (
+          <div key={'pt' + k} className="cell" style={at(3, r + 2)}>
+            <span className="clabel">YOUR {k === 'L' ? 'LEFT' : 'RIGHT'} tower · {g.P.towers[k].length}</span>
             <HStack items={mineSlots(k)} own mirror={false} cracked={g.cracked ?? []} />
           </div>
         ))}
 
-        <LaneCells idx={0} units={g.units} laneLen={g.rules.laneLen} row={1} at={at} />
-        <div className="cell" style={at('3 / 5', 2)}><span className="clabel">your discard · {g.discard.filter(d => d.owner === 'P').length}</span><Discard items={g.discard.filter(d => d.owner === 'P')} /></div>
-        <div className="cell" style={at('5 / 7', 2)}><span className="clabel">enemy discard · {g.discard.filter(d => d.owner === 'E').length}</span><Discard items={g.discard.filter(d => d.owner === 'E')} /></div>
+        <LaneCells idx={0} units={g.units} laneLen={g.rules.laneLen} row={2} at={at} />
         <LaneCells idx={1} units={g.units} laneLen={g.rules.laneLen} row={3} at={at} />
+        <div className="cell" style={at(1, 3)}><span className="clabel">your discard · {g.discard.filter(d => d.owner === 'P').length}</span><Discard items={g.discard.filter(d => d.owner === 'P')} /></div>
+        <div className="cell" style={at(10, 3)}><span className="clabel">enemy discard · {g.discard.filter(d => d.owner === 'E').length}</span><Discard items={g.discard.filter(d => d.owner === 'E')} /></div>
 
-        {keys.map((k, r) => (
-          <div key={'et' + k} className="cell" style={at(7, r + 1)}>
-            <span className="clabel">ENEMY {stackNm[r]} · {g.E.towers[k].length}</span>
+        {(['L', 'R'] as const).map((k, r) => (
+          <div key={'et' + k} className="cell" style={at(8, r + 2)}>
+            <span className="clabel">ENEMY {k === 'L' ? 'LEFT' : 'RIGHT'} tower · {g.E.towers[k].length}</span>
             <HStack items={g.E.towers[k]} own={false} mirror cracked={g.cracked ?? []} />
           </div>
         ))}
-        <div className={`cell epilecell ${epile ? 'open' : ''}`} style={at(8, '1 / 4')} onMouseEnter={() => setEpile(true)} onMouseLeave={() => setEpile(false)}><span className="clabel">enemy pile ({g.E.queue.length}; {bottomKnown} known)</span><Pile items={g.E.queue} spread={epile} /></div>
+        <div className="cell kingcell" style={at(9, '2 / 4')}>
+          <span className="clabel">ENEMY KING tower · {g.E.towers.K.length}</span>
+          <HStack items={g.E.towers.K} own={false} mirror cracked={g.cracked ?? []} />
+        </div>
+        <div className={`cell epilecell ${epile ? 'open' : ''}`} style={at(10, 2)} onMouseEnter={() => setEpile(true)} onMouseLeave={() => setEpile(false)}><span className="clabel">enemy pile ({g.E.queue.length}; {bottomKnown} known)</span><Pile items={g.E.queue} spread={epile} /></div>
+        {!portrait && <BarCells n={g.P.elixir} who="YOU" row={4} at={at} />}
+      </div>
+
+      <div className="hand">
+        <span className="clabel">your hand</span>
+        {g.P.hand.map((c, i) => (
+          <TCard key={c.id} tid={c.id} card={c} down={false} showCost selected={sel === i} dim={!standing && !canPlay(g, i)} onClick={() => standing ? commit(lastStandPlay(g, i)) : canPlay(g, i) ? (setNote(null), setSel(sel === i ? null : i)) : (setSel(null), setNote(`${label(c)} costs ${cost(c.rank)} elixir but you only have ${g.P.elixir}. Pick a card whose purple number is ${g.P.elixir} or less.`))} />
+        ))}
+        {!g.P.hand.length && <span className="muted">no cards in hand</span>}
       </div>
 
       <div className="panel">

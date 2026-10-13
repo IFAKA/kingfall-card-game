@@ -214,10 +214,6 @@ h3 { margin: 18px 0 8px; }
 .play { --cw: min(calc((100vw - 28px) / 17.7), calc((52vh - 70px) / 3 * .714)); }
 .board { grid-template-columns: calc(var(--cw) * 1.15) calc(var(--cw) * 2.2) calc(var(--cw) * 1.85) calc(var(--cw) * 1.1) calc(var(--cw) * 1.8) calc(var(--cw) * 1.8) calc(var(--cw) * 1.1) calc(var(--cw) * 1.85) calc(var(--cw) * 2.2) calc(var(--cw) * 1.15); }
 .cellbody:has(> .unit:nth-child(3)) > .unit + .unit { margin-left: calc(var(--cw) * -.75); }
-.epilecell:not(.open) .clabel { display: block; margin-top: calc(var(--ch) + 22px); }
-.spile.spread { height: calc(3 * (var(--ch) + 22px) - 20px); }
-.epilecell:not(.open) .clabel { margin-top: 0; top: calc(var(--ch) + 22px); }
-.epilecell:not(.open) .spile { margin-top: calc(var(--ch) + 22px); }
 
 /* horizontal elixir bars above the board */
 .board { grid-template-columns: calc(var(--cw) * 2.2) calc(var(--cw) * 1.85) calc(var(--cw) * 1.1) calc(var(--cw) * 1.8) calc(var(--cw) * 1.8) calc(var(--cw) * 1.1) calc(var(--cw) * 1.85) calc(var(--cw) * 2.2); }
@@ -236,12 +232,11 @@ h3 { margin: 18px 0 8px; }
   --cw: min(calc((100vw - 44px) / 3 / 2), 50px); --ch: calc(var(--cw) / .714); --hoff: calc(var(--cw) * .42); --voff: calc(var(--ch) * .45); }
 .play.portrait .elixrow { order: 1; flex-direction: column; align-items: flex-start; gap: 6px; }
 .play.portrait .panel { order: 2; grid-template-columns: minmax(0, 1fr); overflow: visible; flex: none; gap: 8px; }
-.play.portrait .board { order: 3; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: none; grid-auto-rows: minmax(calc(var(--ch) + 20px), auto); }
+.play.portrait .hand { order: 4; flex-wrap: wrap; }
+.play.portrait .board { order: 3; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; grid-auto-rows: minmax(calc(var(--ch) + 20px), auto); }
 .play.portrait .pcol { overflow: visible; }
 .play.portrait .pcol .log { max-height: 220px; }
 .play.portrait .clabel { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-.play.portrait .epilecell .clabel { top: 0; margin-top: 0; }
-.play.portrait .epilecell .spile { margin-top: 0; }
 .play.portrait .panel button { min-height: 40px; }
 .play.portrait .topbar .muted { display: none; }
 
@@ -254,3 +249,19 @@ h3 { margin: 18px 0 8px; }
   h1 { font-size: 22px; }
 }
 .play.portrait .epilecell .spile { margin-bottom: calc(9 * var(--poff)); }
+
+/* ===== table: elixir rows, 2 lane rows, your hand underneath ===== */
+.play { --cw: min(calc((100vw - 90px) / 18.5), calc((100vh - 250px) / 5.3 * .714)); }
+.board { overflow: visible; grid-template-columns: repeat(10, calc(var(--cw) * 1.85)); grid-template-rows: repeat(4, calc(var(--ch) + 20px)); }
+.kingcell { align-self: center; padding-top: 16px; }
+.ecell { padding-top: 16px; display: flex; justify-content: center; }
+.ecell .clabel { left: 2px; }
+.bslot { width: var(--cw); height: var(--ch); border-radius: 6px; border-width: 2px; font-size: calc(var(--cw) * .3); }
+.bslot.marker { transform: none; margin: 0; background: #f3e8ff; border: 2px solid #7a3fd1; color: #7a3fd1; box-shadow: 0 0 0 2px #b06bff, 0 0 8px #b06bff; }
+.epilecell.open { z-index: 20; }
+.spile.spread { height: calc(2 * (var(--ch) + 20px) - 20px); }
+.hand { position: relative; justify-content: center; align-items: flex-end; padding-top: 16px; margin: 0; }
+.hand .clabel { left: calc(50% - var(--cw) * 2.4); }
+.hand .tcard { margin: 0 4px; }
+.play.portrait .bslot { width: 14px; height: 20px; border-radius: 3px; border-width: 1px; font-size: 9px; }
+.play.portrait .bslot.marker { margin: 0 2px; }
