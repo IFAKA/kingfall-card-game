@@ -85,26 +85,33 @@ function TCard({ tid, card, down, selected, dim, showCost, onClick }: {
   )
 }
 
+// Preview of a card's cost on the bar: the slots it would use up (same look whether or not you can afford it).
+function spendCls(i: number, n: number, spend: number) {
+  if (!spend) return ''
+  if (spend > n) return i < n ? ' short' : ''
+  return i >= n - spend && i < n ? ' spend' : ''
+}
+
 // An elixir bar: a row of 10 face-down cards; the one flipped face-up is the marker, its position = elixir.
-function BarRow({ n, who }: { n: number; who: string }) {
+function BarRow({ n, who, spend = 0, hint }: { n: number; who: string; spend?: number; hint?: string }) {
   return (
     <div className="hbar">
-      <span className="hlabel">{who} · elixir {n}/10</span>
+      <span className="hlabel">{who} · elixir {n}/10{hint && <b className="chint"> · {hint}</b>}</span>
       {Array.from({ length: 10 }, (_, i) => (
-        <span key={i} className={`bslot${i === n - 1 ? ' marker' : ''}${i === 5 ? ' gap' : ''}`}>{i + 1}</span>
+        <span key={i} className={`bslot${i === n - 1 ? ' marker' : ''}${i === 5 ? ' gap' : ''}${spendCls(i, n, spend)}`}>{i + 1}</span>
       ))}
     </div>
   )
 }
 
 // The same bar as 10 board cells, one per column, so it lines up with the table below it.
-function BarCells({ n, who, row, at }: { n: number; who: string; row: number; at: At }) {
+function BarCells({ n, who, row, at, spend = 0, hint }: { n: number; who: string; row: number; at: At; spend?: number; hint?: string }) {
   return (
     <>
       {Array.from({ length: 10 }, (_, i) => (
         <div key={i} className="cell ecell" style={at(i + 1, row)}>
-          {i === 0 && <span className="clabel">{who} · elixir {n}/10</span>}
-          <span className="eslot"><span className={`eflip${i === n - 1 ? ' up' : ''}`}><span className="ef efront">{i + 1}</span><span className="ef eback">{i + 1}</span></span></span>
+          {i === 0 && <span className="clabel">{who} · elixir {n}/10{hint && <b className="chint"> · {hint}</b>}</span>}
+          <span className={`eslot${spendCls(i, n, spend)}`}><span className={`eflip${i === n - 1 ? ' up' : ''}`}><span className="ef efront">{i + 1}</span><span className="ef eback">{i + 1}</span></span></span>
         </div>
       ))}
     </>
@@ -231,7 +238,7 @@ const RULES_60 = (
     <li><b>Goal:</b> destroy the enemy's <b>king tower</b> (a stack of 2 cards) before it destroys yours.</li>
     <li><b>Cards</b> are soldiers. Higher rank wins a fight (A=1 … K=13). A suit that beats the other adds +3: ♠→♥, ♥→♦, ♦→♣, ♣→♠.</li>
     <li><b>Elixir</b> pays for soldiers: a card costs about its rank (A=1, 5=4, 8=6, K=10). You get 3 more each round, max 10.</li>
-    <li>Each round: <b>you play</b> cards into a lane, then the <b>enemy</b> plays from its pile into the lane where you have <b>more</b> cards (it defends), then <b>everything moves</b> one slot and <b>fights</b>. Cards that face each other don't pass through: they clash where they stand, and the winner steps into the slot it cleared. Survivors reaching the other end hit a tower.</li>
+    <li>Each round: <b>you play</b> cards into a lane, then the <b>enemy</b> plays from its pile into the lane where you have <b>more</b> cards (it defends; on a tie, where your highest-ranked card is, then left), then <b>everything moves</b> one slot and <b>fights</b>. Cards that face each other don't pass through: they clash where they stand, and the winner steps into the slot it cleared. Survivors reaching the other end hit a tower.</li>
     <li><b>A tower card breaks</b> if the attacking soldier's rank ≥ the tower's top card. A tower stack has 2–3 cards; each break removes one. If the soldier is too weak, the tower holds but its top card <b>cracks</b>: turn it sideways and move it to the bottom of that tower. Any later hit breaks a cracked card. The king can only be hit after the princess tower in that lane is gone.</li>
     <li><b>Last stand:</b> when a left or right tower is destroyed, its owner immediately places one card in that lane for free (the enemy uses the top card of its pile).</li>
     <li>A fighting card that dies goes to the <b>bottom of its owner's pile</b>, and you draw it again later. So your 8 cards just keep cycling.</li>
@@ -255,7 +262,11 @@ export default function App() {
   const [game, setGame] = useState<GuideState | null>(saved?.game ?? null)
   const [history, setHistory] = useState<GuideState[]>(saved?.history ?? [])
   const [sel, setSel] = useState<number | null>(null)
+  const helpRef = useRef<HTMLDialogElement>(null)
+  const rulesRef = useRef<HTMLDialogElement>(null)
+  const logDlgRef = useRef<HTMLDialogElement>(null)
   const [drag, setDrag] = useState<number | null>(null)
+  const [hov, setHov] = useState<number | null>(null)
   const logRef = useRef<HTMLDivElement>(null)
   const portrait = usePortrait()
 
@@ -435,6 +446,9 @@ export default function App() {
   const hitEnemy = stage === 'tower_enter'
   const picker = stage === 'enemy_enter' || stage === 'last_stand_enter' || hitEnemy
   const standing = stage === 'my_last_stand'
+  const previewCard = standing ? undefined : g.P.hand[drag ?? sel ?? hov ?? -1]
+  const spend = previewCard ? cost(previewCard.rank) : 0
+  const hint = previewCard ? `${label(previewCard)} costs ${spend}${spend > g.P.elixir ? ' (not enough)' : ''}` : undefined
   const side = stage === 'my_play' || standing ? 'me' : stage.startsWith('enemy_') || stage === 'last_stand_enter' ? 'enemy' : null
   const inform = ['round_start', 'enemy_play', 'enemy_stop', 'move', 'fight', 'tower_result'].includes(stage)
   const bottomKnown = g.E.queue.filter(x => x.card).length
@@ -443,8 +457,12 @@ export default function App() {
 
   return (
     <div className={`play${portrait ? ' portrait' : ''}${side ? ' turn-' + side : ''}`}>
-      <div className="top">{header}</div>
-      {portrait && <div className="elixrow"><BarRow n={g.P.elixir} who="YOU" /><BarRow n={g.E.elixir} who="ENEMY" /></div>}
+      <div className="top">{header}
+        <button onClick={() => helpRef.current?.showModal()}>Help &amp; actions</button>
+        <button onClick={() => logDlgRef.current?.showModal()}>What happened</button>
+        <button onClick={() => rulesRef.current?.showModal()}>Rules</button>
+      </div>
+      {portrait && <div className="elixrow"><BarRow n={g.P.elixir} who="YOU" spend={spend} hint={hint} /><BarRow n={g.E.elixir} who="ENEMY" /></div>}
       <div className="board">
         {/* columns: 1 queue/discard · 2 king · 3 tower · 4-7 lane · 8 tower · 9 king · 10 pile/discard; rows: enemy elixir · left lane · right lane · your elixir */}
         {!portrait && <BarCells n={g.E.elixir} who="ENEMY" row={1} at={at} />}
@@ -476,21 +494,22 @@ export default function App() {
           <HStack items={g.E.towers.K} own={false} mirror cracked={g.cracked ?? []} />
         </div>
         <div className={`cell epilecell ${epile ? 'open' : ''}`} style={at(10, 2)} onMouseEnter={() => setEpile(true)} onMouseLeave={() => setEpile(false)}><span className="clabel">enemy pile ({g.E.queue.length}; {bottomKnown} known)</span><Pile items={g.E.queue} spread={epile} /></div>
-        {!portrait && <BarCells n={g.P.elixir} who="YOU" row={4} at={at} />}
+        {!portrait && <BarCells n={g.P.elixir} who="YOU" row={4} at={at} spend={spend} hint={hint} />}
       </div>
 
       <div className="hand">
         <span className="clabel">your hand</span>
         {g.P.hand.map((c, i) => (
-<div key={c.id} className={`hdrag ${drag === i ? 'lifted' : ''} ${!standing && !canPlay(g, i) ? 'off' : ''}`} draggable={standing || canPlay(g, i)} onDragStart={e => { e.dataTransfer.setData('text/plain', c.id); e.dataTransfer.effectAllowed = 'move'; faceDragImage(e); setNote(null); setSel(null); setDrag(i) }} onDragEnd={() => setDrag(null)}>
-  <TCard tid={c.id} card={c} down={false} showCost selected={sel === i} dim={!standing && !canPlay(g, i)} onClick={() => standing ? commit(lastStandPlay(g, i)) : canPlay(g, i) ? (setNote(null), setSel(sel === i ? null : i)) : (setSel(null), setNote(`${label(c)} costs ${cost(c.rank)} elixir but you only have ${g.P.elixir}. Pick a card whose purple number is ${g.P.elixir} or less.`))} />
+<div key={c.id} className={`hdrag ${drag === i ? 'lifted' : ''} ${!standing && !canPlay(g, i) ? 'off' : ''}`} draggable={standing || canPlay(g, i)} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} onDragStart={e => { e.dataTransfer.setData('text/plain', c.id); e.dataTransfer.effectAllowed = 'move'; faceDragImage(e); setNote(null); setSel(null); setDrag(i) }} onDragEnd={() => setDrag(null)}>
+  <TCard tid={c.id} card={c} down={false} selected={sel === i} dim={!standing && !canPlay(g, i)} onClick={() => standing ? commit(lastStandPlay(g, i)) : canPlay(g, i) ? (setNote(null), setSel(sel === i ? null : i)) : (setSel(null), setNote(`${label(c)} costs ${cost(c.rank)} elixir but you only have ${g.P.elixir}. Pick a card that fits your elixir bar.`))} />
           </div>
         ))}
         {!g.P.hand.length && <span className="muted">no cards in hand</span>}
         <div className="wheel" title="Suit wheel: each suit beats the next (+3 rank in a fight)"><span>beats →</span>{['♠', '♥', '♦', '♣'].map((x, k) => <Fragment key={x}>{k > 0 && '›'}<i className={`wcard ${k === 1 || k === 2 ? 'r' : ''}`}>{x}</i></Fragment>)}›<span>↺</span></div>
       </div>
 
-      <div className="panel">
+      <dialog ref={helpRef} className="modal" onClick={e => { if (e.target === e.currentTarget) e.currentTarget.close() }}>
+        <button className="close" onClick={() => helpRef.current?.close()}>✕</button>
         <div className="pcol">
         <div className="row"><b>Help:</b>
           {(['off', 'explain', 'suggest'] as Help[]).map(h => <button key={h} className={help === h ? 'on' : ''} onClick={() => setHelp(h)}>{h}</button>)}
@@ -538,12 +557,19 @@ export default function App() {
           {help !== 'off' && g.why.length > 0 && <div className="why"><b>Why:</b> {g.why.join(' ')}</div>}
         </div>
         </div>
+      </dialog>
+      <dialog ref={logDlgRef} className="modal" onClick={e => { if (e.target === e.currentTarget) e.currentTarget.close() }}>
+        <button className="close" onClick={() => logDlgRef.current?.close()}>✕</button>
         <div className="pcol">
         <h3>What happened</h3>
         <div className="log" ref={logRef}>{g.log.map((l, i) => <div key={i} className={l.startsWith('—') ? 'sep' : ''}>{l}</div>)}</div>
-        <details className="legend"><summary>Rules reminder</summary>{RULES_60}</details>
         </div>
-      </div>
+      </dialog>
+      <dialog ref={rulesRef} className="modal" onClick={e => { if (e.target === e.currentTarget) e.currentTarget.close() }}>
+        <button className="close" onClick={() => rulesRef.current?.close()}>✕</button>
+        <h3>Rules</h3>
+        <div className="legend">{RULES_60}</div>
+      </dialog>
     </div>
   )
 }

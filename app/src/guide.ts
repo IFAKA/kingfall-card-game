@@ -1,6 +1,6 @@
 // Guide engine: you play with real cards; this runs the rules and tells you what to do physically.
 // The enemy's face-down cards are unknown (null) until you flip them and tell the app.
-import { DEFAULT_RULES, cost, effective, label, shuffle } from './engine.ts'
+import { DEFAULT_RULES, cost, defendLane, effective, label, playerLaneInfo, shuffle } from './engine.ts'
 import type { Card, Rules, StackKey, Towers, Unit } from './engine.ts'
 
 export type Stage =
@@ -198,8 +198,8 @@ function enemyDecide(g: GuideState): GuideState {
   }
   g.E.queue.shift()
   g.E.elixir -= k
-  const mine = [0, 1].map(l => g.units.filter(u => u.side === 'P' && u.lane === l).length)
-  const lane: 0 | 1 = mine[0] >= mine[1] ? 0 : 1
+  const { count: mine, best } = playerLaneInfo(g)
+  const lane = defendLane(mine, best)
   g.units.push({ uid: g.nextUid++, card: c, side: 'E', lane, pos: g.rules.laneLen - 1, tid: slot.tid })
   g.stage = 'enemy_play'
   g.lines = [
@@ -207,7 +207,7 @@ function enemyDecide(g: GuideState): GuideState {
     `Place ${label(c)} in the ${laneName(lane)} lane, slot nearest the ENEMY.`,
     'Then flip the next card of the enemy pile (the app will ask).',
   ]
-  g.why = [`The enemy defends: it sends its card into the lane where you have MORE units (a tie goes left). You have ${mine[0]} on the left and ${mine[1]} on the right.`]
+  g.why = [`The enemy defends: it sends its card into the lane where you have MORE units (on a tie, the lane with your highest-ranked card; still tied, left). You have ${mine[0]} on the left and ${mine[1]} on the right.`]
   g.log.push(`Enemy plays ${label(c)} (cost ${k}) in the ${laneName(lane).toLowerCase()} lane.`)
   return g
 }
@@ -502,7 +502,9 @@ function evaluate(g: GuideState, plays: Play[]): Plan {
   let enemyNext: Plan['enemyNext'] = null
   const nxt = g.E.queue[0]?.card
   if (nxt && cost(nxt.rank) <= g.E.elixir) {
-    const lane: 0 | 1 = mine[0].length >= mine[1].length ? 0 : 1
+    const count: [number, number] = [mine[0].length, mine[1].length]
+    const best: [number, number] = [Math.max(-1, ...mine[0].map(c => c.rank)), Math.max(-1, ...mine[1].map(c => c.rank))]
+    const lane = defendLane(count, best)
     theirs[lane].push(nxt)
     enemyNext = { c: nxt, lane }
   }

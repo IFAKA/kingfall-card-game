@@ -296,3 +296,15 @@ h3 { margin: 18px 0 8px; }
 .hand .wheel .wcard { font-style: normal; width: var(--cw); height: var(--ch); background: #fbfbf6; border: 1px solid #999; border-radius: 5px; color: #1b1b1b; display: flex; align-items: center; justify-content: center; font-size: calc(var(--cw) * .5); box-shadow: 0 2px 4px rgba(0,0,0,.4); }
 .hand .wheel .wcard.r { color: #c0262d; }
 .hdrag.lifted { opacity: .35; }
+
+.modal { background: #0a2d20; color: inherit; border: 1px solid #4a9; border-radius: 10px; padding: 14px 18px; width: min(640px, 92vw); max-height: 85vh; overflow: auto; }
+.modal::backdrop { background: rgba(0,0,0,.6); }
+.modal .close { position: absolute; top: 8px; right: 8px; padding: 2px 8px; }
+.modal .pcol { overflow: visible; }
+.modal .log { max-height: 50vh; overflow: auto; }
+
+/* cost preview: the elixir slots the dragged / hovered / selected card would use up, softly faded */
+.bslot.spend, .eslot.spend { opacity: .3; }
+.bslot.short, .eslot.short { opacity: .5; }
+.bslot.short { background: #b3261e; }
+.eslot.short .ef { background: #b3261e; border-color: #ff8a80; color: #fff; }

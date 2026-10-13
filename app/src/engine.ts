@@ -140,13 +140,25 @@ export function playCard(g0: GameState, handIndex: number, lane: 0 | 1): GameSta
   return g
 }
 
+/** The enemy defends the lane where you have more cards; on a tie, the lane with your highest-ranked card; still tied, left. */
+export function defendLane(count: [number, number], best: [number, number]): 0 | 1 {
+  if (count[0] !== count[1]) return count[0] > count[1] ? 0 : 1
+  return best[0] >= best[1] ? 0 : 1
+}
+
+export function playerLaneInfo(g: { units: Unit[] }): { count: [number, number]; best: [number, number] } {
+  const mine = (l: number) => g.units.filter(u => u.side === 'P' && u.lane === l)
+  const top = (l: number) => Math.max(-1, ...mine(l).map(u => u.card.rank))
+  return { count: [mine(0).length, mine(1).length], best: [top(0), top(1)] }
+}
+
 function enemyPlays(g: GameState) {
   const e = g.E
   while (e.queue.length && cost(e.queue[0].rank) <= e.elixir) {
     const c = e.queue.shift()!
     e.elixir -= cost(c.rank)
-    const mine = [0, 1].map(l => g.units.filter(u => u.side === 'P' && u.lane === l).length)
-    const lane: 0 | 1 = mine[0] >= mine[1] ? 0 : 1
+    const { count, best } = playerLaneInfo(g)
+    const lane = defendLane(count, best)
     g.units.push({ uid: g.nextUid++, card: c, side: 'E', lane, pos: g.rules.laneLen - 1 })
     g.log.push(`Enemy plays ${label(c)} (cost ${cost(c.rank)}) in the ${lane === 0 ? 'left' : 'right'} lane.`)
   }
