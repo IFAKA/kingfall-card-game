@@ -245,7 +245,6 @@ h3 { margin: 18px 0 8px; }
 .bslot { width: var(--cw); height: var(--ch); border-radius: 6px; border-width: 2px; font-size: calc(var(--cw) * .3); }
 .bslot.marker { transform: none; margin: 0; background: #f3e8ff; border: 2px solid #7a3fd1; color: #7a3fd1; box-shadow: 0 0 0 2px #b06bff, 0 0 8px #b06bff; }
 .epilecell.open { z-index: 20; }
-.spile.spread { height: calc(2 * (var(--ch) + 20px) - 20px); }
 .hand { position: relative; justify-content: center; align-items: flex-end; padding-top: 16px; margin: 0; }
 .hand .clabel { left: calc(50% - var(--cw) * 2.4); }
 .hand .tcard { margin: 0 4px; }
@@ -343,3 +342,4 @@ html.rot .modal, html.rot .gameover { transform: rotate(90deg); width: min(640px
 .top .muted { display: none; }
 .top .actions { flex-wrap: nowrap; gap: 6px; font-size: 13px; }
 .top .actions .big { padding: 5px 12px; font-size: 13px; }
+.top .spacer { margin-left: auto; }

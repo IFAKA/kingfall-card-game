@@ -158,12 +158,13 @@ function HStack({ items, own, mirror, cracked }: { items: ESlot[]; own: boolean;
 
 // Face-up where the card is known (all of yours); the enemy's is down only where unknown.
 function Pile({ items, spread }: { items: ESlot[]; spread?: boolean }) {
-  const step = `calc((var(--ch) + 22px) / ${Math.max(1, items.length - 1)})`
+  // each card peeks out just enough to show its rank and suit (two lines of the corner text), so the spread grows with the pile
+  const step = 'calc(var(--cw) * .56 + 4px)'
   return (
-    <div className={`spile ${spread ? 'spread' : ''}`}>
+    <div className={`spile ${spread ? 'spread' : ''}`} style={spread ? { height: `calc(var(--ch) + ${Math.max(0, items.length - 1)} * ${step})` } : undefined}>
       {items.map((it, i) => (
         <div key={it.tid} className="hcard" style={spread ? { left: 0, top: `calc(${items.length - 1 - i} * ${step})`, zIndex: items.length - 1 - i } : { left: `calc(${i} * var(--poff))`, top: `calc(${i} * var(--poff))`, zIndex: items.length - i }}>
-          <TCard tid={it.tid} card={it.card} down={!it.card} />
+          <TCard tid={it.tid} card={it.card} down={!it.card} showCost />
         </div>
       ))}
     </div>
@@ -214,7 +215,7 @@ function LaneCells({ idx, units, laneLen, row, at, dragging, hint, over, onPlace
           <span className="clabel">{d.label}</span>
           <div className="cellbody">
             {units.filter(u => u.lane === idx && d.pred(u)).map(u => (
-              <div key={u.uid} className={`unit ${u.side}`}><TCard tid={u.tid!} card={u.card} down={false} /></div>
+              <div key={u.uid} className={`unit ${u.side}`}><TCard tid={u.tid!} card={u.card} down={false} showCost /></div>
             ))}
           </div>
         </div>
@@ -274,7 +275,9 @@ export default function App() {
   const [qpile, setQpile] = useState(false)
   const [note, setNote] = useState<string | null>(null)
   const [swapFrom, setSwapFrom] = useState<number | null>(null)
-  const [help, setHelp] = useState<Help>(saved?.help ?? 'suggest')
+  const [explainOn, setExplainOn] = useState(saved ? saved.help === 'explain' : false)
+  const [suggestOn, setSuggestOn] = useState(saved ? saved.help === 'suggest' : true)
+  const help: Help = suggestOn ? 'suggest' : explainOn ? 'explain' : 'off'
   const [pre, setPre] = useState<GuideState | null>(saved?.pre ?? null)
   const [game, setGame] = useState<GuideState | null>(saved?.game ?? null)
   const [history, setHistory] = useState<GuideState[]>(saved?.history ?? [])
@@ -527,10 +530,11 @@ export default function App() {
           <div className="actions">
             {note && <span className="warn">{note}</span>}
             {sel !== null && <>Play {label(g.P.hand[sel])} → <button className="big" onClick={() => commit(playCard(g, sel, 0))}>LEFT</button><button className="big" onClick={() => commit(playCard(g, sel, 1))}>RIGHT</button></>}
-            {advice?.kind === 'play' && <button className="suggest" onClick={() => commit(playCard(g, advice.handIndex, advice.lane))}>Suggest: {label(g.P.hand[advice.handIndex])} → {advice.lane === 0 ? 'LEFT' : 'RIGHT'}</button>}
+            {advice?.kind === 'play' && <button className="suggest" title={advice.reason} onClick={() => commit(playCard(g, advice.handIndex, advice.lane))}>Suggest: {label(g.P.hand[advice.handIndex])} → {advice.lane === 0 ? 'LEFT' : 'RIGHT'}</button>}
             <button className="big done" onClick={() => commit(endMyTurn(g))}>End turn →</button>
           </div>
         )}
+        {stage !== 'my_play' && <span className="spacer" />}
         <button onClick={() => helpRef.current?.showModal()}>Help</button>
         <button onClick={() => logDlgRef.current?.showModal()}>What happened</button>
         <button onClick={() => rulesRef.current?.showModal()}>Rules</button>
@@ -585,7 +589,8 @@ export default function App() {
         <button className="close" onClick={() => helpRef.current?.close()}>✕</button>
         <div className="pcol">
         <div className="row"><b>Help:</b>
-          {(['off', 'explain', 'suggest'] as Help[]).map(h => <button key={h} className={help === h ? 'on' : ''} onClick={() => setHelp(h)}>{h}</button>)}
+          <label><input type="checkbox" checked={explainOn} onChange={e => setExplainOn(e.target.checked)} /> explain options</label>
+          <label><input type="checkbox" checked={suggestOn} onChange={e => setSuggestOn(e.target.checked)} /> suggest moves</label>
         </div>
         <div className="donow">
           <div className="dntitle">{TITLES[stage]}</div>
@@ -594,7 +599,7 @@ export default function App() {
             <>
               {g.lastAction.length > 0 && <div className="lastaction"><b>Do now:</b><ul className="todo">{g.lastAction.map((l, i) => <li key={i}>{l}</li>)}</ul></div>}
               <p>Choose a card from your hand (or none), then where it goes. Faded cards cost more elixir than you have.</p>
-              {help === 'explain' && <div className="explain"><b>Your options</b><ul>{options(g).map((o, i) => <li key={i}>{o}</li>)}</ul></div>}
+              {explainOn && <div className="explain"><b>Your options</b><ul>{options(g).map((o, i) => <li key={i}>{o}</li>)}</ul></div>}
               {advice && (
                 <div className="advice"><b>Suggestion:</b> {advice.reason}
                   <div className="muted">It looks one round ahead using only what you can see on the table; it can't know the enemy's face-down cards. The plan can change as you draw new cards.</div>
