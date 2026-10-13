@@ -35,7 +35,7 @@ select { padding: 6px; }
 @keyframes pop { from { transform: scale(.7); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* play */
-.play { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; padding: 10px 16px; height: 100vh; box-sizing: border-box; }
+.play { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; padding: 10px 16px; height: (100 * var(--vh)); box-sizing: border-box; }
 .board { display: flex; flex-direction: column; gap: 6px; overflow: auto; }
 .srow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 4px 0; }
 .muted { opacity: .65; font-size: 13px; }
@@ -136,7 +136,7 @@ h3 { margin: 18px 0 8px; }
 .mini .cf.backside { background: repeating-linear-gradient(45deg, #263a8c, #263a8c 4px, #3150b8 4px, #3150b8 8px); border: 2px solid #fff; }
 
 /* ===== unified play layout: every card is the same size, scaled to fit the window ===== */
-.play { --ch: max(54px, calc((100vh - 215px) / 8.9)); --cw: min(calc(var(--ch) * .714), calc((100vw - 400px - 130px) / 14.6)); --off: calc(var(--ch) * .2); height: 100vh; overflow: hidden; gap: 12px; padding: 6px 12px; }
+.play { --ch: max(54px, calc(((100 * var(--vh)) - 215px) / 8.9)); --cw: min(calc(var(--ch) * .714), calc(((100 * var(--vw)) - 400px - 130px) / 14.6)); --off: calc(var(--ch) * .2); height: (100 * var(--vh)); overflow: hidden; gap: 12px; padding: 6px 12px; }
 .boardcol { overflow: hidden; gap: 4px; }
 .topbar { padding: 0 0 2px; gap: 10px; font-size: 13px; } .topbar h1 { font-size: 16px; margin: 0; }
 .brow { display: flex; gap: 14px; align-items: flex-end; min-height: var(--ch); flex-wrap: nowrap; }
@@ -163,13 +163,13 @@ h3 { margin: 18px 0 8px; }
 .unit.P .cf.front { box-shadow: 0 0 0 3px #4fd1c5; } .unit.E .cf.front { box-shadow: 0 0 0 3px #f56565; } .unit.E .cf.backside { box-shadow: 0 0 0 3px #f56565; }
 .hand { display: flex; gap: 8px; margin: 0 10px 0 0; min-height: var(--ch); }
 .mini .cf.front { font-size: 1.1em; }
-.play { --ch: max(54px, calc((100vh - 200px) / 8.9)); }
+.play { --ch: max(54px, calc(((100 * var(--vh)) - 200px) / 8.9)); }
 .boardcol { gap: 8px; }
 .brow:first-of-type { align-items: center; }
 
 /* ===== horizontal board: you (left) | 2 lanes | enemy (right) ===== */
-.play { display: flex; flex-direction: column; height: 100vh; padding: 4px 14px 8px; gap: 6px; box-sizing: border-box; overflow: hidden;
-  --cw: min(calc((100vw - 28px) / 19.6), calc((52vh - 70px) / 3 * .714)); --ch: calc(var(--cw) / .714); --hoff: calc(var(--cw) * .42); --poff: 3px; --gap: 6px; }
+.play { display: flex; flex-direction: column; height: (100 * var(--vh)); padding: 4px 14px 8px; gap: 6px; box-sizing: border-box; overflow: hidden;
+  --cw: min(calc(((100 * var(--vw)) - 28px) / 19.6), calc(((52 * var(--vh)) - 70px) / 3 * .714)); --ch: calc(var(--cw) / .714); --hoff: calc(var(--cw) * .42); --poff: 3px; --gap: 6px; }
 .top .topbar { padding: 0; }
 .board { display: grid; gap: var(--gap);
   grid-template-columns: calc(var(--cw) * 2.5) calc(var(--cw) * 2.2) calc(var(--cw) * 1.85) repeat(4, calc(var(--cw) * 1.2)) calc(var(--cw) * 1.85) calc(var(--cw) * 2.2) calc(var(--cw) * 2.5);
@@ -196,7 +196,7 @@ h3 { margin: 18px 0 8px; }
 .clabel { font-size: 10.5px; }
 .cellbody { gap: 0; } .cellbody > .unit + .unit { margin-left: calc(var(--cw) * -.6); }
 
-.play { --boff: calc((2 * var(--ch) + 46px) / 9); --cw: min(calc((100vw - 28px) / 16.6), calc((52vh - 70px) / 3 * .714)); }
+.play { --boff: calc((2 * var(--ch) + 46px) / 9); --cw: min(calc(((100 * var(--vw)) - 28px) / 16.6), calc(((52 * var(--vh)) - 70px) / 3 * .714)); }
 .board { grid-template-columns: calc(var(--cw) * 1.15) calc(var(--cw) * 2.2) calc(var(--cw) * 1.85) repeat(4, calc(var(--cw) * 1.2)) calc(var(--cw) * 1.85) calc(var(--cw) * 2.2) calc(var(--cw) * 1.15); }
 .bcol { position: relative; height: calc(var(--ch) + 9 * var(--boff)); width: var(--cw); }
 .bcard { position: absolute; left: 0; }
@@ -211,7 +211,7 @@ h3 { margin: 18px 0 8px; }
 .tcard.dim .cost { background: #b3261e; }
 .tcard.dim .cost::after { content: ''; }
 .warn { background: #5a1f1c; border: 1px solid #e0605a; border-radius: 6px; padding: 8px 10px; }
-.play { --cw: min(calc((100vw - 28px) / 17.7), calc((52vh - 70px) / 3 * .714)); }
+.play { --cw: min(calc(((100 * var(--vw)) - 28px) / 17.7), calc(((52 * var(--vh)) - 70px) / 3 * .714)); }
 .board { grid-template-columns: calc(var(--cw) * 1.15) calc(var(--cw) * 2.2) calc(var(--cw) * 1.85) calc(var(--cw) * 1.1) calc(var(--cw) * 1.8) calc(var(--cw) * 1.8) calc(var(--cw) * 1.1) calc(var(--cw) * 1.85) calc(var(--cw) * 2.2) calc(var(--cw) * 1.15); }
 .cellbody:has(> .unit:nth-child(3)) > .unit + .unit { margin-left: calc(var(--cw) * -.75); }
 
@@ -220,25 +220,12 @@ h3 { margin: 18px 0 8px; }
 .elixrow { display: flex; justify-content: center; gap: calc(var(--cw) * 1.2); }
 .hbar { display: flex; align-items: center; gap: 3px; }
 .hlabel { font-size: 12px; opacity: .9; margin-right: 6px; white-space: nowrap; min-width: 110px; }
-.play { --cw: min(calc((100vw - 28px) / 15.5), calc((52vh - 70px) / 3 * .714)); }
+.play { --cw: min(calc(((100 * var(--vw)) - 28px) / 15.5), calc(((52 * var(--vh)) - 70px) / 3 * .714)); }
 .bslot { width: calc(var(--cw) * .4); height: calc(var(--ch) * .36); flex: none; box-sizing: border-box; border-radius: 3px; border: 1px solid #fff; background: repeating-linear-gradient(45deg, #263a8c, #263a8c 3px, #3150b8 3px, #3150b8 6px); color: rgba(255,255,255,.45); font-size: calc(var(--cw) * .18); font-weight: 700; display: flex; align-items: center; justify-content: center; transition: transform .4s ease-in-out, box-shadow .4s, margin .4s; }
 .bslot.marker { transform: rotate(90deg); color: #fff; box-shadow: 0 0 0 2px #b06bff, 0 0 8px #b06bff; margin: 0 calc(var(--cw) * .06); }
 .bslot.gap { margin-left: calc(var(--cw) * .25); }
 .crk { transform: rotate(90deg); transition: transform .4s ease-in-out; }
 .crk .tcard { box-shadow: 0 0 0 2px #b06bff, 0 0 8px #b06bff; border-radius: 6px; }
-
-/* ===== phones: upright board (enemy on top, you at the bottom), instructions before the board, the page scrolls ===== */
-.play.portrait { height: auto; min-height: 100vh; overflow: visible; padding: 4px 10px 16px;
-  --cw: min(calc((100vw - 44px) / 3 / 2), 50px); --ch: calc(var(--cw) / .714); --hoff: calc(var(--cw) * .42); --voff: calc(var(--ch) * .45); }
-.play.portrait .elixrow { order: 1; flex-direction: column; align-items: flex-start; gap: 6px; }
-.play.portrait .panel { order: 2; grid-template-columns: minmax(0, 1fr); overflow: visible; flex: none; gap: 8px; }
-.play.portrait .hand { order: 4; flex-wrap: wrap; }
-.play.portrait .board { order: 3; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; grid-auto-rows: minmax(calc(var(--ch) + 20px), auto); }
-.play.portrait .pcol { overflow: visible; }
-.play.portrait .pcol .log { max-height: 220px; }
-.play.portrait .clabel { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-.play.portrait .panel button { min-height: 40px; }
-.play.portrait .topbar .muted { display: none; }
 
 /* setup screens on phones */
 @media (max-width: 760px) {
@@ -248,10 +235,9 @@ h3 { margin: 18px 0 8px; }
   .towerrow { gap: 16px; }
   h1 { font-size: 22px; }
 }
-.play.portrait .epilecell .spile { margin-bottom: calc(9 * var(--poff)); }
 
 /* ===== table: elixir rows, 2 lane rows, your hand underneath ===== */
-.play { --cw: min(calc((100vw - 90px) / 18.5), calc((100vh - 250px) / 5.3 * .714)); }
+.play { --cw: min(calc(((100 * var(--vw)) - 90px) / 18.5), calc(((100 * var(--vh)) - 175px) / 5 * .714)); }
 .board { overflow: visible; grid-template-columns: repeat(10, calc(var(--cw) * 1.85)); grid-template-rows: repeat(4, calc(var(--ch) + 20px)); }
 .kingcell { align-self: center; padding-top: 16px; }
 .ecell { padding-top: 16px; display: flex; justify-content: center; }
@@ -263,11 +249,9 @@ h3 { margin: 18px 0 8px; }
 .hand { position: relative; justify-content: center; align-items: flex-end; padding-top: 16px; margin: 0; }
 .hand .clabel { left: calc(50% - var(--cw) * 2.4); }
 .hand .tcard { margin: 0 4px; }
-.play.portrait .bslot { width: 14px; height: 20px; border-radius: 3px; border-width: 1px; font-size: 9px; }
-.play.portrait .bslot.marker { margin: 0 2px; }
 
 /* drag and drop: playable cards can be picked up, unaffordable ones are disabled */
-.hdrag { display: inline-block; cursor: grab; transition: opacity .25s ease; }
+.hdrag { display: inline-block; cursor: grab; touch-action: none; -webkit-touch-callout: none; transition: opacity .25s ease; }
 .hdrag:active { cursor: grabbing; }
 .hdrag.off { cursor: not-allowed; }
 .lanecell.droppable { outline: 2px dashed #ffd36b; outline-offset: -2px; }
@@ -287,14 +271,13 @@ h3 { margin: 18px 0 8px; }
 .ef { position: absolute; inset: 0; box-sizing: border-box; border-radius: 6px; border: 2px solid #fff; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: flex; align-items: center; justify-content: center; font-size: calc(var(--cw) * .3); font-weight: 700; }
 .efront { background: #f3e8ff; border-color: #7a3fd1; color: #7a3fd1; box-shadow: 0 0 0 2px #b06bff, 0 0 8px #b06bff; }
 .eback { transform: rotateY(180deg); background: repeating-linear-gradient(45deg, #263a8c, #263a8c 3px, #3150b8 3px, #3150b8 6px); color: rgba(255,255,255,.45); }
-.play.portrait .eslot { width: 14px; height: 20px; }
-.play.portrait .ef { border-radius: 3px; border-width: 1px; font-size: 9px; }
 
-/* suit wheel reminder at the end of the hand row: mini cards, each beats the next */
-.hand .wheel { position: absolute; right: 12px; bottom: 0; display: flex; align-items: center; gap: 4px; color: #fff; font-size: calc(var(--cw) * .6); font-weight: 700; line-height: 1; }
-.hand .wheel span { font-size: 14px; font-weight: 400; opacity: .8; margin: 0 2px; }
-.hand .wheel .wcard { font-style: normal; width: var(--cw); height: var(--ch); background: #fbfbf6; border: 1px solid #999; border-radius: 5px; color: #1b1b1b; display: flex; align-items: center; justify-content: center; font-size: calc(var(--cw) * .5); box-shadow: 0 2px 4px rgba(0,0,0,.4); }
-.hand .wheel .wcard.r { color: #c0262d; }
+/* suit wheel reminder at the end of the hand row: high-contrast suit chips, each one beats the next (clubs loop back to spades) */
+.hand .wheel { position: absolute; right: 12px; bottom: 0; display: flex; align-items: center; gap: 3px; padding: 6px 10px; background: #0b1220; border: 2px solid #ffd36b; border-radius: 12px; line-height: 1; }
+.hand .wheel b { color: #ffd36b; font-size: 11px; letter-spacing: .06em; margin-right: 4px; }
+.hand .wheel .chip { font-style: normal; width: calc(var(--cw) * .8); height: calc(var(--cw) * .8); border-radius: 50%; background: #fff; color: #111; display: flex; align-items: center; justify-content: center; font-size: calc(var(--cw) * .6); font-weight: 700; }
+.hand .wheel .chip.r { color: #d4141f; }
+.hand .wheel em { font-style: normal; color: #ffd36b; font-size: calc(var(--cw) * .5); font-weight: 900; }
 .hdrag.lifted { opacity: .35; }
 
 .modal { background: #0a2d20; color: inherit; border: 1px solid #4a9; border-radius: 10px; padding: 14px 18px; width: min(640px, 92vw); max-height: 85vh; overflow: auto; }
@@ -306,3 +289,31 @@ h3 { margin: 18px 0 8px; }
 /* cost preview: one frame around the elixir cards the dragged / hovered / selected card would spend */
 .sgroup { display: inline-flex; align-items: center; gap: 3px; padding: 3px; border: 3px solid #ffd34d; border-radius: 8px; }
 .sgroup.cells { display: block; padding: 0; margin-top: 14px; pointer-events: none; z-index: 5; }
+
+.topbar button:disabled { opacity: .35; cursor: not-allowed; }
+
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: grid; place-items: center; z-index: 50; }
+.gameover { background: #0a2d20; border: 2px solid #4a9; border-radius: 12px; padding: 18px 26px; width: min(480px, 92vw); max-height: 85vh; overflow: auto; text-align: center; }
+.gameover h2 { margin: 0 0 6px; font-size: 32px; }
+.gameover.won { border-color: #e8c547; } .gameover.won h2 { color: #e8c547; }
+.gameover.lost { border-color: #c55; } .gameover.lost h2 { color: #e88; }
+.gameover .todo { text-align: left; }
+.gameover .row { justify-content: center; }
+
+:root { --vw: 1vw; --vh: 1vh; }
+html:has(.play), html:has(.play) body { overflow: hidden; overscroll-behavior: none; }
+.play { position: relative; }
+/* upright phone: turn the table a quarter turn about its top-left corner so it fills the screen */
+.play.rot { position: fixed; top: 0; transform-origin: 0 0; transform: rotate(90deg); }
+/* dialogs live in the top layer, outside the turned table, so turn them the same way */
+html.rot .modal .log { max-height: 50dvw; }
+html.rot .modal, html.rot .gameover { transform: rotate(90deg); width: min(640px, 92dvh); max-height: 85dvw; }
+
+/* short screens (phones on their side): trim the chrome so the cards get the room */
+.play.compact { gap: 2px; padding: 2px 10px 4px; --cw: min(calc(((100 * var(--vw)) - 90px) / 18.5), calc(((100 * var(--vh)) - 150px) / 5 * .714)); }
+.play.compact .top { flex-wrap: nowrap; gap: 6px; }
+.play.compact .top .muted { display: none; }
+.play.compact .top b { white-space: nowrap; font-size: 13px; }
+.play.compact button { padding: 3px 8px; font-size: 12px; }
+.play.compact .clabel { font-size: 9px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.play.compact .cell { padding-top: 12px; }

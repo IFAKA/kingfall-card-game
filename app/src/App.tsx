@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { motion } from 'framer-motion'
+import confetti from 'canvas-confetti'
 import './App.css'
 import { DEFAULT_RULES, RANKS, SUITS, autoTowers, cost, deal, freshDeck, isRed, label, shuffle, suggestDeck } from './engine'
 import type { Card, Unit } from './engine'
@@ -39,19 +40,42 @@ function CardView({ card, down, showCost, selected, dim, small, onClick }: {
 // A card that is revealed (face-down -> face-up) FLIPS while it moves.
 const faceMemory = new Map<string, boolean>()
 // the 3D flip makes browsers snapshot the card's back, so drag a flat copy of the face instead
-function faceDragImage(e: React.DragEvent<HTMLElement>) {
-  const card = e.currentTarget.querySelector('.tcard') as HTMLElement | null
-  if (!card) return
-  const r = card.getBoundingClientRect()
+function makeGhost(el: HTMLElement, x: number, y: number, rot: boolean, sw: number) {
+  const card = el.querySelector('.tcard') as HTMLElement | null
+  if (!card) return null
+  const w = card.offsetWidth, h = card.offsetHeight
   const ghost = card.cloneNode(true) as HTMLElement
   const flip = ghost.querySelector('.flip') as HTMLElement | null
   if (flip) Object.assign(flip.style, { transform: 'none', transition: 'none', transformStyle: 'flat' })
   ghost.querySelector('.backside')?.remove()
   ghost.querySelectorAll<HTMLElement>('.cf').forEach(f => { f.style.backfaceVisibility = 'visible'; f.style.setProperty('-webkit-backface-visibility', 'visible') })
-  Object.assign(ghost.style, { position: 'fixed', top: '-1000px', left: '-1000px', width: `${r.width}px`, height: `${r.height}px`, transform: 'none', opacity: '1', filter: 'none', zIndex: '9999' })
-  e.currentTarget.appendChild(ghost) // inside the hand, so it inherits the same card size variables and styles
-  e.dataTransfer.setDragImage(ghost, e.clientX - r.left, e.clientY - r.top)
-  setTimeout(() => ghost.remove(), 0)
+  Object.assign(ghost.style, { position: 'absolute', left: '0', top: '0', width: `${w}px`, height: `${h}px`, pointerEvents: 'none', zIndex: '9999', opacity: '1', filter: 'none', boxShadow: '0 8px 18px rgba(0,0,0,.5)' })
+  const play = el.closest('.play') as HTMLElement
+  const pr = play.getBoundingClientRect()
+  // screen point -> the table's own coordinates (a quarter turn when rotated), card centred on the pointer
+  const move = (px: number, py: number) => {
+    const lx = rot ? py : px - pr.left, ly = rot ? sw - px : py - pr.top
+    ghost.style.transform = `translate(${lx - w / 2}px, ${ly - h / 2}px) scale(1.08)`
+  }
+  move(x, y)
+  play.appendChild(ghost) // inside .play, so it inherits the card size variables
+  return { move, remove: () => ghost.remove() }
+}
+
+// Confetti bursts from both sides for a few seconds; mounts only while the win dialog is up.
+function WinConfetti() {
+  useEffect(() => {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const end = Date.now() + 2500
+    const opts = { particleCount: 6, spread: 70, startVelocity: 55, zIndex: 10000 }
+    const id = setInterval(() => {
+      confetti({ ...opts, angle: 60, origin: { x: 0, y: 0.8 } })
+      confetti({ ...opts, angle: 120, origin: { x: 1, y: 0.8 } })
+      if (Date.now() > end) clearInterval(id)
+    }, 120)
+    return () => { clearInterval(id); confetti.reset() }
+  }, [])
+  return null
 }
 
 function TCard({ tid, card, down, selected, dim, showCost, onClick }: {
@@ -92,21 +116,6 @@ function spendRange(n: number, spend: number): [number, number] {
 }
 
 // An elixir bar: a row of 10 face-down cards; the one flipped face-up is the marker, its position = elixir.
-function BarRow({ n, who, spend = 0 }: { n: number; who: string; spend?: number }) {
-  return (
-    <div className="hbar">
-      <span className="hlabel">{who} · elixir {n}/10</span>
-      {Array.from({ length: 10 }, (_, i) => {
-        const slot = (j: number) => <span key={j} className={`bslot${j === n - 1 ? ' marker' : ''}${j === 5 ? ' gap' : ''}`}>{j + 1}</span>
-        const [from, to] = spendRange(n, spend)
-        if (i === from && to > from) return <span key={i} className="sgroup">{Array.from({ length: to - from }, (_, k) => slot(from + k))}</span>
-        return i > from && i < to ? null : slot(i)
-      })}
-    </div>
-  )
-}
-
-// The same bar as 10 board cells, one per column, so it lines up with the table below it.
 function BarCells({ n, who, row, at, spend = 0 }: { n: number; who: string; row: number; at: At; spend?: number }) {
   return (
     <>
@@ -165,29 +174,25 @@ function Discard({ items }: { items: Discarded[] }) {
 }
 
 // Board cells are placed for the wide layout: 10 columns run from you (1) to the enemy (10), rows are enemy elixir / left lane / right lane / your elixir.
-// On phones the board turns upright like Clash Royale: enemy on top, you at the bottom, lanes running vertically (the elixir bars sit above the board).
 type Span = number | string
 type At = (col: Span, row: Span) => CSSProperties
-const atFor = (portrait: boolean): At => (col, row) => {
-  if (!portrait) return { gridColumn: col, gridRow: row }
-  const [a, b] = typeof col === 'number' ? [col, col + 1] : col.split(' / ').map(Number)
-  const [r1, r2] = typeof row === 'number' ? [row, row + 1] : row.split(' / ').map(Number)
-  return { gridColumn: `${r1 - 1} / ${r2 - 1}`, gridRow: `${11 - b} / ${11 - a}` }
-}
-const PORTRAIT = '(max-width: 760px)'
-function usePortrait() {
-  const [p, setP] = useState(() => matchMedia(PORTRAIT).matches)
+const at: At = (col, row) => ({ gridColumn: col, gridRow: row })
+
+// The table is always landscape. On a phone held upright we turn it a quarter turn instead, so it fills the screen either way
+// and the player never has to care whether rotation is locked. W x H is the size of the table as drawn (after the turn).
+function useStage() {
+  const read = () => ({ rot: innerHeight > innerWidth, sw: innerWidth, sh: innerHeight })
+  const [v, setV] = useState(read)
   useEffect(() => {
-    const m = matchMedia(PORTRAIT)
-    const f = () => setP(m.matches)
-    m.addEventListener('change', f)
-    return () => m.removeEventListener('change', f)
+    const f = () => setV(read())
+    addEventListener('resize', f); addEventListener('orientationchange', f)
+    return () => { removeEventListener('resize', f); removeEventListener('orientationchange', f) }
   }, [])
-  return p
+  useEffect(() => { document.documentElement.classList.toggle('rot', v.rot) }, [v.rot])
+  return { ...v, W: v.rot ? v.sh : v.sw, H: v.rot ? v.sw : v.sh }
 }
 
-function LaneCells({ idx, units, laneLen, row, at, dragging, hint, onDropCard }: { hint?: boolean; idx: 0 | 1; units: Unit[]; laneLen: number; row: number; at: At; dragging?: boolean; onDropCard?: (lane: 0 | 1) => void }) {
-  const [over, setOver] = useState(false)
+function LaneCells({ idx, units, laneLen, row, at, dragging, hint, over }: { hint?: boolean; idx: 0 | 1; units: Unit[]; laneLen: number; row: number; at: At; dragging?: boolean; over?: boolean }) {
   const defs: { label: string; pred: (u: Unit) => boolean; cls: string }[] = [
     { label: 'your tower', pred: u => u.side === 'E' && u.pos < 0, cls: 'attack' },
     { label: `${idx === 0 ? 'LEFT' : 'RIGHT'}: your slot`, pred: u => u.pos === 0, cls: '' },
@@ -198,10 +203,7 @@ function LaneCells({ idx, units, laneLen, row, at, dragging, hint, onDropCard }:
     <>
       {defs.map((d, k) => (
         <div key={k} className={`cell lanecell ${d.cls} ${(dragging || hint) && k === 1 ? 'droppable' : ''} ${dragging && k === 1 && over ? 'over' : ''}`} style={at(4 + k, row)}
-          onDragOver={dragging && k === 1 ? e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setOver(true) } : undefined}
-          onDragEnter={dragging && k === 1 ? () => setOver(true) : undefined}
-          onDragLeave={dragging && k === 1 ? e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(false) } : undefined}
-          onDrop={dragging && k === 1 ? e => { e.preventDefault(); setOver(false); onDropCard?.(idx) } : undefined}>
+          data-lane={k === 1 ? idx : undefined}>
           <span className="clabel">{d.label}</span>
           <div className="cellbody">
             {units.filter(u => u.lane === idx && d.pred(u)).map(u => (
@@ -248,6 +250,9 @@ const RULES_60 = (
   </ul>
 )
 
+const AUTO_STAGES = ['round_start', 'enemy_play', 'enemy_stop', 'move', 'fight', 'tower_result']
+const AUTO_DELAY_MS = 1100
+
 export default function App() {
   const saved = useMemo(() => load(), [])
   const [screen, setScreen] = useState<Screen>(saved?.screen ?? 'deal')
@@ -264,14 +269,19 @@ export default function App() {
   const [pre, setPre] = useState<GuideState | null>(saved?.pre ?? null)
   const [game, setGame] = useState<GuideState | null>(saved?.game ?? null)
   const [history, setHistory] = useState<GuideState[]>(saved?.history ?? [])
+  const [future, setFuture] = useState<GuideState[]>([])
   const [sel, setSel] = useState<number | null>(null)
   const helpRef = useRef<HTMLDialogElement>(null)
   const rulesRef = useRef<HTMLDialogElement>(null)
   const logDlgRef = useRef<HTMLDialogElement>(null)
   const [drag, setDrag] = useState<number | null>(null)
+  const [overLane, setOverLane] = useState<0 | 1 | null>(null)
+  const justDragged = useRef(false)
   const [hov, setHov] = useState<number | null>(null)
   const logRef = useRef<HTMLDivElement>(null)
-  const portrait = usePortrait()
+  const stage_ = useStage()
+  const [overSeen, setOverSeen] = useState(false)
+  useEffect(() => { if (game?.stage !== 'over') setOverSeen(false) }, [game?.stage])
 
   useEffect(() => {
     const s: Saved = { mode, secret, screen, my16, deckIds, slotIds, help, pre, game, history: history.slice(-60) }
@@ -279,15 +289,24 @@ export default function App() {
   }, [mode, secret, screen, my16, deckIds, slotIds, help, pre, game, history])
   useEffect(() => { logRef.current?.scrollTo({ top: logRef.current.scrollHeight }) }, [game?.log.length])
 
+  // on screen, informational steps advance by themselves, slowly enough to follow what happens; not recorded for undo
+  useEffect(() => {
+    if (mode !== 'play' || screen !== 'play' || !game || !AUTO_STAGES.includes(game.stage)) return
+    const t = setTimeout(() => setGame(settle(next(game))), AUTO_DELAY_MS)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, screen, game])
+
   const mine = my16.map(byId).sort((a, b) => b.rank - a.rank || a.suit - b.suit)
   const deck = mine.filter(c => deckIds.includes(c.id))
 
   const reset = () => {
-    setScreen('deal'); setMy16([]); setDeckIds([]); setSlotIds([]); setPre(null); setGame(null); setHistory([]); setSel(null); setMode('guide'); setSecret({})
+    setScreen('deal'); setMy16([]); setDeckIds([]); setSlotIds([]); setPre(null); setGame(null); setHistory([]); setFuture([]); setSel(null); setMode('guide'); setSecret({})
   }
   const settle = (g: GuideState) => (mode === 'play' ? autoReveal(g, secret) : g)
-  const commit = (g: GuideState) => { setHistory(h => [...h, game!]); setGame(settle(g)); setSel(null); setNote(null) }
-  const undo = () => { if (!history.length) return; setGame(history[history.length - 1]); setHistory(h => h.slice(0, -1)); setSel(null) }
+  const commit = (g: GuideState) => { setHistory(h => [...h, game!]); setFuture([]); setGame(settle(g)); setSel(null); setNote(null) }
+  const undo = () => { if (!history.length || !game) return; setFuture(f => [...f, game]); setGame(history[history.length - 1]); setHistory(h => h.slice(0, -1)); setSel(null) }
+  const redo = () => { if (!future.length || !game) return; setHistory(h => [...h, game]); setGame(future[future.length - 1]); setFuture(f => f.slice(0, -1)); setSel(null) }
 
   const pickDeck = (ids: string[]) => {
     setDeckIds(ids)
@@ -316,6 +335,10 @@ export default function App() {
     <div className="topbar">
       <b>Solo Clash — {mode === 'play' ? 'on screen' : 'table guide'}</b>
       <span className="muted">{mode === 'play' ? 'The app deals, plays the enemy and runs the rules.' : 'You play with real cards; this page runs the rules and tells you what to do.'}</span>
+      {game && screen === 'play' && <>
+        <button onClick={undo} disabled={!history.length}>↶ Undo</button>
+        <button onClick={redo} disabled={!future.length}>↷ Redo</button>
+      </>}
       <button onClick={() => { if (confirm('Start over? This discards the current game.')) reset() }}>Start over</button>
     </div>
   )
@@ -455,19 +478,45 @@ export default function App() {
   const inform = ['round_start', 'enemy_play', 'enemy_stop', 'move', 'fight', 'tower_result'].includes(stage)
   const bottomKnown = g.E.queue.filter(x => x.card).length
   const mineSlots = (k: 'L' | 'R' | 'K'): ESlot[] => g.P.towers[k].map(c => ({ tid: c.id, card: c }))
-  const at = atFor(portrait)
+  // pointer-based drag: one code path for mouse, touch and pen (HTML5 drag-and-drop never fires on touch screens)
+  const startDrag = (e: React.PointerEvent<HTMLElement>, i: number) => {
+    if ((!standing && !canPlay(g, i)) || (e.pointerType === 'mouse' && e.button !== 0)) return
+    const el = e.currentTarget, x0 = e.clientX, y0 = e.clientY
+    let ghost: ReturnType<typeof makeGhost> = null, lane: 0 | 1 | null = null
+    const laneAt = (x: number, y: number) => {
+      const t = (document.elementFromPoint(x, y) as HTMLElement | null)?.closest('.lanecell.droppable') as HTMLElement | null
+      return t?.dataset.lane === undefined ? null : (Number(t.dataset.lane) as 0 | 1)
+    }
+    const move = (ev: PointerEvent) => {
+      if (!ghost) {
+        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 8) return
+        ghost = makeGhost(el, x0, y0, stage_.rot, stage_.sw); setNote(null); setSel(null); setDrag(i)
+      }
+      ev.preventDefault()
+      ghost?.move(ev.clientX, ev.clientY)
+      const l = laneAt(ev.clientX, ev.clientY)
+      if (l !== lane) { lane = l; setOverLane(l) }
+    }
+    const end = (ev: PointerEvent) => {
+      window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', end); window.removeEventListener('pointercancel', end)
+      if (!ghost) return
+      ghost.remove(); setDrag(null); setOverLane(null)
+      justDragged.current = true; setTimeout(() => { justDragged.current = false }, 0)
+      if (ev.type === 'pointerup') { const l = laneAt(ev.clientX, ev.clientY); if (l !== null) commit(standing ? lastStandPlay(g, i) : playCard(g, i, l)) }
+    }
+    window.addEventListener('pointermove', move, { passive: false }); window.addEventListener('pointerup', end); window.addEventListener('pointercancel', end)
+  }
 
   return (
-    <div className={`play${portrait ? ' portrait' : ''}${side ? ' turn-' + side : ''}`}>
+    <div className={`play${stage_.rot ? ' rot' : ''}${stage_.H < 560 ? ' compact' : ''}${side ? ' turn-' + side : ''}`} style={{ '--vw': `${stage_.W / 100}px`, '--vh': `${stage_.H / 100}px`, ...(stage_.rot ? { left: stage_.sw, width: stage_.W, height: stage_.H } : {}) } as CSSProperties}>
       <div className="top">{header}
         <button onClick={() => helpRef.current?.showModal()}>Help &amp; actions</button>
         <button onClick={() => logDlgRef.current?.showModal()}>What happened</button>
         <button onClick={() => rulesRef.current?.showModal()}>Rules</button>
       </div>
-      {portrait && <div className="elixrow"><BarRow n={g.P.elixir} who="YOU" spend={spend} /><BarRow n={g.E.elixir} who="ENEMY" /></div>}
       <div className="board">
         {/* columns: 1 queue/discard · 2 king · 3 tower · 4-7 lane · 8 tower · 9 king · 10 pile/discard; rows: enemy elixir · left lane · right lane · your elixir */}
-        {!portrait && <BarCells n={g.E.elixir} who="ENEMY" row={1} at={at} />}
+        <BarCells n={g.E.elixir} who="ENEMY" row={1} at={at} />
         <div className={`cell epilecell ${qpile ? 'open' : ''}`} style={at(1, 2)} onMouseEnter={() => setQpile(true)} onMouseLeave={() => setQpile(false)}><span className="clabel">your queue (next on top)</span><Pile items={g.P.queue.map(c => ({ tid: c.id, card: c }))} spread={qpile} /></div>
         <div className="cell kingcell" style={at(2, '2 / 4')}>
           <span className="clabel">YOUR KING tower · {g.P.towers.K.length}</span>
@@ -480,8 +529,8 @@ export default function App() {
           </div>
         ))}
 
-        <LaneCells idx={0} units={g.units} laneLen={g.rules.laneLen} row={2} at={at} dragging={drag !== null && (!standing || g.lastStand?.lane === 0)} hint={standing && g.lastStand?.lane === 0} onDropCard={lane => { const h = drag; setDrag(null); if (h !== null) commit(standing ? lastStandPlay(g, h) : playCard(g, h, lane)) }} />
-        <LaneCells idx={1} units={g.units} laneLen={g.rules.laneLen} row={3} at={at} dragging={drag !== null && (!standing || g.lastStand?.lane === 1)} hint={standing && g.lastStand?.lane === 1} onDropCard={lane => { const h = drag; setDrag(null); if (h !== null) commit(standing ? lastStandPlay(g, h) : playCard(g, h, lane)) }} />
+        <LaneCells idx={0} units={g.units} laneLen={g.rules.laneLen} row={2} at={at} dragging={drag !== null && (!standing || g.lastStand?.lane === 0)} hint={standing && g.lastStand?.lane === 0} over={overLane === 0} />
+        <LaneCells idx={1} units={g.units} laneLen={g.rules.laneLen} row={3} at={at} dragging={drag !== null && (!standing || g.lastStand?.lane === 1)} hint={standing && g.lastStand?.lane === 1} over={overLane === 1} />
         <div className="cell" style={at(1, 3)}><span className="clabel">your discard · {g.discard.filter(d => d.owner === 'P').length}</span><Discard items={g.discard.filter(d => d.owner === 'P')} /></div>
         <div className="cell" style={at(10, 3)}><span className="clabel">enemy discard · {g.discard.filter(d => d.owner === 'E').length}</span><Discard items={g.discard.filter(d => d.owner === 'E')} /></div>
 
@@ -496,18 +545,18 @@ export default function App() {
           <HStack items={g.E.towers.K} own={false} mirror cracked={g.cracked ?? []} />
         </div>
         <div className={`cell epilecell ${epile ? 'open' : ''}`} style={at(10, 2)} onMouseEnter={() => setEpile(true)} onMouseLeave={() => setEpile(false)}><span className="clabel">enemy pile ({g.E.queue.length}; {bottomKnown} known)</span><Pile items={g.E.queue} spread={epile} /></div>
-        {!portrait && <BarCells n={g.P.elixir} who="YOU" row={4} at={at} spend={spend} />}
+        <BarCells n={g.P.elixir} who="YOU" row={4} at={at} spend={spend} />
       </div>
 
       <div className="hand">
         <span className="clabel">your hand</span>
         {g.P.hand.map((c, i) => (
-<div key={c.id} className={`hdrag ${drag === i ? 'lifted' : ''} ${!standing && !canPlay(g, i) ? 'off' : ''}`} draggable={standing || canPlay(g, i)} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} onDragStart={e => { e.dataTransfer.setData('text/plain', c.id); e.dataTransfer.effectAllowed = 'move'; faceDragImage(e); setNote(null); setSel(null); setDrag(i) }} onDragEnd={() => setDrag(null)}>
-  <TCard tid={c.id} card={c} down={false} showCost selected={sel === i} dim={!standing && !canPlay(g, i)} onClick={() => standing ? commit(lastStandPlay(g, i)) : canPlay(g, i) ? (setNote(null), setSel(sel === i ? null : i)) : (setSel(null), setNote(`${label(c)} costs ${cost(c.rank)} elixir but you only have ${g.P.elixir}. Pick a card whose purple number is ${g.P.elixir} or less.`))} />
+<div key={c.id} data-i={i} className={`hdrag ${drag === i ? 'lifted' : ''} ${!standing && !canPlay(g, i) ? 'off' : ''}`} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} onPointerDown={e => startDrag(e, i)}>
+  <TCard tid={c.id} card={c} down={false} showCost selected={sel === i} dim={!standing && !canPlay(g, i)} onClick={() => justDragged.current ? undefined : standing ? commit(lastStandPlay(g, i)) : canPlay(g, i) ? (setNote(null), setSel(sel === i ? null : i)) : (setSel(null), setNote(`${label(c)} costs ${cost(c.rank)} elixir but you only have ${g.P.elixir}. Pick a card whose purple number is ${g.P.elixir} or less.`))} />
           </div>
         ))}
         {!g.P.hand.length && <span className="muted">no cards in hand</span>}
-        <div className="wheel" title="Suit wheel: each suit beats the next (+3 rank in a fight)"><span>beats →</span>{['♠', '♥', '♦', '♣'].map((x, k) => <Fragment key={x}>{k > 0 && '›'}<i className={`wcard ${k === 1 || k === 2 ? 'r' : ''}`}>{x}</i></Fragment>)}›<span>↺</span></div>
+        <div className="wheel" title="Suit wheel: each suit beats the next one (+3 rank in a fight); clubs beat spades again"><b>BEATS +3</b>{['♠', '♥', '♦', '♣'].map((x, k) => <Fragment key={x}><i className={`chip ${k === 1 || k === 2 ? 'r' : ''}`}>{x}</i><em>{k < 3 ? '➜' : '↺'}</em></Fragment>)}</div>
       </div>
 
       <dialog ref={helpRef} className="modal" onClick={e => { if (e.target === e.currentTarget) e.currentTarget.close() }}>
@@ -515,7 +564,6 @@ export default function App() {
         <div className="pcol">
         <div className="row"><b>Help:</b>
           {(['off', 'explain', 'suggest'] as Help[]).map(h => <button key={h} className={help === h ? 'on' : ''} onClick={() => setHelp(h)}>{h}</button>)}
-          <button onClick={undo} disabled={!history.length}>↶ Undo</button>
         </div>
         <div className="donow">
           <div className="dntitle">{TITLES[stage]}</div>
@@ -524,7 +572,6 @@ export default function App() {
             <>
               {g.lastAction.length > 0 && <div className="lastaction"><b>Do now:</b><ul className="todo">{g.lastAction.map((l, i) => <li key={i}>{l}</li>)}</ul></div>}
               <p>Choose a card from your hand (or none), then where it goes. Faded cards cost more elixir than you have.</p>
-              {portrait && <div className="row">{g.P.hand.map((c, i) => <button key={c.id} className={sel === i ? 'on' : ''} disabled={!canPlay(g, i)} onClick={() => { setNote(null); setSel(sel === i ? null : i) }}>{label(c)} · {cost(c.rank)}</button>)}</div>}
               {note && <p className="warn">{note}</p>}
               {sel !== null && (
                 <div className="row">Place {label(g.P.hand[sel])} in:
@@ -549,7 +596,7 @@ export default function App() {
               <CardPicker disabled={excludedIds(g)} onPick={c => commit(hitEnemy ? enterTowerCard(g, c) : enterEnemyCard(g, c))} />
             </>
           )}
-          {inform && <div className="row"><button className="big" onClick={() => commit(next(g))}>Done — next →</button></div>}
+          {inform && mode !== 'play' && <div className="row"><button className="big" onClick={() => commit(next(g))}>Done — next →</button></div>}
           {stage === 'over' && (
             <>
               <ul className="todo">{summary(g).map((l, i) => <li key={i}>{l}</li>)}</ul>
@@ -560,6 +607,20 @@ export default function App() {
         </div>
         </div>
       </dialog>
+      {stage === 'over' && !overSeen && (
+        <div className="modal-backdrop">
+          <div className={`gameover ${g.winner === 'P' ? 'won' : g.winner === 'E' ? 'lost' : 'drawn'}`}>
+            {g.winner === 'P' && <WinConfetti />}
+            <h2>{g.winner === 'P' ? 'You win!' : g.winner === 'E' ? 'You lose' : 'Draw'}</h2>
+            <p>{g.lines[0]}</p>
+            <ul className="todo">{summary(g).map((l, i) => <li key={i}>{l}</li>)}</ul>
+            <div className="row">
+              <button className="big" onClick={reset}>New game</button>
+              <button onClick={() => setOverSeen(true)}>View board</button>
+            </div>
+          </div>
+        </div>
+      )}
       <dialog ref={logDlgRef} className="modal" onClick={e => { if (e.target === e.currentTarget) e.currentTarget.close() }}>
         <button className="close" onClick={() => logDlgRef.current?.close()}>✕</button>
         <div className="pcol">
