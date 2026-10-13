@@ -134,13 +134,13 @@ function BarCells({ n, who, row, at, spend = 0 }: { n: number; who: string; row:
 function HStack({ items, own, mirror, cracked }: { items: ESlot[]; own: boolean; mirror: boolean; cracked: string[] }) {
   const n = items.length
   return (
-    <div className="hstack" style={{ width: `calc(var(--cw) + ${Math.max(0, n - 1)} * var(${mirror ? '--poff' : '--hoff'}))` }}>
+    <div className="hstack" style={{ width: `calc(var(--cw) + ${Math.max(0, n - 1)} * var(--hoff))` }}>
       {n === 0 && <div className="destroyed">destroyed</div>}
       {items.map((it, i) => {
-        // player: fanned, top card on the right (nearest the lanes). enemy: cards are hidden, so a tight stack with the top card in front.
+        // fanned the same for both sides; the top card sits nearest the lanes (right for you, left for the enemy).
         const slot = mirror ? i : n - 1 - i
         return (
-          <div key={it.tid} className="hcard" style={{ left: `calc(${slot} * var(${mirror ? '--poff' : '--hoff'}))`, zIndex: mirror ? n - i : slot }}>
+          <div key={it.tid} className="hcard" style={{ left: `calc(${slot} * var(--hoff))`, zIndex: mirror ? n - i : slot }}>
             <div className={cracked.includes(it.tid) ? 'crk' : undefined} title={cracked.includes(it.tid) ? 'cracked: any hit breaks it' : undefined}><TCard tid={it.tid} card={it.card} down={!it.card && !own} /></div>
           </div>
         )
