@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { motion } from 'framer-motion'
 import './App.css'
@@ -38,6 +38,22 @@ function CardView({ card, down, showCost, selected, dim, small, onClick }: {
 // A card on the board: it has a stable id (tid), so when it changes place it SLIDES there instead of jumping.
 // A card that is revealed (face-down -> face-up) FLIPS while it moves.
 const faceMemory = new Map<string, boolean>()
+// the 3D flip makes browsers snapshot the card's back, so drag a flat copy of the face instead
+function faceDragImage(e: React.DragEvent<HTMLElement>) {
+  const card = e.currentTarget.querySelector('.tcard') as HTMLElement | null
+  if (!card) return
+  const r = card.getBoundingClientRect()
+  const ghost = card.cloneNode(true) as HTMLElement
+  const flip = ghost.querySelector('.flip') as HTMLElement | null
+  if (flip) Object.assign(flip.style, { transform: 'none', transition: 'none', transformStyle: 'flat' })
+  ghost.querySelector('.backside')?.remove()
+  ghost.querySelectorAll<HTMLElement>('.cf').forEach(f => { f.style.backfaceVisibility = 'visible'; f.style.setProperty('-webkit-backface-visibility', 'visible') })
+  Object.assign(ghost.style, { position: 'fixed', top: '-1000px', left: '-1000px', width: `${r.width}px`, height: `${r.height}px`, transform: 'none', opacity: '1', filter: 'none', zIndex: '9999' })
+  e.currentTarget.appendChild(ghost) // inside the hand, so it inherits the same card size variables and styles
+  e.dataTransfer.setDragImage(ghost, e.clientX - r.left, e.clientY - r.top)
+  setTimeout(() => ghost.remove(), 0)
+}
+
 function TCard({ tid, card, down, selected, dim, showCost, onClick }: {
   tid: string; card: Card | null; down: boolean; selected?: boolean; dim?: boolean; showCost?: boolean; onClick?: () => void
 }) {
@@ -88,7 +104,7 @@ function BarCells({ n, who, row, at }: { n: number; who: string; row: number; at
       {Array.from({ length: 10 }, (_, i) => (
         <div key={i} className="cell ecell" style={at(i + 1, row)}>
           {i === 0 && <span className="clabel">{who} · elixir {n}/10</span>}
-          <span className={`bslot${i === n - 1 ? ' marker' : ''}`}>{i + 1}</span>
+          <span className="eslot"><span className={`eflip${i === n - 1 ? ' up' : ''}`}><span className="ef efront">{i + 1}</span><span className="ef eback">{i + 1}</span></span></span>
         </div>
       ))}
     </>
@@ -160,7 +176,7 @@ function usePortrait() {
   return p
 }
 
-function LaneCells({ idx, units, laneLen, row, at, dragging, onDropCard }: { idx: 0 | 1; units: Unit[]; laneLen: number; row: number; at: At; dragging?: boolean; onDropCard?: (lane: 0 | 1) => void }) {
+function LaneCells({ idx, units, laneLen, row, at, dragging, hint, onDropCard }: { hint?: boolean; idx: 0 | 1; units: Unit[]; laneLen: number; row: number; at: At; dragging?: boolean; onDropCard?: (lane: 0 | 1) => void }) {
   const [over, setOver] = useState(false)
   const defs: { label: string; pred: (u: Unit) => boolean; cls: string }[] = [
     { label: 'your tower', pred: u => u.side === 'E' && u.pos < 0, cls: 'attack' },
@@ -171,7 +187,7 @@ function LaneCells({ idx, units, laneLen, row, at, dragging, onDropCard }: { idx
   return (
     <>
       {defs.map((d, k) => (
-        <div key={k} className={`cell lanecell ${d.cls} ${dragging && k === 1 ? 'droppable' : ''} ${dragging && k === 1 && over ? 'over' : ''}`} style={at(4 + k, row)}
+        <div key={k} className={`cell lanecell ${d.cls} ${(dragging || hint) && k === 1 ? 'droppable' : ''} ${dragging && k === 1 && over ? 'over' : ''}`} style={at(4 + k, row)}
           onDragOver={dragging && k === 1 ? e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setOver(true) } : undefined}
           onDragEnter={dragging && k === 1 ? () => setOver(true) : undefined}
           onDragLeave={dragging && k === 1 ? e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(false) } : undefined}
@@ -444,8 +460,8 @@ export default function App() {
           </div>
         ))}
 
-        <LaneCells idx={0} units={g.units} laneLen={g.rules.laneLen} row={2} at={at} dragging={drag !== null && !standing} onDropCard={lane => { const h = drag; setDrag(null); if (h !== null) commit(playCard(g, h, lane)) }} />
-        <LaneCells idx={1} units={g.units} laneLen={g.rules.laneLen} row={3} at={at} dragging={drag !== null && !standing} onDropCard={lane => { const h = drag; setDrag(null); if (h !== null) commit(playCard(g, h, lane)) }} />
+        <LaneCells idx={0} units={g.units} laneLen={g.rules.laneLen} row={2} at={at} dragging={drag !== null && (!standing || g.lastStand?.lane === 0)} hint={standing && g.lastStand?.lane === 0} onDropCard={lane => { const h = drag; setDrag(null); if (h !== null) commit(standing ? lastStandPlay(g, h) : playCard(g, h, lane)) }} />
+        <LaneCells idx={1} units={g.units} laneLen={g.rules.laneLen} row={3} at={at} dragging={drag !== null && (!standing || g.lastStand?.lane === 1)} hint={standing && g.lastStand?.lane === 1} onDropCard={lane => { const h = drag; setDrag(null); if (h !== null) commit(standing ? lastStandPlay(g, h) : playCard(g, h, lane)) }} />
         <div className="cell" style={at(1, 3)}><span className="clabel">your discard · {g.discard.filter(d => d.owner === 'P').length}</span><Discard items={g.discard.filter(d => d.owner === 'P')} /></div>
         <div className="cell" style={at(10, 3)}><span className="clabel">enemy discard · {g.discard.filter(d => d.owner === 'E').length}</span><Discard items={g.discard.filter(d => d.owner === 'E')} /></div>
 
@@ -466,11 +482,12 @@ export default function App() {
       <div className="hand">
         <span className="clabel">your hand</span>
         {g.P.hand.map((c, i) => (
-<div key={c.id} className={`hdrag ${!standing && !canPlay(g, i) ? 'off' : ''}`} draggable={!standing && canPlay(g, i)} onDragStart={e => { e.dataTransfer.setData('text/plain', c.id); e.dataTransfer.effectAllowed = 'move'; setNote(null); setSel(null); setDrag(i) }} onDragEnd={() => setDrag(null)}>
+<div key={c.id} className={`hdrag ${drag === i ? 'lifted' : ''} ${!standing && !canPlay(g, i) ? 'off' : ''}`} draggable={standing || canPlay(g, i)} onDragStart={e => { e.dataTransfer.setData('text/plain', c.id); e.dataTransfer.effectAllowed = 'move'; faceDragImage(e); setNote(null); setSel(null); setDrag(i) }} onDragEnd={() => setDrag(null)}>
   <TCard tid={c.id} card={c} down={false} showCost selected={sel === i} dim={!standing && !canPlay(g, i)} onClick={() => standing ? commit(lastStandPlay(g, i)) : canPlay(g, i) ? (setNote(null), setSel(sel === i ? null : i)) : (setSel(null), setNote(`${label(c)} costs ${cost(c.rank)} elixir but you only have ${g.P.elixir}. Pick a card whose purple number is ${g.P.elixir} or less.`))} />
           </div>
         ))}
         {!g.P.hand.length && <span className="muted">no cards in hand</span>}
+        <div className="wheel" title="Suit wheel: each suit beats the next (+3 rank in a fight)"><span>beats →</span>{['♠', '♥', '♦', '♣'].map((x, k) => <Fragment key={x}>{k > 0 && '›'}<i className={`wcard ${k === 1 || k === 2 ? 'r' : ''}`}>{x}</i></Fragment>)}›<span>↺</span></div>
       </div>
 
       <div className="panel">
