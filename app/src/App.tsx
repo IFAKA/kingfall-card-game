@@ -53,13 +53,20 @@ function makeGhost(el: HTMLElement, x: number, y: number, rot: boolean, sw: numb
   const play = el.closest('.play') as HTMLElement
   const pr = play.getBoundingClientRect()
   // screen point -> the table's own coordinates (a quarter turn when rotated), card centred on the pointer
-  const move = (px: number, py: number) => {
+  const move = (px: number, py: number, scale = 1.08) => {
     const lx = rot ? py : px - pr.left, ly = rot ? sw - px : py - pr.top
-    ghost.style.transform = `translate(${lx - w / 2}px, ${ly - h / 2}px) scale(1.08)`
+    ghost.style.transform = `translate(${lx - w / 2}px, ${ly - h / 2}px) scale(${scale})`
   }
   move(x, y)
   play.appendChild(ghost) // inside .play, so it inherits the card size variables
-  return { move, remove: () => ghost.remove() }
+  // a drop that didn't land: glide back to the card's slot in the hand, then vanish
+  const glideBack = (done: () => void) => {
+    const r = card.getBoundingClientRect()
+    ghost.style.transition = 'transform .22s ease'
+    move(r.left + r.width / 2, r.top + r.height / 2, 1)
+    setTimeout(() => { ghost.remove(); done() }, 230)
+  }
+  return { move, remove: () => ghost.remove(), glideBack }
 }
 
 // Confetti bursts from both sides for a few seconds; mounts only while the win dialog is up.
@@ -503,9 +510,12 @@ export default function App() {
     const end = (ev: PointerEvent) => {
       window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', end); window.removeEventListener('pointercancel', end)
       if (!ghost) return
-      ghost.remove(); setDrag(null); setOverLane(null)
+      setOverLane(null)
       justDragged.current = true; setTimeout(() => { justDragged.current = false }, 0)
-      if (ev.type === 'pointerup') { const l = laneAt(ev.clientX, ev.clientY); if (l !== null) commit(standing ? lastStandPlay(g, i) : playCard(g, i, l)) }
+      const l = ev.type === 'pointerup' ? laneAt(ev.clientX, ev.clientY) : null
+      if (l === null) { ghost.glideBack(() => setDrag(null)); return }
+      ghost.remove(); setDrag(null)
+      commit(standing ? lastStandPlay(g, i) : playCard(g, i, l))
     }
     window.addEventListener('pointermove', move, { passive: false }); window.addEventListener('pointerup', end); window.addEventListener('pointercancel', end)
   }
