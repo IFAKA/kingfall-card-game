@@ -192,7 +192,7 @@ function useStage() {
   return { ...v, W: v.rot ? v.sh : v.sw, H: v.rot ? v.sw : v.sh }
 }
 
-function LaneCells({ idx, units, laneLen, row, at, dragging, hint, over }: { hint?: boolean; idx: 0 | 1; units: Unit[]; laneLen: number; row: number; at: At; dragging?: boolean; over?: boolean }) {
+function LaneCells({ idx, units, laneLen, row, at, dragging, hint, over, onPlace }: { onPlace?: () => void; hint?: boolean; idx: 0 | 1; units: Unit[]; laneLen: number; row: number; at: At; dragging?: boolean; over?: boolean }) {
   const defs: { label: string; pred: (u: Unit) => boolean; cls: string }[] = [
     { label: 'your tower', pred: u => u.side === 'E' && u.pos < 0, cls: 'attack' },
     { label: `${idx === 0 ? 'LEFT' : 'RIGHT'}: your slot`, pred: u => u.pos === 0, cls: '' },
@@ -202,7 +202,7 @@ function LaneCells({ idx, units, laneLen, row, at, dragging, hint, over }: { hin
   return (
     <>
       {defs.map((d, k) => (
-        <div key={k} className={`cell lanecell ${d.cls} ${(dragging || hint) && k === 1 ? 'droppable' : ''} ${dragging && k === 1 && over ? 'over' : ''}`} style={at(4 + k, row)}
+        <div key={k} className={`cell lanecell ${d.cls} ${(dragging || hint) && k === 1 ? 'droppable' : ''} ${dragging && k === 1 && over ? 'over' : ''}`} style={at(4 + k, row)} onClick={k === 1 && hint ? onPlace : undefined}
           data-lane={k === 1 ? idx : undefined}>
           <span className="clabel">{d.label}</span>
           <div className="cellbody">
@@ -540,8 +540,8 @@ export default function App() {
           </div>
         ))}
 
-        <LaneCells idx={0} units={g.units} laneLen={g.rules.laneLen} row={2} at={at} dragging={drag !== null && (!standing || g.lastStand?.lane === 0)} hint={standing && g.lastStand?.lane === 0} over={overLane === 0} />
-        <LaneCells idx={1} units={g.units} laneLen={g.rules.laneLen} row={3} at={at} dragging={drag !== null && (!standing || g.lastStand?.lane === 1)} hint={standing && g.lastStand?.lane === 1} over={overLane === 1} />
+        <LaneCells idx={0} units={g.units} laneLen={g.rules.laneLen} row={2} at={at} dragging={drag !== null && (!standing || g.lastStand?.lane === 0)} hint={standing ? g.lastStand?.lane === 0 : sel !== null} over={overLane === 0} onPlace={() => sel !== null && commit(playCard(g, sel, 0))} />
+        <LaneCells idx={1} units={g.units} laneLen={g.rules.laneLen} row={3} at={at} dragging={drag !== null && (!standing || g.lastStand?.lane === 1)} hint={standing ? g.lastStand?.lane === 1 : sel !== null} over={overLane === 1} onPlace={() => sel !== null && commit(playCard(g, sel, 1))} />
         <div className="cell" style={at(1, 3)}><span className="clabel">your discard · {g.discard.filter(d => d.owner === 'P').length}</span><Discard items={g.discard.filter(d => d.owner === 'P')} /></div>
         <div className="cell" style={at(10, 3)}><span className="clabel">enemy discard · {g.discard.filter(d => d.owner === 'E').length}</span><Discard items={g.discard.filter(d => d.owner === 'E')} /></div>
 
