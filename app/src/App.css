@@ -303,8 +303,6 @@ h3 { margin: 18px 0 8px; }
 .modal .pcol { overflow: visible; }
 .modal .log { max-height: 50vh; overflow: auto; }
 
-/* cost preview: the elixir slots the dragged / hovered / selected card would use up, softly faded */
-.bslot.spend, .eslot.spend { opacity: .3; }
-.bslot.short, .eslot.short { opacity: .5; }
-.bslot.short { background: #b3261e; }
-.eslot.short .ef { background: #b3261e; border-color: #ff8a80; color: #fff; }
+/* cost preview: one frame around the elixir cards the dragged / hovered / selected card would spend */
+.sgroup { display: inline-flex; align-items: center; gap: 3px; padding: 3px; border: 3px solid #ffd34d; border-radius: 8px; }
+.sgroup.cells { display: block; padding: 0; margin-top: 14px; pointer-events: none; z-index: 5; }

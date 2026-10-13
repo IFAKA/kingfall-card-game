@@ -85,35 +85,38 @@ function TCard({ tid, card, down, selected, dim, showCost, onClick }: {
   )
 }
 
-// Preview of a card's cost on the bar: the slots it would use up (same look whether or not you can afford it).
-function spendCls(i: number, n: number, spend: number) {
-  if (!spend) return ''
-  if (spend > n) return i < n ? ' short' : ''
-  return i >= n - spend && i < n ? ' spend' : ''
+// Slots [from, to) a card's cost covers: back from the marker, or from the start when it costs more than you have.
+function spendRange(n: number, spend: number): [number, number] {
+  const from = Math.max(0, n - spend)
+  return [from, Math.min(10, from + spend)]
 }
 
 // An elixir bar: a row of 10 face-down cards; the one flipped face-up is the marker, its position = elixir.
-function BarRow({ n, who, spend = 0, hint }: { n: number; who: string; spend?: number; hint?: string }) {
+function BarRow({ n, who, spend = 0 }: { n: number; who: string; spend?: number }) {
   return (
     <div className="hbar">
-      <span className="hlabel">{who} · elixir {n}/10{hint && <b className="chint"> · {hint}</b>}</span>
-      {Array.from({ length: 10 }, (_, i) => (
-        <span key={i} className={`bslot${i === n - 1 ? ' marker' : ''}${i === 5 ? ' gap' : ''}${spendCls(i, n, spend)}`}>{i + 1}</span>
-      ))}
+      <span className="hlabel">{who} · elixir {n}/10</span>
+      {Array.from({ length: 10 }, (_, i) => {
+        const slot = (j: number) => <span key={j} className={`bslot${j === n - 1 ? ' marker' : ''}${j === 5 ? ' gap' : ''}`}>{j + 1}</span>
+        const [from, to] = spendRange(n, spend)
+        if (i === from && to > from) return <span key={i} className="sgroup">{Array.from({ length: to - from }, (_, k) => slot(from + k))}</span>
+        return i > from && i < to ? null : slot(i)
+      })}
     </div>
   )
 }
 
 // The same bar as 10 board cells, one per column, so it lines up with the table below it.
-function BarCells({ n, who, row, at, spend = 0, hint }: { n: number; who: string; row: number; at: At; spend?: number; hint?: string }) {
+function BarCells({ n, who, row, at, spend = 0 }: { n: number; who: string; row: number; at: At; spend?: number }) {
   return (
     <>
       {Array.from({ length: 10 }, (_, i) => (
         <div key={i} className="cell ecell" style={at(i + 1, row)}>
-          {i === 0 && <span className="clabel">{who} · elixir {n}/10{hint && <b className="chint"> · {hint}</b>}</span>}
-          <span className={`eslot${spendCls(i, n, spend)}`}><span className={`eflip${i === n - 1 ? ' up' : ''}`}><span className="ef efront">{i + 1}</span><span className="ef eback">{i + 1}</span></span></span>
+          {i === 0 && <span className="clabel">{who} · elixir {n}/10</span>}
+          <span className="eslot"><span className={`eflip${i === n - 1 ? ' up' : ''}`}><span className="ef efront">{i + 1}</span><span className="ef eback">{i + 1}</span></span></span>
         </div>
       ))}
+      {spend > 0 && <div className="sgroup cells" style={at(`${spendRange(n, spend)[0] + 1} / ${spendRange(n, spend)[1] + 1}`, row)} />}
     </>
   )
 }
@@ -448,7 +451,6 @@ export default function App() {
   const standing = stage === 'my_last_stand'
   const previewCard = standing ? undefined : g.P.hand[drag ?? sel ?? hov ?? -1]
   const spend = previewCard ? cost(previewCard.rank) : 0
-  const hint = previewCard ? `${label(previewCard)} costs ${spend}${spend > g.P.elixir ? ' (not enough)' : ''}` : undefined
   const side = stage === 'my_play' || standing ? 'me' : stage.startsWith('enemy_') || stage === 'last_stand_enter' ? 'enemy' : null
   const inform = ['round_start', 'enemy_play', 'enemy_stop', 'move', 'fight', 'tower_result'].includes(stage)
   const bottomKnown = g.E.queue.filter(x => x.card).length
@@ -462,7 +464,7 @@ export default function App() {
         <button onClick={() => logDlgRef.current?.showModal()}>What happened</button>
         <button onClick={() => rulesRef.current?.showModal()}>Rules</button>
       </div>
-      {portrait && <div className="elixrow"><BarRow n={g.P.elixir} who="YOU" spend={spend} hint={hint} /><BarRow n={g.E.elixir} who="ENEMY" /></div>}
+      {portrait && <div className="elixrow"><BarRow n={g.P.elixir} who="YOU" spend={spend} /><BarRow n={g.E.elixir} who="ENEMY" /></div>}
       <div className="board">
         {/* columns: 1 queue/discard · 2 king · 3 tower · 4-7 lane · 8 tower · 9 king · 10 pile/discard; rows: enemy elixir · left lane · right lane · your elixir */}
         {!portrait && <BarCells n={g.E.elixir} who="ENEMY" row={1} at={at} />}
@@ -494,14 +496,14 @@ export default function App() {
           <HStack items={g.E.towers.K} own={false} mirror cracked={g.cracked ?? []} />
         </div>
         <div className={`cell epilecell ${epile ? 'open' : ''}`} style={at(10, 2)} onMouseEnter={() => setEpile(true)} onMouseLeave={() => setEpile(false)}><span className="clabel">enemy pile ({g.E.queue.length}; {bottomKnown} known)</span><Pile items={g.E.queue} spread={epile} /></div>
-        {!portrait && <BarCells n={g.P.elixir} who="YOU" row={4} at={at} spend={spend} hint={hint} />}
+        {!portrait && <BarCells n={g.P.elixir} who="YOU" row={4} at={at} spend={spend} />}
       </div>
 
       <div className="hand">
         <span className="clabel">your hand</span>
         {g.P.hand.map((c, i) => (
 <div key={c.id} className={`hdrag ${drag === i ? 'lifted' : ''} ${!standing && !canPlay(g, i) ? 'off' : ''}`} draggable={standing || canPlay(g, i)} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} onDragStart={e => { e.dataTransfer.setData('text/plain', c.id); e.dataTransfer.effectAllowed = 'move'; faceDragImage(e); setNote(null); setSel(null); setDrag(i) }} onDragEnd={() => setDrag(null)}>
-  <TCard tid={c.id} card={c} down={false} selected={sel === i} dim={!standing && !canPlay(g, i)} onClick={() => standing ? commit(lastStandPlay(g, i)) : canPlay(g, i) ? (setNote(null), setSel(sel === i ? null : i)) : (setSel(null), setNote(`${label(c)} costs ${cost(c.rank)} elixir but you only have ${g.P.elixir}. Pick a card that fits your elixir bar.`))} />
+  <TCard tid={c.id} card={c} down={false} showCost selected={sel === i} dim={!standing && !canPlay(g, i)} onClick={() => standing ? commit(lastStandPlay(g, i)) : canPlay(g, i) ? (setNote(null), setSel(sel === i ? null : i)) : (setSel(null), setNote(`${label(c)} costs ${cost(c.rank)} elixir but you only have ${g.P.elixir}. Pick a card whose purple number is ${g.P.elixir} or less.`))} />
           </div>
         ))}
         {!g.P.hand.length && <span className="muted">no cards in hand</span>}
