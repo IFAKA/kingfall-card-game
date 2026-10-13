@@ -159,7 +159,8 @@ function usePortrait() {
   return p
 }
 
-function LaneCells({ idx, units, laneLen, row, at }: { idx: 0 | 1; units: Unit[]; laneLen: number; row: number; at: At }) {
+function LaneCells({ idx, units, laneLen, row, at, dragging, onDropCard }: { idx: 0 | 1; units: Unit[]; laneLen: number; row: number; at: At; dragging?: boolean; onDropCard?: (lane: 0 | 1) => void }) {
+  const [over, setOver] = useState(false)
   const defs: { label: string; pred: (u: Unit) => boolean; cls: string }[] = [
     { label: 'your tower', pred: u => u.side === 'E' && u.pos < 0, cls: 'attack' },
     { label: `${idx === 0 ? 'LEFT' : 'RIGHT'}: your slot`, pred: u => u.pos === 0, cls: '' },
@@ -169,7 +170,11 @@ function LaneCells({ idx, units, laneLen, row, at }: { idx: 0 | 1; units: Unit[]
   return (
     <>
       {defs.map((d, k) => (
-        <div key={k} className={`cell lanecell ${d.cls}`} style={at(4 + k, row)}>
+        <div key={k} className={`cell lanecell ${d.cls} ${dragging && k === 1 ? 'droppable' : ''} ${dragging && k === 1 && over ? 'over' : ''}`} style={at(4 + k, row)}
+          onDragOver={dragging && k === 1 ? e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' } : undefined}
+          onDragEnter={dragging && k === 1 ? () => setOver(true) : undefined}
+          onDragLeave={dragging && k === 1 ? () => setOver(false) : undefined}
+          onDrop={dragging && k === 1 ? e => { e.preventDefault(); setOver(false); onDropCard?.(idx) } : undefined}>
           <span className="clabel">{d.label}</span>
           <div className="cellbody">
             {units.filter(u => u.lane === idx && d.pred(u)).map(u => (
@@ -233,6 +238,7 @@ export default function App() {
   const [game, setGame] = useState<GuideState | null>(saved?.game ?? null)
   const [history, setHistory] = useState<GuideState[]>(saved?.history ?? [])
   const [sel, setSel] = useState<number | null>(null)
+  const [drag, setDrag] = useState<number | null>(null)
   const logRef = useRef<HTMLDivElement>(null)
   const portrait = usePortrait()
 
@@ -436,8 +442,8 @@ export default function App() {
           </div>
         ))}
 
-        <LaneCells idx={0} units={g.units} laneLen={g.rules.laneLen} row={2} at={at} />
-        <LaneCells idx={1} units={g.units} laneLen={g.rules.laneLen} row={3} at={at} />
+        <LaneCells idx={0} units={g.units} laneLen={g.rules.laneLen} row={2} at={at} dragging={drag !== null && !standing} onDropCard={lane => { const h = drag; setDrag(null); if (h !== null) commit(playCard(g, h, lane)) }} />
+        <LaneCells idx={1} units={g.units} laneLen={g.rules.laneLen} row={3} at={at} dragging={drag !== null && !standing} onDropCard={lane => { const h = drag; setDrag(null); if (h !== null) commit(playCard(g, h, lane)) }} />
         <div className="cell" style={at(1, 3)}><span className="clabel">your discard · {g.discard.filter(d => d.owner === 'P').length}</span><Discard items={g.discard.filter(d => d.owner === 'P')} /></div>
         <div className="cell" style={at(10, 3)}><span className="clabel">enemy discard · {g.discard.filter(d => d.owner === 'E').length}</span><Discard items={g.discard.filter(d => d.owner === 'E')} /></div>
 
@@ -458,7 +464,9 @@ export default function App() {
       <div className="hand">
         <span className="clabel">your hand</span>
         {g.P.hand.map((c, i) => (
-          <TCard key={c.id} tid={c.id} card={c} down={false} showCost selected={sel === i} dim={!standing && !canPlay(g, i)} onClick={() => standing ? commit(lastStandPlay(g, i)) : canPlay(g, i) ? (setNote(null), setSel(sel === i ? null : i)) : (setSel(null), setNote(`${label(c)} costs ${cost(c.rank)} elixir but you only have ${g.P.elixir}. Pick a card whose purple number is ${g.P.elixir} or less.`))} />
+<div key={c.id} className={`hdrag ${!standing && !canPlay(g, i) ? 'off' : ''}`} draggable={!standing && canPlay(g, i)} onDragStart={e => { e.dataTransfer.setData('text/plain', c.id); e.dataTransfer.effectAllowed = 'move'; setNote(null); setSel(null); setDrag(i) }} onDragEnd={() => setDrag(null)}>
+  <TCard tid={c.id} card={c} down={false} showCost selected={sel === i} dim={!standing && !canPlay(g, i)} onClick={() => standing ? commit(lastStandPlay(g, i)) : canPlay(g, i) ? (setNote(null), setSel(sel === i ? null : i)) : (setSel(null), setNote(`${label(c)} costs ${cost(c.rank)} elixir but you only have ${g.P.elixir}. Pick a card whose purple number is ${g.P.elixir} or less.`))} />
+          </div>
         ))}
         {!g.P.hand.length && <span className="muted">no cards in hand</span>}
       </div>

@@ -265,3 +265,10 @@ h3 { margin: 18px 0 8px; }
 .hand .tcard { margin: 0 4px; }
 .play.portrait .bslot { width: 14px; height: 20px; border-radius: 3px; border-width: 1px; font-size: 9px; }
 .play.portrait .bslot.marker { margin: 0 2px; }
+
+/* drag and drop: playable cards can be picked up, unaffordable ones are disabled */
+.hdrag { display: inline-block; cursor: grab; }
+.hdrag:active { cursor: grabbing; }
+.hdrag.off { cursor: not-allowed; }
+.lanecell.droppable { outline: 2px dashed #ffd36b; outline-offset: -2px; }
+.lanecell.droppable.over { background: #ffd36b33; outline-style: solid; }
