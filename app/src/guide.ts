@@ -1,6 +1,6 @@
 // Guide engine: you play with real cards; this runs the rules and tells you what to do physically.
 // The enemy's face-down cards are unknown (null) until you flip them and tell the app.
-import { DEFAULT_RULES, cost, defendLane, effective, label, playerLaneInfo, shuffle } from './engine.ts'
+import { DEFAULT_RULES, compare, cost, defendLane, effective, label, playerLaneInfo, shuffle, underdogWins } from './engine.ts'
 import type { Card, Rules, StackKey, Towers, Unit } from './engine.ts'
 
 export type Stage =
@@ -38,7 +38,8 @@ export interface GuideState {
 const laneName = (l: number) => (l === 0 ? 'LEFT' : 'RIGHT')
 const stackName = (k: StackKey) => (k === 'K' ? 'KING tower' : k === 'L' ? 'LEFT tower' : 'RIGHT tower')
 const clone = (g: GuideState): GuideState => structuredClone(g)
-const bonusNote = (a: Card, b: Card, w: number) => (effective(a, b, w) > a.rank ? ` (+${w} suit bonus)` : '')
+const bonusNote = (a: Card, b: Card, r: Rules) =>
+  underdogWins(a, b, r.underdog) ? ' (underdog: wins)' : effective(a, b, r.wheel) > a.rank ? ` (+${r.wheel} suit bonus)` : ''
 
 export function makeGame(deck: Card[], towerSlots: Card[], my16: Card[], rules: Rules = DEFAULT_RULES): GuideState {
   const d = shuffle(deck)
@@ -282,29 +283,31 @@ function resolveNext(g: GuideState): GuideState {
     const p = ps.reduce((a, b) => (b.pos > a.pos ? b : a))
     const e = es.reduce((a, b) => (b.pos < a.pos ? b : a))
     if (!clash(p, e)) continue
-    const w = g.rules.wheel
-    const pe = effective(p.card, e.card, w), ee = effective(e.card, p.card, w)
-    const head = `${laneName(lane)} lane: your ${label(p.card)}${bonusNote(p.card, e.card, w)} vs enemy ${label(e.card)}${bonusNote(e.card, p.card, w)}.`
+    const r = compare(p.card, e.card, g.rules)
+    const underdog = underdogWins(p.card, e.card, g.rules.underdog) || underdogWins(e.card, p.card, g.rules.underdog)
+    const head = `${laneName(lane)} lane: your ${label(p.card)}${bonusNote(p.card, e.card, g.rules)} vs enemy ${label(e.card)}${bonusNote(e.card, p.card, g.rules)}.`
     let res: string[]
-    if (pe === ee) {
+    if (r === 0) {
       res = ['Equal rank: BOTH cards are removed.', ...kill(g, p), ...kill(g, e)]
       g.log.push(`${label(p.card)} ties ${label(e.card)}: both removed.`)
-    } else if (pe > ee) {
+    } else if (r > 0) {
       res = [`YOUR ${label(p.card)} WINS${p.held ? ' and steps forward when the slot is clear' : ' and stays where it is'}.`, ...kill(g, e)]
       g.log.push(`Your ${label(p.card)} beats enemy ${label(e.card)}.`)
-      if (cost(p.card.rank) - cost(e.card.rank) >= 4) {
+      if (!underdog && cost(p.card.rank) - cost(e.card.rank) >= 4) {
         g.stats.overkills.push(`Round ${g.round}: your ${label(p.card)} (cost ${cost(p.card.rank)}) beat a ${label(e.card)} (cost ${cost(e.card.rank)}) — a cheaper card could have done it.`)
       }
     } else {
       res = [`The ENEMY ${label(e.card)} WINS${e.held ? ' and steps forward when the slot is clear' : ' and stays where it is'}.`, ...kill(g, p)]
       g.log.push(`Enemy ${label(e.card)} beats your ${label(p.card)}.`)
     }
-    if (pe > ee) advance(g, lane, 'P')
-    else if (ee > pe) advance(g, lane, 'E')
+    if (r > 0) advance(g, lane, 'P')
+    else if (r < 0) advance(g, lane, 'E')
     if (!engaged(g, lane)) { advance(g, lane, 'P'); advance(g, lane, 'E') }
     g.stage = 'fight'
     g.lines = [head, ...res]
-    g.why = ['The front-most cards fight first. Higher rank wins; a suit that beats the other adds +3. The winner stays and keeps fighting; the loser goes to the bottom of its pile.']
+    g.why = [underdog
+      ? `Underdog: a card ${g.rules.underdog} or more ranks lower wins (A beats J/Q/K, 2 beats Q/K, 3 beats K). The winner stays and keeps fighting; the loser goes to the bottom of its pile.`
+      : `The front-most cards fight first. Higher rank wins; a suit that beats the other adds +${g.rules.wheel}. The winner stays and keeps fighting; the loser goes to the bottom of its pile.`]
     return g
   }
   g.hitQueue = g.units
@@ -463,7 +466,7 @@ function finishRound(g: GuideState): GuideState {
 export type Advice = { kind: 'play'; handIndex: number; lane: 0 | 1; reason: string } | { kind: 'wait'; reason: string }
 
 function beats(g: GuideState, a: Card, b: Card) {
-  return effective(a, b, g.rules.wheel) > effective(b, a, g.rules.wheel)
+  return compare(a, b, g.rules) > 0
 }
 
 export function options(g: GuideState): string[] {
@@ -479,12 +482,11 @@ export function options(g: GuideState): string[] {
 
 /** Fights in a lane go front card against front card; the winner stays and meets the next one, a tie removes both. */
 function laneOutcome(g: GuideState, mine: Card[], theirs: Card[]) {
-  const w = g.rules.wheel
   let i = 0, j = 0
   while (i < mine.length && j < theirs.length) {
-    const a = effective(mine[i], theirs[j], w), b = effective(theirs[j], mine[i], w)
-    if (a >= b) j++
-    if (b >= a) i++
+    const r = compare(mine[i], theirs[j], g.rules)
+    if (r >= 0) j++
+    if (r <= 0) i++
   }
   return { mine: mine.slice(i), theirs: theirs.slice(j) }
 }

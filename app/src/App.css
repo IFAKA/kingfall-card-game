@@ -278,6 +278,9 @@ h3 { margin: 18px 0 8px; }
 .hand .wheel .chip { font-style: normal; width: calc(var(--cw) * .55); height: calc(var(--cw) * .55); border-radius: 50%; background: #fff; color: #111; display: flex; align-items: center; justify-content: center; font-size: calc(var(--cw) * .42); font-weight: 700; }
 .hand .wheel .chip.r { color: #d4141f; }
 .hand .wheel em { font-style: normal; color: #ffd36b; font-size: calc(var(--cw) * .36); font-weight: 900; }
+/* underdog reminder mirrors the wheel at the start of the hand row: A, 2, 3 beat the face cards 10+ ranks above them */
+.hand .wheel.underdog { right: auto; left: 12px; gap: 10px; }
+.hand .underdog .ud { display: flex; align-items: center; gap: 3px; color: #fff; font-size: calc(var(--cw) * .3); font-weight: 800; white-space: nowrap; }
 .hdrag.lifted { opacity: .35; }
 
 .modal { background: #0a2d20; color: inherit; border: 1px solid #4a9; border-radius: 10px; padding: 14px 18px; width: min(640px, 92vw); max-height: 85vh; overflow: auto; }
@@ -324,3 +327,19 @@ html.rot .modal, html.rot .gameover { transform: rotate(90deg); width: min(640px
 .play.rot .hand .wheel b, .play.compact .hand .wheel b { font-size: 11px; margin-right: 2px; }
 .play.rot .hand .wheel .chip, .play.compact .hand .wheel .chip { width: calc(var(--cw) * .85); height: calc(var(--cw) * .85); font-size: calc(var(--cw) * .65); }
 .play.rot .hand .wheel em, .play.compact .hand .wheel em { font-size: calc(var(--cw) * .6); }
+.play.rot .hand .wheel.underdog, .play.compact .hand .wheel.underdog { margin-left: auto; gap: 4px; }
+.play.rot .hand .underdog + .wheel, .play.compact .hand .underdog + .wheel { margin-left: 0; }
+.play.rot .hand .underdog .ud, .play.compact .hand .underdog .ud { gap: 1px; font-size: calc(var(--cw) * .5); }
+
+.top .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.top .actions .warn { font-size: 12px; max-width: 260px; }
+.top .actions .done { background: #c8892b; border-color: #e6a84a; }
+.top .actions .suggest { background: #3a3414; border-color: #c8a21b; }
+.play.compact .top .actions { flex-wrap: nowrap; gap: 4px; }
+.play.compact .top .actions .warn { display: none; }
+
+.top { flex-wrap: nowrap; gap: 8px; white-space: nowrap; }
+.top button { padding: 5px 10px; font-size: 13px; }
+.top .muted { display: none; }
+.top .actions { flex-wrap: nowrap; gap: 6px; font-size: 13px; }
+.top .actions .big { padding: 5px 12px; font-size: 13px; }

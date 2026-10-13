@@ -16,7 +16,7 @@ interface Saved { mode?: 'guide' | 'play'; secret?: Record<string, Card>; screen
 
 const ALL = freshDeck()
 const byId = (id: string) => ALL.find(c => c.id === id)!
-export const STORAGE_KEY = 'solo-clash-guide-v2' // bump when the rules change, so old saved games don't load into new rules
+export const STORAGE_KEY = 'solo-clash-guide-v3' // bump when the rules change, so old saved games don't load into new rules
 
 function load(): Saved | null {
   try { const s = localStorage.getItem(STORAGE_KEY); return s ? (JSON.parse(s) as Saved) : null } catch { return null }
@@ -242,6 +242,7 @@ const RULES_60 = (
   <ul>
     <li><b>Goal:</b> destroy the enemy's <b>king tower</b> (a stack of 2 cards) before it destroys yours.</li>
     <li><b>Cards</b> are soldiers. Higher rank wins a fight (A=1 … K=13). A suit that beats the other adds +3: ♠→♥, ♥→♦, ♦→♣, ♣→♠.</li>
+    <li><b>Underdog:</b> a card 10 or more ranks lower wins the fight, whatever the suits: <b>A beats J, Q, K · 2 beats Q, K · 3 beats K</b>. Watch out: it works for the enemy too.</li>
     <li><b>Elixir</b> pays for soldiers: a card costs about its rank (A=1, 5=4, 8=6, K=10). You get 3 more each round, max 10.</li>
     <li>Each round: <b>you play</b> cards into a lane, then the <b>enemy</b> plays from its pile into the lane where you have <b>more</b> cards (it defends; on a tie, where your highest-ranked card is, then left), then <b>everything moves</b> one slot and <b>fights</b>. Cards that face each other don't pass through: they clash where they stand, and the winner steps into the slot it cleared. Survivors reaching the other end hit a tower.</li>
     <li><b>A tower card breaks</b> if the attacking soldier's rank ≥ the tower's top card. A tower stack has 2–3 cards; each break removes one. If the soldier is too weak, the tower holds but its top card <b>cracks</b>: turn it sideways and move it to the bottom of that tower. Any later hit breaks a cracked card. The king can only be hit after the princess tower in that lane is gone.</li>
@@ -251,7 +252,8 @@ const RULES_60 = (
 )
 
 const AUTO_STAGES = ['round_start', 'enemy_play', 'enemy_stop', 'move', 'fight', 'tower_result']
-const AUTO_DELAY_MS = 1100
+// hold each step longer the more it shows (one line per event), so busy fights can be followed
+const autoDelay = (events: number) => Math.min(4000, 700 + 600 * events)
 
 export default function App() {
   const saved = useMemo(() => load(), [])
@@ -292,7 +294,7 @@ export default function App() {
   // on screen, informational steps advance by themselves, slowly enough to follow what happens; not recorded for undo
   useEffect(() => {
     if (mode !== 'play' || screen !== 'play' || !game || !AUTO_STAGES.includes(game.stage)) return
-    const t = setTimeout(() => setGame(settle(next(game))), AUTO_DELAY_MS)
+    const t = setTimeout(() => setGame(settle(next(game))), autoDelay(game.lines.length))
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, screen, game])
@@ -392,13 +394,14 @@ export default function App() {
           <ul>
             <li><b>Cost:</b> stronger cards cost more elixir to play (the purple number: 2→2, 6→5, 10→8, K→10).</li>
             <li><b>Suit wheel:</b> ♠ beats ♥, ♥ beats ♦, ♦ beats ♣, ♣ beats ♠ — the winning suit gets +3 rank in that fight.</li>
+            <li><b>Underdog:</b> A beats J, Q, K · 2 beats Q, K · 3 beats K (a card 10+ ranks lower wins, suits don't matter). Only in fights, not against towers.</li>
             <li><b>Towers:</b> a card in a tower is armor; a soldier must have rank ≥ the tower's top card to break it; a failed hit cracks the top card (turn it sideways, move it to the bottom of that tower), and any later hit breaks a cracked card.</li>
           </ul>
           <b>How to build your deck, step by step:</b>
           <ol>
             <li>You have 16 cards. Choose <b>8 as your deck</b> (soldiers you play). The other 8 automatically become your towers.</li>
             <li>It's a trade-off: <b>strong cards are great soldiers but cost a lot</b>. Your elixir is only 3 per round, so a deck of all kings can barely play anything.</li>
-            <li>Good recipe (from thousands of simulated games): <b>some heavy cards</b> (cost 7+) to win fights and break towers, for example 2–4 heavy plus <b>cheap cards</b> (cost 1–3), or even mostly heavy. An all-cheap deck struggles, because the enemy defends the lane you push. Try "Suggest a deck" for an example, then change it.</li>
+            <li>Good recipe (from thousands of simulated games): <b>a mix</b>, for example 2–5 heavy cards (cost 7+) to win fights and break towers plus <b>cheap cards</b> (cost 1–3). All-cheap decks work too, because aces, 2s and 3s take down face cards (underdog). All-heavy decks are the weakest: they play few cards and an enemy ace can kill your king. Try "Suggest a deck" for an example, then change it.</li>
             <li>Don't put <i>all</i> your best cards in the deck — the cards you leave out are your tower armor. Also try to have a mix of suits so the wheel helps you.</li>
           </ol>
         </div>
@@ -414,7 +417,7 @@ export default function App() {
         </div>
         <div className="summary">
           Deck {deck.length}/8 · average cost <b>{avg}</b> · heavy (7+): <b>{heavy}</b> · cheap (1–3): <b>{cheap}</b>
-          {deck.length === 8 && heavy < 2 && <span className="warn"> — tests liked decks with at least 2 heavy cards: with fewer you may lose fights.</span>}
+          {deck.length === 8 && heavy === 0 && <span className="warn"> — all-cheap decks work (your aces, 2s and 3s beat face cards), but tests won a bit more with 2–5 heavy cards.</span>}
         </div>
         {deck.length === 8 && slotIds.length === 8 && (
           <>
@@ -510,7 +513,15 @@ export default function App() {
   return (
     <div className={`play${stage_.rot ? ' rot' : ''}${stage_.H < 560 ? ' compact' : ''}${side ? ' turn-' + side : ''}`} style={{ '--vw': `${stage_.W / 100}px`, '--vh': `${stage_.H / 100}px`, ...(stage_.rot ? { left: stage_.sw, width: stage_.W, height: stage_.H } : {}) } as CSSProperties}>
       <div className="top">{header}
-        <button onClick={() => helpRef.current?.showModal()}>Help &amp; actions</button>
+        {stage === 'my_play' && (
+          <div className="actions">
+            {note && <span className="warn">{note}</span>}
+            {sel !== null && <>Play {label(g.P.hand[sel])} → <button className="big" onClick={() => commit(playCard(g, sel, 0))}>LEFT</button><button className="big" onClick={() => commit(playCard(g, sel, 1))}>RIGHT</button></>}
+            {advice?.kind === 'play' && <button className="suggest" onClick={() => commit(playCard(g, advice.handIndex, advice.lane))}>Suggest: {label(g.P.hand[advice.handIndex])} → {advice.lane === 0 ? 'LEFT' : 'RIGHT'}</button>}
+            <button className="big done" onClick={() => commit(endMyTurn(g))}>End turn →</button>
+          </div>
+        )}
+        <button onClick={() => helpRef.current?.showModal()}>Help</button>
         <button onClick={() => logDlgRef.current?.showModal()}>What happened</button>
         <button onClick={() => rulesRef.current?.showModal()}>Rules</button>
       </div>
@@ -556,6 +567,7 @@ export default function App() {
           </div>
         ))}
         {!g.P.hand.length && <span className="muted">no cards in hand</span>}
+        <div className="wheel underdog" title="Underdog: in a fight, a card 10 or more ranks lower wins, whatever the suits (it works for the enemy too)"><b>UNDERDOG</b>{[['A', 'J Q K'], ['2', 'Q K'], ['3', 'K']].map(([lo, hi]) => <span key={lo} className="ud"><i className="chip">{lo}</i><em>➜</em>{hi}</span>)}</div>
         <div className="wheel" title="Suit wheel: each suit beats the next one (+3 rank in a fight); clubs beat spades again"><b>BEATS +3</b>{['♠', '♥', '♦', '♣'].map((x, k) => <Fragment key={x}><i className={`chip ${k === 1 || k === 2 ? 'r' : ''}`}>{x}</i><em>{k < 3 ? '➜' : '↺'}</em></Fragment>)}</div>
       </div>
 
@@ -572,21 +584,12 @@ export default function App() {
             <>
               {g.lastAction.length > 0 && <div className="lastaction"><b>Do now:</b><ul className="todo">{g.lastAction.map((l, i) => <li key={i}>{l}</li>)}</ul></div>}
               <p>Choose a card from your hand (or none), then where it goes. Faded cards cost more elixir than you have.</p>
-              {note && <p className="warn">{note}</p>}
-              {sel !== null && (
-                <div className="row">Place {label(g.P.hand[sel])} in:
-                  <button className="big" onClick={() => commit(playCard(g, sel, 0))}>LEFT lane</button>
-                  <button className="big" onClick={() => commit(playCard(g, sel, 1))}>RIGHT lane</button>
-                </div>
-              )}
               {help === 'explain' && <div className="explain"><b>Your options</b><ul>{options(g).map((o, i) => <li key={i}>{o}</li>)}</ul></div>}
               {advice && (
                 <div className="advice"><b>Suggestion:</b> {advice.reason}
-                  {advice.kind === 'play' && <div><button onClick={() => commit(playCard(g, advice.handIndex, advice.lane))}>Do it: {label(g.P.hand[advice.handIndex])} → {advice.lane === 0 ? 'LEFT' : 'RIGHT'}</button></div>}
                   <div className="muted">It looks one round ahead using only what you can see on the table; it can't know the enemy's face-down cards. The plan can change as you draw new cards.</div>
                 </div>
               )}
-              <div className="row"><button className="big" onClick={() => commit(endMyTurn(g))}>I'm done — enemy turn →</button></div>
             </>
           )}
           {standing && <div className="row">{g.P.hand.map((c, i) => <button key={c.id} className="big" onClick={() => commit(lastStandPlay(g, i))}>{label(c)} → {g.lastStand?.lane === 0 ? 'LEFT' : 'RIGHT'}</button>)}</div>}

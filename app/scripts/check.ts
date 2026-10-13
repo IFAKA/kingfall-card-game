@@ -1,6 +1,6 @@
 // Automated checks for the guided app's rules engine. Run with `npm test` (Node 22+ runs TypeScript directly).
 // Plays full games through the same code the app uses and fails if a rule invariant breaks or balance drifts.
-import { autoTowers, canPlay as engineCanPlay, cost, DEFAULT_RULES, endRound, freshDeck, newGame, playCard as enginePlay, shuffle, suggestDeck } from '../src/engine.ts'
+import { autoTowers, canPlay as engineCanPlay, compare, cost, DEFAULT_RULES, endRound, freshDeck, newGame, playCard as enginePlay, shuffle, suggestDeck } from '../src/engine.ts'
 import type { Card } from '../src/engine.ts'
 import { advise, canPlay, endMyTurn, enterEnemyCard, enterTowerCard, lastStandPlay, makeGame, next, playCard, startRound } from '../src/guide.ts'
 import type { Advice, GuideState } from '../src/guide.ts'
@@ -111,6 +111,17 @@ check(weak.winRate <= 0.1, `random play almost never wins (got ${pct(weak.winRat
 }
 
 check(cost(1) === 1 && cost(5) === 4 && cost(9) === 7 && cost(13) === 10, 'cost table matches the rulebook (A=1, 5=4, 9=7, K=10)')
+
+{
+  // ranks with suits that give no wheel bonus either way (♠ vs ♦), unless noted
+  const c = (rank: number, suit = 0): Card => ({ id: `${rank}-${suit}`, rank, suit })
+  const R = DEFAULT_RULES
+  check(compare(c(1), c(11, 2), R) === 1 && compare(c(1), c(13, 2), R) === 1, 'underdog: A beats J and K')
+  check(compare(c(2), c(12, 2), R) === 1 && compare(c(3), c(13, 2), R) === 1, 'underdog: 2 beats Q, 3 beats K')
+  check(compare(c(2), c(11, 2), R) === -1 && compare(c(4), c(13, 2), R) === -1, 'underdog stops at 10 ranks: J beats 2, K beats 4')
+  check(compare(c(13, 0), c(1, 1), R) === -1, 'underdog ignores the wheel: A♥ beats K♠ even though ♠ beats ♥')
+  check(compare(c(9, 0), c(11, 1), R) === 1 && compare(c(7), c(7, 2), R) === 0, 'normal fights unchanged: 9♠ (+3 vs ♥) beats J♥, equal ranks tie')
+}
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nall checks passed')
 process.exit(failures ? 1 : 0)

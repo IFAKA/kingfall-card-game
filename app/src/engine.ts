@@ -12,7 +12,7 @@ export interface SideState {
   towers: Towers
   revealed: Record<StackKey, boolean> // top card face-up (used for the enemy)
 }
-export interface Rules { regen: number; enemyRegen: number; startElixir: number; cap: number; wheel: number; laneLen: number }
+export interface Rules { regen: number; enemyRegen: number; startElixir: number; cap: number; wheel: number; laneLen: number; underdog: number }
 export interface GameState {
   rules: Rules
   tick: number
@@ -31,7 +31,7 @@ export const label = (c: Card) => `${RANKS[c.rank]}${SUITS[c.suit]}`
 export const cost = (rank: number) => Math.floor((rank * 10) / 13 + 0.5)
 export const isRed = (c: Card) => c.suit === 1 || c.suit === 2
 
-export const DEFAULT_RULES: Rules = { regen: 3, enemyRegen: 5, startElixir: 5, cap: 10, wheel: 3, laneLen: 2 }
+export const DEFAULT_RULES: Rules = { regen: 3, enemyRegen: 5, startElixir: 5, cap: 10, wheel: 3, laneLen: 2, underdog: 10 }
 
 export function freshDeck(): Card[] {
   const d: Card[] = []
@@ -113,6 +113,16 @@ export function effective(a: Card, b: Card, wheel: number) {
   return a.rank + (b.suit === (a.suit + 1) % 4 ? wheel : 0)
 }
 
+/** Underdog: a card at least `gap` ranks lower wins outright, ignoring the wheel (gap 10: A beats J/Q/K, 2 beats Q/K, 3 beats K). */
+export const underdogWins = (a: Card, b: Card, gap: number) => gap > 0 && b.rank - a.rank >= gap
+
+/** Fight result for card a against card b: 1 = a wins, -1 = b wins, 0 = tie (both removed). */
+export function compare(a: Card, b: Card, rules: Rules): number {
+  if (underdogWins(a, b, rules.underdog)) return 1
+  if (underdogWins(b, a, rules.underdog)) return -1
+  return Math.sign(effective(a, b, rules.wheel) - effective(b, a, rules.wheel))
+}
+
 function refill(g: GameState) {
   while (g.P.hand.length < 4 && g.P.queue.length) g.P.hand.push(g.P.queue.shift()!)
 }
@@ -172,14 +182,13 @@ function fight(g: GameState, lane: 0 | 1) {
     const p = ps.reduce((a, b) => (b.pos > a.pos ? b : a))
     const e = es.reduce((a, b) => (b.pos < a.pos ? b : a))
     if (p.pos < e.pos) return
-    const pe = effective(p.card, e.card, g.rules.wheel)
-    const ee = effective(e.card, p.card, g.rules.wheel)
-    const bonus = (a: Card, b: Card) => (effective(a, b, g.rules.wheel) > a.rank ? ' (+suit)' : '')
-    if (pe === ee) {
+    const res = compare(p.card, e.card, g.rules)
+    const bonus = (a: Card, b: Card) => (underdogWins(a, b, g.rules.underdog) ? ' (underdog)' : effective(a, b, g.rules.wheel) > a.rank ? ' (+suit)' : '')
+    if (res === 0) {
       g.log.push(`${label(p.card)}${bonus(p.card, e.card)} ties ${label(e.card)}${bonus(e.card, p.card)}: both removed.`)
       kill(g, p)
       kill(g, e)
-    } else if (pe > ee) {
+    } else if (res > 0) {
       g.log.push(`Your ${label(p.card)}${bonus(p.card, e.card)} beats enemy ${label(e.card)}${bonus(e.card, p.card)}.`)
       kill(g, e)
     } else {
