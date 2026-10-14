@@ -5,7 +5,7 @@ import confetti from 'canvas-confetti'
 import { DEFAULT_RULES, RANKS, SUITS, autoTowers, cost, deal, freshDeck, isRed, label, shuffle, suggestDeck } from './engine'
 import type { Card, Unit } from './engine'
 import {
-  advise, autoReveal, canPlay, describe, endMyTurn, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary,
+  advise, adviseLastStand, autoReveal, canPlay, describe, endMyTurn, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary,
 } from './guide'
 import type { Discarded, ESlot, GuideState } from './guide'
 import { useFx } from './fx'
@@ -716,7 +716,7 @@ export default function App() {
   // ---------- play ----------
   const g = game!
   const stage = g.stage
-  const advice = stage === 'my_play' && help === 'suggest' ? advise(g) : null
+  const advice = help !== 'suggest' ? null : stage === 'my_play' ? advise(g) : stage === 'my_last_stand' ? adviseLastStand(g) : null
   const hitEnemy = stage === 'tower_enter'
   const picker = stage === 'enemy_enter' || stage === 'last_stand_enter' || hitEnemy
   const standing = stage === 'my_last_stand'
@@ -816,7 +816,7 @@ export default function App() {
           <div className="dntitle">{TITLES[stage]}</div>
           {stage !== 'over' && <ul className="todo">{g.lines.map((l, i) => <li key={i}>{l}</li>)}</ul>}
           {picker && <><CardPicker disabled={excludedIds(g)} onPick={c => commit(hitEnemy ? enterTowerCard(g, c) : enterEnemyCard(g, c))} /><div className="muted">Cards already known are greyed out.</div></>}
-          {standing && <div className="row">{g.P.hand.map((c, i) => <button key={c.id} className="big" onClick={() => commit(lastStandPlay(g, i))}>{label(c)} → {g.lastStand?.lane === 0 ? 'LEFT' : 'RIGHT'}</button>)}</div>}
+          {standing && mode === 'guide' && <div className="row">{g.P.hand.map((c, i) => <button key={c.id} className={`big ${advice?.kind === 'play' && advice.handIndex === i ? 'suggest' : ''}`} title={advice?.kind === 'play' && advice.handIndex === i ? advice.reason : undefined} onClick={() => commit(lastStandPlay(g, i))}>{label(c)} → {g.lastStand?.lane === 0 ? 'LEFT' : 'RIGHT'}</button>)}</div>}
           {inform && <div className="row"><button className="big" onClick={() => commit(next(g))}>Done — next →</button></div>}
           {stage === 'over' && <div className="row"><button className="big" onClick={playAgain}>Play again</button><button onClick={() => setOverSeen(false)}>Result</button></div>}
         </div>

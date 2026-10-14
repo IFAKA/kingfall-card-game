@@ -597,6 +597,29 @@ export function advise(g: GuideState): Advice {
   return { kind: 'play', handIndex: first.i, lane: first.lane, reason: reason + nextNote(best) }
 }
 
+/** Last stand: the card is free, so pick the one that stops the most enemy cards, spending the weakest card that does the job. */
+export function adviseLastStand(g: GuideState): Advice | null {
+  const lane = g.lastStand?.lane
+  if (lane === undefined || !g.P.hand.length) return null
+  const ln = laneName(lane).toLowerCase()
+  const base = evaluate(g, [])
+  let best: { i: number; plan: Plan; score: number } | null = null
+  g.P.hand.forEach((c, i) => {
+    const plan = evaluate(g, [{ i, lane }])
+    const score = -10 * plan.leaks[lane].length + (plan.pushers[lane].length ? 1 : 0)
+    if (!best || score > best.score || (score === best.score && c.rank < g.P.hand[best.i].rank)) best = { i, plan, score }
+  })
+  const { i, plan } = best!
+  const c = g.P.hand[i]
+  const was = base.leaks[lane], now = plan.leaks[lane]
+  const reason = was.length > now.length
+    ? `The enemy ${cardList(was)} would get through the ${ln} lane. ${label(c)} stops ${was.length > 1 && !now.length ? 'them' : was.length > 1 ? 'some of them' : 'it'}${now.length ? `, but ${cardList(now)} still gets through` : ''}.`
+    : plan.pushers[lane].length
+      ? `${label(c)} has a clear path in the ${ln} lane, so it should reach the enemy tower. It is free, so use your weakest card that does the job.`
+      : `Nothing in your hand changes the ${ln} lane much, so ${label(c)} is the cheapest card to give up.`
+  return { kind: 'play', handIndex: i, lane, reason }
+}
+
 // ---------- events in words ----------
 /** One short sentence for an event, saying WHY when a rule decided it; null for events the screen only animates. */
 export function describe(e: GameEvent): string | null {
