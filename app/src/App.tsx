@@ -382,7 +382,7 @@ const RULES_60 = (
 type TipId = 'drag' | 'elixir' | 'enemy' | 'fight' | 'tower'
 const TIPS: Record<TipId, string> = {
   drag: 'Drag a card from your hand onto one of your lane slots, the bottom half of the field. The purple number is its elixir cost.',
-  elixir: 'Elixir pays for cards. You get 3 more every round, up to 10. Play another card, or press End turn to let the enemy move.',
+  elixir: 'Elixir pays for cards. You get 3 more every round, up to 10. Play another card, or press the ✓ button next to your hand to end your turn and let the enemy move.',
   enemy: 'The enemy defends: it plays into the lane where you have more cards.',
   fight: 'When two cards meet, the higher rank wins. A card of the suit that beats the other counts double (♠ › ♥ › ♦ › ♣ › ♠), and aces beat J, Q and K.',
   tower: "The crowned castle in the middle is the king; the two beside it guard the left and right lanes. A card that reaches a tower breaks its top card if its rank is at least that card's (shown under your castles). If not, the tower card cracks, and any later hit breaks it. Break both king cards to win.",
@@ -768,7 +768,7 @@ export default function App() {
     if (canPlay(g, i)) { sfx(sel === i ? 'unpick' : 'pick'); setNote(null); setSel(sel === i ? null : i); return }
     sfx('deny'); setSel(null); setNote(`${label(c)} costs ${cost(c.rank)} elixir but you only have ${g.P.elixir}. Pick a card whose purple number is ${g.P.elixir} or less.`)
   }
-  // on screen, the suggestion is shown on the board itself: the card and its lane glow, or End turn does
+  // on screen, the suggestion is shown on the board itself: the card and its lane glow, or the ✓ button does
   const suggested = mode === 'play' && advice?.kind === 'play' ? advice : null
   const handCards = g.P.hand.map((c, i) => (
     <div key={c.id} data-i={i} className={`hdrag ${drag === i ? 'lifted' : ''} ${!standing && !canPlay(g, i) ? 'off' : ''} ${suggested?.handIndex === i && drag === null ? 'suggested' : ''}`} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} onPointerDown={e => startDrag(e, i)}>
@@ -780,7 +780,7 @@ export default function App() {
   const hints = (close: () => void) => (
     <>
       <Choice id="explain" title="Explain my options" description="List every card you can play and where" checked={explainOn} onChange={setExplainOn} />
-      <Choice id="suggest" title="Suggest moves" description={mode === 'play' ? 'The suggested card and lane glow green, or End turn does' : 'The suggested move appears in the top bar'} checked={suggestOn} onChange={setSuggestOn} />
+      <Choice id="suggest" title="Suggest moves" description={mode === 'play' ? 'The suggested card and lane glow green, or the ✓ button does' : 'The suggested move appears in the top bar'} checked={suggestOn} onChange={setSuggestOn} />
       <div className="mt-2 font-heading text-sm tracking-widest text-muted-foreground uppercase">This turn</div>
       {stage !== 'my_play' ? <p className="m-0 text-muted-foreground">Hints show here on your turn.</p>
         : help === 'off' && <p className="m-0 text-muted-foreground">Turn on a switch above and its hint shows here.</p>}
@@ -850,7 +850,7 @@ export default function App() {
     const aw = Math.min(stage_.sw, 640)
     const ch = Math.max(52, Math.min((stage_.sh - 196) / 6.4, (aw - 72) / 4.75 / 0.714, 128))
     const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px` } as CSSProperties
-    const prompt = stage === 'my_play' ? 'Your turn: drag a card onto a lane, then End turn.' : standing ? TITLES[stage] : stage === 'round_start' ? `Round ${g.round}: you get ${g.rules.regen} more elixir.` : 'Enemy turn…'
+    const prompt = stage === 'my_play' ? 'Your turn: drag a card onto a lane, then tap ✓.' : standing ? TITLES[stage] : stage === 'round_start' ? `Round ${g.round}: you get ${g.rules.regen} more elixir.` : 'Enemy turn…'
     const lines = note ? [note] : said.length ? said : [prompt]
     // the suggested lane glows only while no other card is picked up; tapping it with nothing picked plays the suggestion
     const lane = (l: 0 | 1) => ({
@@ -889,11 +889,13 @@ export default function App() {
           </div>
           <div className="elixrow">
             <ElixirBar n={g.P.elixir} spend={spend} />
-            <button className={`big done ${advice?.kind === 'wait' ? 'suggested' : ''}`} title={advice?.kind === 'wait' ? advice.reason : undefined} disabled={stage !== 'my_play'} onClick={() => commit(endMyTurn(g))}>End turn</button>
           </div>
           <div className="handrow">
             <div className="nextcard mine" title="Your next card: it comes into your hand when you play one"><span>Next</span>{g.P.queue[0] && <TCard key={g.P.queue[0].id} tid={g.P.queue[0].id} card={g.P.queue[0]} down={false} showCost />}</div>
             {handCards}
+            <div className="nextcard mine endwrap"><span>Done</span>
+              <button className={`big done endturn ${advice?.kind === 'wait' ? 'suggested' : ''}`} title={advice?.kind === 'wait' ? advice.reason : 'End turn'} disabled={stage !== 'my_play'} aria-label="End turn" onClick={() => commit(endMyTurn(g))}><svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg></button>
+            </div>
           </div>
         </div>
         {tip && (
