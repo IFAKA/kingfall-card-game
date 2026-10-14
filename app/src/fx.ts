@@ -2,7 +2,7 @@
 // Effects are placed on board elements marked with data-anchor ("lane-0", "tower-E-L", ...), so any board layout can use them.
 import { useEffect, useState } from 'react'
 import type { RefObject } from 'react'
-import { SUITS, isRed } from './engine'
+import { isRed } from './engine'
 import type { GameEvent, GuideState } from './guide'
 import { sfx } from './sfx'
 
@@ -66,10 +66,10 @@ export function useFx(game: GuideState | null, fresh: GuideState | null, root: R
           // your value first, the sign pointing at the winner: "13 > 3"
           const vs = `${e.mine.value} ${e.winner === 'P' ? '>' : e.winner === 'E' ? '<' : '='} ${e.theirs.value}`
           if (e.ace) {
-            pop(ms, p && { ...p, text: 'ACE!', sub: 'beats picture cards', kind: `ace ${good}` }); sfx('big', ms, sound); hit(2)
+            pop(ms, p && { ...p, text: 'ACE!', kind: `ace ${good}` }); sfx('big', ms, sound); hit(2)
           } else if (e.double) {
-            const [d, o] = e.double === 'P' ? [e.mine, e.theirs] : [e.theirs, e.mine]
-            pop(ms, p && { ...p, text: '×2!', sub: `${SUITS[d.card.suit]} beats ${SUITS[o.card.suit]} · ${vs}`, kind: `x2 ${isRed(d.card) ? 'red' : 'black'} ${good}` }); sfx('big', ms, sound); hit(2)
+            const d = e.double === 'P' ? e.mine : e.theirs
+            pop(ms, p && { ...p, text: '×2!', sub: vs, kind: `x2 ${isRed(d.card) ? 'red' : 'black'} ${good}` }); sfx('big', ms, sound); hit(2)
           } else {
             pop(ms, p && { ...p, text: vs, sub: e.winner === 'tie' ? 'tie' : undefined, kind: `fight ${good}` }); sfx('clash', ms, sound); hit(1)
           }

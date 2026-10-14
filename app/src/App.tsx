@@ -454,8 +454,10 @@ export default function App() {
   const [said, setSaid] = useState<string[]>([])
   useEffect(() => {
     if (!game || game !== fresh.current) return
-    const d = (game.events ?? []).map(describe).filter((x): x is string => !!x)
-    if (d.length) setSaid(d.slice(-2))
+    const d = (game.events ?? []).flatMap(e => { const s = describe(e); return s ? [{ s, special: e.type === 'fight' && !!(e.ace || e.double) }] : [] })
+    // a ×2 or ace pop-up doesn't say why, so its sentence stays even when later events would push it out
+    const sp = d.filter(x => x.special).at(-1), last = d.slice(-2)
+    if (d.length) setSaid((sp && !last.includes(sp) ? [sp, d[d.length - 1]] : last).map(x => x.s))
     else if (game.stage === 'my_play') setSaid([])
   }, [game])
   useEffect(() => { if (game?.stage !== 'over') setOverSeen(false) }, [game?.stage])
