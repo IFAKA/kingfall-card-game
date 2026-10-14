@@ -55,18 +55,25 @@ function makeGhost(el: HTMLElement, x: number, y: number, rot: boolean, sw: numb
   Object.assign(ghost.style, { position: 'absolute', left: '0', top: '0', width: `${w}px`, height: `${h}px`, pointerEvents: 'none', zIndex: '9999', opacity: '1', filter: 'none', boxShadow: '0 8px 18px rgba(0,0,0,.5)' })
   const play = el.closest('.play, .arena') as HTMLElement
   const pr = play.getBoundingClientRect()
-  // screen point -> the table's own coordinates (a quarter turn when rotated), card centred on the pointer
-  const move = (px: number, py: number, scale = 1.08) => {
-    const lx = rot ? py : px - pr.left, ly = rot ? sw - px : py - pr.top
-    ghost.style.transform = `translate(${lx - w / 2}px, ${ly - h / 2}px) scale(${scale})`
+  // screen point -> the table's own coordinates (a quarter turn when rotated)
+  const local = (px: number, py: number) => [rot ? py : px - pr.left, rot ? sw - px : py - pr.top]
+  // keep the card under the pointer where it was grabbed, not centred on it
+  const cr = card.getBoundingClientRect()
+  const [gx, gy] = local(x, y), [cx, cy] = local(cr.left + cr.width / 2, cr.top + cr.height / 2)
+  const ox = gx - cx, oy = gy - cy
+  ghost.style.transformOrigin = `${w / 2 + ox}px ${h / 2 + oy}px` // lift around the grab point
+  const place = (px: number, py: number, scale: number, grabbed: boolean) => {
+    const [lx, ly] = local(px, py)
+    ghost.style.transform = `translate(${lx - w / 2 - (grabbed ? ox : 0)}px, ${ly - h / 2 - (grabbed ? oy : 0)}px) scale(${scale})`
   }
+  const move = (px: number, py: number) => place(px, py, 1.08, true)
   move(x, y)
   play.appendChild(ghost) // inside .play, so it inherits the card size variables
   // a drop that didn't land: glide back to the card's slot in the hand, then vanish
   const glideBack = (done: () => void) => {
     const r = card.getBoundingClientRect()
     ghost.style.transition = 'transform .2s cubic-bezier(.23, 1, .32, 1)'
-    move(r.left + r.width / 2, r.top + r.height / 2, 1)
+    place(r.left + r.width / 2, r.top + r.height / 2, 1, false)
     setTimeout(() => { ghost.remove(); done() }, 210)
   }
   return { move, remove: () => ghost.remove(), glideBack }
