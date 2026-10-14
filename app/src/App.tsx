@@ -820,7 +820,7 @@ export default function App() {
     <>
       <FxLayer pops={pops} />
       {/* what to do right now sits on the table, never only behind Help: the next step of the real-cards guide, a last stand, the end of the game */}
-      {(showStep || (stage === 'over' && overSeen)) && (
+      {(showStep || (stage === 'over' && overSeen && mode !== 'play')) && (
         <div className={`stepbar ${stage === 'over' ? 'over' : ''}`}>
           <div className="dntitle">{TITLES[stage]}</div>
           {stage !== 'over' && <ul className="todo">{g.lines.map((l, i) => <li key={i}>{l}</li>)}</ul>}
@@ -870,7 +870,7 @@ export default function App() {
     const eNext = g.E.queue[0]
     return (
       <div ref={playRef} className={`arena${side ? ' turn-' + side : ''}`} style={vars}>
-        <div className="top">{bar(null, { log: g.log, hints })}</div>
+        <div className="top">{bar(stage === 'over' && overSeen ? <span className="overbtns"><button className="big" onClick={playAgain}>Play again</button><button onClick={() => setOverSeen(false)}>Result</button></span> : null, { log: g.log, hints })}</div>
         <div className={`field ${shake}`}>
           <div className="castles theirs">
             {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} />)}

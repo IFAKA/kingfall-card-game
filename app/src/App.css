@@ -664,3 +664,7 @@ button.linkish:active { transform: none; }
 .topbar .spacer { margin-left: auto; }
 .top > .topbar { flex: 1; min-width: 0; }
 .undoredo { display: inline-flex; gap: 2px; }
+
+/* after the game: Play again and Result sit in the middle of the top bar, each on one line */
+.arena .topbar { position: relative; }
+.overbtns { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; gap: 8px; white-space: nowrap; }
