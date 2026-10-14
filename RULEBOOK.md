@@ -54,7 +54,7 @@ It works both ways: an enemy ace kills your king. Fights only, not tower hits.
 ## Designer's notes (from thousands of simulated games)
 - Expect to lose your first games. Random play wins about 4%, a simple rule-follower about 40–45%, a strong player about 85–90%. Thoughtless play loses; thinking wins.
 - What wins: stop every enemy card before it reaches your towers, keep elixir in the bank, and let the cards that survive your defence counterattack.
-- Games last about 20–25 rounds.
+- Games last about 20–30 rounds; a close, well-defended game can run past 40.
 - Every game is winnable: cracked tower cards mean no deck is ever stuck against towers it can't break.
 - Deck types (strong player): mixed about 88%, all-cheap about 84%, all-heavy about 82%. Every kind of deck can win: aces kill picture cards, and the wheel lets a mid card beat a big one.
 - No numbers to memorise: the wheel doubles, aces beat pictures.

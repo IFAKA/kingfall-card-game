@@ -39,7 +39,7 @@ Enemy moves in the same way against your towers (it hits your stacks; you know y
 ## What to look for (from the bot simulator)
 - Bots say every deck type works for a strong player: mixed ≈ 88%, all-cheap ≈ 84%, all-high ≈ 82%. Try them and see if you feel it.
 - Expected strength: random play ≈ 4% wins, a simple rule-follower ≈ 40–45%, a strong player ≈ 85–90%. Expect to lose your first games.
-- Estimated length: ~20–25 rounds. Time yourself.
+- Estimated length: ~20–30 rounds (median 26; about 1 game in 40 goes past 45). Time yourself.
 
 ## Log (copy per game)
 - Your draft (how many high cards): __  Result: __
