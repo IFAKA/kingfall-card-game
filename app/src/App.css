@@ -11,7 +11,7 @@
   --ease-out: cubic-bezier(.23, 1, .32, 1); --ease-in-out: cubic-bezier(.77, 0, .175, 1);
 }
 html { background: var(--navy); }
-body { margin: 0; color: #f2f5ff; background: radial-gradient(ellipse at 50% 0%, #2c4a9a 0%, var(--blue) 45%, var(--navy) 100%) fixed; min-height: 100vh; }
+body { margin: 0; color: #f2f5ff; background: radial-gradient(ellipse at 50% 0%, #2c4a9a 0%, var(--blue) 45%, var(--navy) 100%) fixed; min-height: 100vh; min-height: 100dvh; }
 #root { max-width: none; margin: 0; padding: 0; text-align: left; }
 h1, h2, h3 { font-family: var(--display); font-weight: 400; letter-spacing: .01em; text-shadow: 0 3px 0 rgba(0,0,0,.45); }
 .page { max-width: 1000px; margin: 0 auto; padding: 16px 20px 60px; }
