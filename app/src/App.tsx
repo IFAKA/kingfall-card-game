@@ -398,7 +398,7 @@ export default function App() {
   const [note, setNote] = useState<string | null>(null)
   const [swapFrom, setSwapFrom] = useState<number | null>(null)
   const [explainOn, setExplainOn] = useState(saved ? saved.help === 'explain' : false)
-  const [suggestOn, setSuggestOn] = useState(saved ? saved.help === 'suggest' : true)
+  const [suggestOn, setSuggestOn] = useState(saved ? saved.help === 'suggest' : false)
   const help: Help = suggestOn ? 'suggest' : explainOn ? 'explain' : 'off'
   const [pre, setPre] = useState<GuideState | null>(saved?.pre ?? null)
   const [game, setGame] = useState<GuideState | null>(saved?.game ?? null)
@@ -882,12 +882,10 @@ export default function App() {
           </div>
           <div className="elixrow">
             <ElixirBar n={g.P.elixir} spend={spend} />
-            {/* both buttons stay in place (disabled off-turn) so the bar doesn't jump in width every turn */}
-            {suggestOn && (advice?.kind === 'play' && (played === 0 || hintAt === g.log.length)
+            {/* the suggestion button only shows when there's a move to suggest; after your first play it hides behind a Hint button */}
+            {suggestOn && advice?.kind === 'play' && (played === 0 || hintAt === g.log.length
               ? <button className="green hint" title={advice.reason} onClick={() => commit(playCard(g, advice.handIndex, advice.lane))}>{label(g.P.hand[advice.handIndex])} → {advice.lane === 0 ? 'L' : 'R'}</button>
-              : played === 0
-                ? <button className="green hint" disabled title={advice?.reason ?? 'Suggestions appear on your turn'}>{advice ? 'No play' : 'Suggest'}</button>
-                : <button className="hint" disabled={advice?.kind !== 'play'} title={advice?.reason ?? 'Show a suggested move on your turn'} onClick={() => setHintAt(g.log.length)}>💡 Hint</button>)}
+              : <button className="hint" title={advice.reason} onClick={() => setHintAt(g.log.length)}>💡 Hint</button>)}
             <button className="big done" disabled={stage !== 'my_play'} onClick={() => commit(endMyTurn(g))}>End turn</button>
           </div>
           <div className="handrow">
