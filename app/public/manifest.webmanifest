@@ -1,12 +1,12 @@
 {
-  "name": "Kingfall — table guide",
+  "name": "Kingfall: solo card game",
   "short_name": "Kingfall",
-  "description": "Companion app for Kingfall, a one-player lane battle played with a standard 52-card deck.",
+  "description": "A one-player lane battle card game. Play on screen, or with a real 52-card deck while the app runs the enemy.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "landscape",
-  "background_color": "#0d3b2a",
-  "theme_color": "#0d3b2a",
+  "orientation": "any",
+  "background_color": "#0e1838",
+  "theme_color": "#14234f",
   "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
 }

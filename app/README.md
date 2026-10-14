@@ -1,6 +1,13 @@
-# Kingfall — table guide (web app)
+# Kingfall: web app
 
-Companion app for Kingfall. You play with a real 52-card deck; the app runs the enemy automaton and tells you, step by step, what to move on the table. It works on phones (upright board) and desktops (wide board), saves the game in the browser, and has undo.
+The web app for [Kingfall](../README.md), a one-player lane battle card game. Live at **https://kingfall-card-game.vercel.app**.
+
+It has two modes:
+
+- **On screen:** the app deals, runs the enemy and animates every fight in an upright arena. The first game teaches with one tip at a time.
+- **With real cards:** you play with a real 52-card deck. The app runs the enemy automaton and tells you, step by step, what to move on the table (a wide board, turned sideways on upright phones).
+
+It saves the game in the browser and has undo and redo.
 
 ## Commands
 
@@ -18,7 +25,10 @@ npm run preview    # serve the production build locally
 `npm run build` produces a static site in `dist/` with relative paths, so it runs from any folder or static host:
 
 - **itch.io (HTML game):** zip the *contents* of `dist/` (not the folder itself) and upload it as an HTML project.
-- **Netlify / Vercel / Cloudflare Pages / GitHub Pages:** publish the `dist/` folder; there is no server code.
+- **Vercel (the live site):** the Vercel project `kingfall` builds from this `app/` folder; every push to `main` deploys to production.
+- **Netlify / Cloudflare Pages / GitHub Pages:** publish the `dist/` folder; there is no server code.
+
+The SEO tags (title, description, preview image, structured data) are in `index.html`; `public/robots.txt`, `public/sitemap.xml` and `public/og.png` go with them. Update the URLs there if the site moves to another domain.
 
 When the rules change in a way that makes old saved games invalid, bump `STORAGE_KEY` in `src/App.tsx`.
 

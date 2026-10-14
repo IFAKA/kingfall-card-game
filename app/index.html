@@ -3,15 +3,50 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Kingfall</title>
-    <meta name="description" content="Companion app for Kingfall, a one-player lane battle played with a standard 52-card deck. It runs the enemy and tells you what to do with your real cards." />
+    <title>Kingfall: free solo card game, a lane battle with a 52-card deck</title>
+    <meta name="description" content="Kingfall is a free one-player card game: a Clash Royale-inspired lane battle. Play it in your browser, or with a real 52-card deck while the app runs the enemy. Spend elixir, send cards down two lanes, crack the towers and take down the enemy king." />
+    <link rel="canonical" href="https://kingfall-card-game.vercel.app/" />
     <meta name="theme-color" content="#14234f" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="apple-touch-icon" href="./favicon.svg" />
     <link rel="manifest" href="./manifest.webmanifest" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Kingfall" />
+    <meta property="og:title" content="Kingfall: a solo lane battle with a deck of cards" />
+    <meta property="og:description" content="Free one-player card game. Play in the browser, or with a real 52-card deck while the app runs the enemy." />
+    <meta property="og:url" content="https://kingfall-card-game.vercel.app/" />
+    <meta property="og:image" content="https://kingfall-card-game.vercel.app/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Kingfall title screen: a gold crown logo over three playing cards" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Kingfall: a solo lane battle with a deck of cards" />
+    <meta name="twitter:description" content="Free one-player card game. Play in the browser, or with a real 52-card deck while the app runs the enemy." />
+    <meta name="twitter:image" content="https://kingfall-card-game.vercel.app/og.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "Kingfall",
+        "url": "https://kingfall-card-game.vercel.app/",
+        "image": "https://kingfall-card-game.vercel.app/og.png",
+        "description": "A free one-player lane battle card game played in the browser or with a standard 52-card deck.",
+        "genre": ["Card game", "Strategy", "Tower defense"],
+        "playMode": "SinglePlayer",
+        "numberOfPlayers": { "@type": "QuantitativeValue", "value": 1 },
+        "gamePlatform": ["Web browser", "Physical cards"],
+        "applicationCategory": "Game",
+        "operatingSystem": "Any",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "codeRepository": "https://github.com/IFAKA/kingfall-card-game"
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>Kingfall is a free one-player card game: a lane battle you play in the browser or with a real 52-card deck. Please turn on JavaScript to play.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

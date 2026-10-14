@@ -649,3 +649,4 @@ button.linkish:active { transform: none; }
 .modal, .gameover { box-sizing: border-box; }
 .modal { text-align: left; }
 .elixrow .hint { min-width: 92px; }
+.mid .round, .mid .rule { white-space: nowrap; }
