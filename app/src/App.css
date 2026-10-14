@@ -60,7 +60,7 @@ button.red:active:not(:disabled) { box-shadow: inset 0 2px 0 rgba(255,255,255,.4
 @keyframes bob { 0%, 100% { transform: translate(var(--x), var(--y)) rotate(var(--r)); } 50% { transform: translate(var(--x), calc(var(--y) - 7px)) rotate(var(--r)); } }
 @media (prefers-reduced-motion: reduce) { .titlefan .card { animation: none; transform: translate(var(--x), var(--y)) rotate(var(--r)); } }
 select { padding: 6px; }
-.grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; }
+.pickgrid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; }
 .pick, .slotpick { text-align: center; }
 .picktag { font-size: 11px; opacity: .75; margin-top: 2px; }
 .pick.indeck .picktag { color: #ffd36b; font-weight: 700; opacity: 1; }
@@ -129,14 +129,8 @@ select { padding: 6px; }
 .boardcol { overflow: auto; display: flex; flex-direction: column; gap: 6px; }
 .panel { background: #0a2d20; border-radius: 10px; padding: 8px 12px; overflow: auto; display: flex; flex-direction: column; min-height: 0; }
 .panel button.on { background: #c8861b; }
-.donow { background: #14442f; border: 2px solid #4a9; border-radius: 8px; padding: 8px 12px; margin: 6px 0; }
 .dntitle { font-weight: 800; font-size: 17px; color: #ffd36b; margin-bottom: 4px; }
 .todo { margin: 4px 0; padding-left: 20px; line-height: 1.5; } .todo li { margin: 4px 0; }
-.lastaction { background: #0d3a28; border-radius: 6px; padding: 4px 10px; margin-bottom: 6px; }
-.advice { background: #3a3414; border: 1px solid #c8a21b; border-radius: 6px; padding: 6px 10px; margin: 8px 0; }
-.explain { background: #12304a; border-radius: 6px; padding: 6px 10px; margin: 8px 0; }
-.explain ul { margin: 4px 0; padding-left: 18px; }
-.why { margin-top: 8px; font-size: 13px; opacity: .9; border-top: 1px dashed #4a9; padding-top: 6px; }
 .toptag { font-size: 9px; position: absolute; left: 58px; top: 2px; opacity: .8; z-index: 6; }
 .slot.attack { background: #3a1a1a33; min-height: 22px; font-size: 11px; }
 .slot.attack .unit .card { transform: scale(.85); }
@@ -172,7 +166,7 @@ select { padding: 6px; }
 .help ul, .help ol { margin: 6px 0 10px; padding-left: 22px; } .help li { margin: 3px 0; }
 .help { padding: 14px 18px; margin: 12px 0 18px; }
 .row { margin: 14px 0; }
-.grid { row-gap: 26px; margin-top: 18px; }
+.pickgrid { row-gap: 26px; margin-top: 18px; }
 .pick, .slotpick { padding-top: 8px; }
 .picktag { margin-top: 8px; }
 .summary { margin: 22px 0 18px; }
@@ -282,7 +276,7 @@ h3 { margin: 18px 0 8px; }
 /* setup screens on phones */
 @media (max-width: 760px) {
   .page { padding: 10px 12px 40px; }
-  .grid { grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); row-gap: 18px; }
+  .pickgrid { grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); row-gap: 18px; }
   .cols { grid-template-columns: minmax(0, 1fr); }
   .towerrow { gap: 16px; }
   h1 { font-size: 22px; }
@@ -413,8 +407,6 @@ html.rot .gameover { transform: rotate(90deg); width: min(640px, 92dvh); max-hei
 
 /* the game-over box and the menu: blue panels with a gold rim */
 .gameover { background: linear-gradient(#24408c, #172a5e); border: 3px solid var(--gold-d); border-radius: 16px; box-shadow: 0 0 0 3px #0b1430, 0 18px 40px rgba(0,0,0,.6); }
-.donow, .explain, .advice, .lastaction { border-radius: 10px; }
-.donow { background: rgba(0,0,0,.25); border-color: var(--edge); }
 .dntitle { font-family: var(--display); font-weight: 400; font-size: 20px; color: var(--gold); text-shadow: 0 2px 0 rgba(0,0,0,.5); }
 .gameover h2 { font-size: 46px; }
 .gameover.won { border-color: var(--gold); } .gameover.won h2 { color: var(--gold); }
@@ -611,7 +603,7 @@ button.linkish:active { transform: none; }
 .towerhead { margin: 18px 0 4px; }
 .towerhead small { display: block; font-family: 'Baloo 2 Variable', system-ui, sans-serif; font-size: 13px; opacity: .8; margin-top: 2px; }
 @media (max-width: 640px) {
-  .deckslots, .grid { grid-template-columns: repeat(4, 1fr); }
+  .deckslots, .pickgrid { grid-template-columns: repeat(4, 1fr); }
   .avgcost { margin-left: 0; width: 100%; }
 }
 
@@ -665,3 +657,8 @@ button.linkish:active { transform: none; }
   .elixrow .done.suggested:not(:disabled) { animation: none; }
 }
 
+
+/* ---------- top bar: undo/redo while playing, one menu button for everything else ---------- */
+.topbar .spacer { margin-left: auto; }
+.top > .topbar { flex: 1; min-width: 0; }
+.undoredo { display: inline-flex; gap: 2px; }

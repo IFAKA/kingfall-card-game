@@ -64,7 +64,7 @@
 
 @layer base {
   /* the part of Tailwind's reset shadcn components need, only on them */
-  [data-slot], [data-slot] *, [data-slot]::before, [data-slot]::after { box-sizing: border-box; border: 0 solid; }
+  [data-slot], [data-slot] *, [data-slot]::before, [data-slot]::after { box-sizing: border-box; border-width: 0; border-style: solid; }
   :is(button, label, p, h2)[data-slot] { margin: 0; padding: 0; font: inherit; color: inherit; background: none; }
   * { @apply border-border outline-ring/50; }
   html { @apply font-sans; }

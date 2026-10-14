@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
-import type { CSSProperties, ReactNode } from 'react'
+import type { ComponentProps, CSSProperties, ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import confetti from 'canvas-confetti'
 import { DEFAULT_RULES, RANKS, SUITS, autoTowers, cost, deal, freshDeck, isRed, label, shuffle, suggestDeck } from './engine'
@@ -11,8 +11,10 @@ import type { Discarded, ESlot, GuideState } from './guide'
 import { useFx } from './fx'
 import type { Pop } from './fx'
 import { isMuted, setMuted, sfx } from './sfx'
-import { GameMenu, IconButton, Toggle } from './Menu'
-import type { MenuPage } from './Menu'
+import { Lightbulb, Redo2, Undo2 } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { CardText, Choice, GameMenu, RulesSheet } from './Menu'
 
 type Help = 'off' | 'explain' | 'suggest'
 type Screen = 'title' | 'deal' | 'enter' | 'draft' | 'table' | 'play'
@@ -154,12 +156,12 @@ function Castle({ k, items, own, cracked }: { k: 'L' | 'R' | 'K'; items: ESlot[]
         {k === 'K'
           ? <path d="M6 54V22h8v6h8V14h8v6h4v-6h8v14h8v-6h8v32z" />
           : <path d="M12 54V18h8v6h6v-6h12v6h6v-6h8v36z" />}
-        {k === 'K' && <path className="crown" d="M22 10l4-8 6 6 6-6 4 8z" />}
+        {k === 'K' && <path className="crown" d="M21 10l1-8 5 5 5-6 5 6 5-5 1 8z" />}
         <path className="door" d="M27 54V42a5 5 0 0 1 10 0v12z" />
       </svg>
       {items.length > 0 && <div className="armor">{items.map(it => <i key={it.tid} className={cracked.includes(it.tid) ? 'crk' : ''} />)}</div>}
       {known && <div className={`topcard ${isRed(known) ? 'red' : ''}`}>{RANKS[known.rank]}{SUITS[known.suit]}</div>}
-      <div className="cname">{items.length ? STACK_NAME[k] : 'Fallen'}</div>
+      {!items.length && <div className="cname">Fallen</div>}
     </div>
   )
 }
@@ -383,7 +385,7 @@ const TIPS: Record<TipId, string> = {
   elixir: 'Elixir pays for cards. You get 3 more every round, up to 10. Play another card, or press End turn to let the enemy move.',
   enemy: 'The enemy defends: it plays into the lane where you have more cards.',
   fight: 'When two cards meet, the higher rank wins. A card of the suit that beats the other counts double (♠ › ♥ › ♦ › ♣ › ♠), and aces beat J, Q and K.',
-  tower: "A card that reaches a tower breaks its top card if its rank is at least that card's (shown under your castles). If not, the tower card cracks, and any later hit breaks it. Break both king cards to win.",
+  tower: "The crowned castle in the middle is the king; the two beside it guard the left and right lanes. A card that reaches a tower breaks its top card if its rank is at least that card's (shown under your castles). If not, the tower card cracks, and any later hit breaks it. Break both king cards to win.",
 }
 const TIPS_KEY = 'kingfall-tips-seen'
 const PULSES = ['droppulse', 'suggestglow', 'suggestring']
@@ -414,9 +416,6 @@ export default function App() {
   const [history, setHistory] = useState<GuideState[]>(saved?.history ?? [])
   const [future, setFuture] = useState<GuideState[]>([])
   const [sel, setSel] = useState<number | null>(null)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [menuPage, setMenuPage] = useState<MenuPage>('main')
-  const openMenu = (p: MenuPage = 'main') => { setMenuPage(p); setMenuOpen(true) }
   const [drag, setDrag] = useState<number | null>(null)
   const [overLane, setOverLane] = useState<0 | 1 | null>(null)
   const justDragged = useRef(false)
@@ -537,22 +536,18 @@ export default function App() {
   const reshuffle = () => setPre(makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES))
 
   // the top bar: where you are, undo/redo while playing, the moves of the moment (real-cards table) and one menu for everything else
-  const bar = (mid?: ReactNode) => (
+  const bar = (mid?: ReactNode, more?: Pick<ComponentProps<typeof GameMenu>, 'log' | 'hints' | 'turned'>) => (
     <div className="topbar">
       <Logo small />
       <span className="modechip">{mode === 'play' ? 'On screen' : 'Real cards'}</span>
       {game && screen === 'play' && <span className="undoredo">
-        <IconButton icon="undo" label="Undo" onClick={undo} disabled={!history.length} />
-        <IconButton icon="redo" label="Redo" onClick={redo} disabled={!future.length} />
+        <Button variant="ghost" size="icon-lg" aria-label="Undo" title="Undo" onClick={undo} disabled={!history.length}><Undo2 /></Button>
+        <Button variant="ghost" size="icon-lg" aria-label="Redo" title="Redo" onClick={redo} disabled={!future.length}><Redo2 /></Button>
       </span>}
       <span className="spacer" />
       {mid}
-      <IconButton icon="menu" label="Menu" className="menubtn" onClick={() => openMenu()} />
+      <GameMenu rules={RULES_60} muted={muted} toggleMute={toggleMute} onLeave={reset} {...more} />
     </div>
-  )
-  const menu = (more?: { log?: string[]; hints?: ReactNode; turned?: CSSProperties }) => (
-    <GameMenu open={menuOpen} page={menuPage} setOpen={setMenuOpen} setPage={setMenuPage} rules={RULES_60} muted={muted} toggleMute={toggleMute}
-      onLeave={screen === 'title' ? undefined : reset} {...more} />
   )
 
   // ---------- title ----------
@@ -566,9 +561,8 @@ export default function App() {
         <div className="menu">
           <button className="big xl" onClick={startOnScreen}>Play<small>the app deals and plays the enemy</small></button>
           <button className="xl" onClick={() => { setMode('guide'); setScreen('deal') }}>Play with real cards<small>you play at the table, the app guides you</small></button>
-          <button className="green" onClick={() => openMenu('rules')}>How to play</button>
+          <RulesSheet rules={RULES_60}><Button variant="success" size="xl">How to play</Button></RulesSheet>
         </div>
-        {menu()}
       </div>
     )
   }
@@ -593,7 +587,6 @@ export default function App() {
       <div className="page">{bar()}
         <h1>1. Deal the cards</h1>
         <Stepper steps={steps} at={setupStep} setAt={setSetupStep} done={<button className="big" onClick={() => setScreen('enter')}>Done — I have my 16 cards</button>} />
-        {menu()}
       </div>
     )
   }
@@ -609,7 +602,6 @@ export default function App() {
           <button className="big" disabled={my16.length !== 16} onClick={() => { pickDeck(suggestDeck(mine).map(c => c.id)); setScreen('draft') }}>Next: build my deck</button>
           <button onClick={() => setMy16([])}>Clear</button>
         </div>
-        {menu()}
       </div>
     )
   }
@@ -668,7 +660,7 @@ export default function App() {
           </>
           : <>
             <h3 className="towerhead">Other cards <small>tap one to put it in your deck; the ones left out become your towers</small></h3>
-            <div className="grid">
+            <div className="pickgrid">
               {mine.filter(c => !deckIds.includes(c.id)).map(c => (
                 <motion.div key={c.id} layoutId={`pick-${c.id}`} className="pick"><CardView card={c} showCost onClick={() => toggleDeck(c)} /></motion.div>
               ))}
@@ -686,7 +678,6 @@ export default function App() {
               ? <button className="big" onClick={() => { advance(settle(startRound(makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES)))); setHistory([]); setScreen('play') }}>Start the game</button>
               : <button className="big" onClick={() => { reshuffle(); setScreen('table') }}>Next: set up the table</button>}
         </div>
-        {menu()}
       </div>
     )
   }
@@ -718,7 +709,6 @@ export default function App() {
       <div className="page">{bar()}
         <h1>4. Set up the table</h1>
         <Stepper steps={steps} at={setupStep} setAt={setSetupStep} done={<button className="big" onClick={() => { advance(startRound(g)); setHistory([]); setPre(null); setScreen('play') }}>Start the game</button>} />
-        {menu()}
       </div>
     )
   }
@@ -786,28 +776,36 @@ export default function App() {
     </div>
   ))
   // the Hints page of the menu: the switches, then what they say about this moment
-  const hints = (
-    <div className="gm-hints">
-      <Toggle on={explainOn} set={setExplainOn}><b>Explain my options</b><small>List every card you can play and where</small></Toggle>
-      <Toggle on={suggestOn} set={setSuggestOn}><b>Suggest moves</b><small>{mode === 'play' ? 'The suggested card and lane glow green, or End turn does' : 'The suggested move appears in the top bar'}</small></Toggle>
-      {mode === 'play' && <button onClick={() => { setTipsSeen([]); writeJSON(TIPS_KEY, []); setMenuOpen(false) }}>Show the tips again</button>}
-      <div className="donow">
-        <div className="dntitle">{TITLES[stage]}</div>
-        {stage !== 'my_play' && <ul className="todo">{g.lines.map((l, i) => <li key={i}>{l}</li>)}</ul>}
-        {stage === 'my_play' && (
-          <>
-            <p>Choose a card from your hand (or none), then where it goes. Faded cards cost more elixir than you have.</p>
-            {explainOn && <div className="explain"><b>Your options</b><ul>{options(g).map((o, i) => <li key={i}>{o}</li>)}</ul></div>}
-            {advice && (
-              <div className="advice"><b>Suggestion:</b> {advice.reason}
-                <div className="muted">It looks one round ahead using only what you can see on the table; it can't know the enemy's face-down cards. The plan can change as you draw new cards.</div>
-              </div>
-            )}
-          </>
-        )}
-        {help !== 'off' && g.why.length > 0 && <div className="why"><b>Why:</b> {g.why.join(' ')}</div>}
-      </div>
-    </div>
+  // the Hints page of the menu: two switches, then only what they say about this turn
+  const hints = (close: () => void) => (
+    <>
+      <Choice id="explain" title="Explain my options" description="List every card you can play and where" checked={explainOn} onChange={setExplainOn} />
+      <Choice id="suggest" title="Suggest moves" description={mode === 'play' ? 'The suggested card and lane glow green, or End turn does' : 'The suggested move appears in the top bar'} checked={suggestOn} onChange={setSuggestOn} />
+      <div className="mt-2 font-heading text-sm tracking-widest text-muted-foreground uppercase">This turn</div>
+      {stage !== 'my_play' ? <p className="m-0 text-muted-foreground">Hints show here on your turn.</p>
+        : help === 'off' && <p className="m-0 text-muted-foreground">Turn on a switch above and its hint shows here.</p>}
+      {advice && (
+        <Alert className="border-(--gold-d) bg-black/25 px-3 py-2.5 text-base">
+          <Lightbulb className="text-primary" />
+          <AlertTitle className="font-heading text-lg font-normal tracking-wide">
+            {advice.kind === 'play' ? <>Play <CardText text={label(g.P.hand[advice.handIndex])} /> in the {advice.lane === 0 ? 'left' : 'right'} lane</> : 'End your turn'}
+          </AlertTitle>
+          <AlertDescription className="text-base text-foreground/90">
+            <p className="m-0"><CardText text={advice.reason} /></p>
+            <p className="m-0 mt-1 text-sm text-muted-foreground">It looks one round ahead at what's on the table; it can't see the enemy's face-down cards.</p>
+          </AlertDescription>
+        </Alert>
+      )}
+      {explainOn && stage === 'my_play' && (
+        <ul className="m-0 list-none rounded-xl border bg-black/25 px-3 py-1">
+          {options(g).map((o, i) => { const [card, ...rest] = o.split(': '); return (
+            <li key={i} className="flex items-start gap-2.5 border-t border-white/10 py-2 leading-snug first:border-t-0"><CardText text={card} /><span>{rest.join(': ')}</span></li>
+          ) })}
+        </ul>
+      )}
+      {help !== 'off' && g.why.length > 0 && <p className="m-0 text-sm text-muted-foreground"><b className="text-foreground">Why:</b> <CardText text={g.why.join(' ')} /></p>}
+      {mode === 'play' && <Button variant="link" className="mt-2 self-center text-base text-muted-foreground" onClick={() => { setTipsSeen([]); writeJSON(TIPS_KEY, []); close() }}>Show the first-game tips again</Button>}
+    </>
   )
   const overlays = (
     <>
@@ -863,7 +861,7 @@ export default function App() {
     const eNext = g.E.queue[0]
     return (
       <div ref={playRef} className={`arena${side ? ' turn-' + side : ''}`} style={vars}>
-        <div className="top">{bar()}</div>
+        <div className="top">{bar(null, { log: g.log, hints })}</div>
         <div className={`field ${shake}`}>
           <div className="castles theirs">
             {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} />)}
@@ -908,7 +906,6 @@ export default function App() {
           </div>
         )}
         {overlays}
-        {menu({ log: g.log, hints })}
       </div>
     )
   }
@@ -924,7 +921,7 @@ export default function App() {
             {advice?.kind === 'play' && <button className="suggest" title={advice.reason} onClick={() => commit(playCard(g, advice.handIndex, advice.lane))}>Suggest: {label(g.P.hand[advice.handIndex])} → {advice.lane === 0 ? 'LEFT' : 'RIGHT'}</button>}
             <button className="big done" onClick={() => commit(endMyTurn(g))}>End turn →</button>
           </div>
-        ))}</div>
+        ), { log: g.log, hints, turned: stage_.rot ? { left: stage_.sw, width: stage_.W, height: stage_.H } : undefined })}</div>
       <div className={`board ${shake}`}>
         {/* columns: 1 queue/discard · 2 king · 3 tower · 4-7 lane · 8 tower · 9 king · 10 pile/discard; rows: enemy elixir · left lane · right lane · your elixir */}
         <BarCells n={g.E.elixir} who="ENEMY" row={1} at={at} />
@@ -968,7 +965,6 @@ export default function App() {
       </div>
 
       {overlays}
-      {menu({ log: g.log, hints, turned: stage_.rot ? { left: stage_.sw, width: stage_.W, height: stage_.H } : undefined })}
     </div>
   )
 }
