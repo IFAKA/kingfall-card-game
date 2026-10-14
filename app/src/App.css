@@ -512,18 +512,18 @@ details.help[open] > summary { margin-bottom: 8px; }
 .castles.theirs { align-items: start; }
 .castle { display: flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1; cursor: default; }
 .castles.theirs .castle { flex-direction: column-reverse; }
-.castle .cart { width: calc(var(--cw) * 1.0); height: calc(var(--cw) * .875); fill: #3d78f0; stroke: #12245e; stroke-width: 2.5; stroke-linejoin: round; filter: drop-shadow(0 3px 0 rgba(0,0,0,.35)); }
+.castle .cart { width: calc(var(--cw) * 1.5); height: calc(var(--cw) * 1.31); fill: #3d78f0; stroke: #12245e; stroke-width: 2.5; stroke-linejoin: round; filter: drop-shadow(0 3px 0 rgba(0,0,0,.35)); }
 .castle.theirs .cart { fill: #e24a4a; stroke: #5c1111; }
-.castle.king .cart { width: calc(var(--cw) * 1.3); height: calc(var(--cw) * 1.14); }
+.castle.king .cart { width: calc(var(--cw) * 1.95); height: calc(var(--cw) * 1.71); }
 .castle .cart .door { fill: #2a1a10; stroke: none; }
 .castle .cart .crown { fill: var(--gold); stroke: var(--gold-ink); stroke-width: 1.5; }
 .castle.fallen .cart { fill: #6b6b6b; stroke: #333; opacity: .45; }
-.castle .armor { display: flex; gap: 3px; margin: 2px 0; }
-.castle .armor i { width: calc(var(--cw) * .17); height: calc(var(--cw) * .2); min-width: 8px; min-height: 9px; border-radius: 3px 3px 7px 7px; background: linear-gradient(#ffe27a, #e3a400); border: 1.5px solid #6e4300; }
+.castle .armor { display: flex; gap: 4px; margin: 3px 0; }
+.castle .armor i { width: calc(var(--cw) * .24); height: calc(var(--cw) * .28); min-width: 8px; min-height: 9px; border-radius: 3px 3px 7px 7px; background: linear-gradient(#ffe27a, #e3a400); border: 1.5px solid #6e4300; }
 .castle .armor i.crk { background: linear-gradient(135deg, #c9a8ff 45%, #3b1d6e 45% 55%, #c9a8ff 55%); border-color: #3b1d6e; }
-.castle .topcard { font-weight: 800; font-size: max(11px, calc(var(--cw) * .2)); background: #fbfbf6; color: #1b1b1b; border-radius: 5px; padding: 1px 5px; box-shadow: 0 2px 0 rgba(0,0,0,.4); }
+.castle .topcard { font-weight: 800; font-size: max(12px, calc(var(--cw) * .27)); background: #fbfbf6; color: #1b1b1b; border-radius: 5px; padding: 1px 5px; box-shadow: 0 2px 0 rgba(0,0,0,.4); }
 .castle .topcard.red { color: #c0262d; }
-.castle .cname { font-family: var(--display); font-size: max(10px, calc(var(--cw) * .17)); color: rgba(255,255,255,.85); text-shadow: 0 1px 0 rgba(0,0,0,.6); text-transform: uppercase; letter-spacing: .04em; }
+.castle .cname { font-family: var(--display); font-size: max(11px, calc(var(--cw) * .22)); color: rgba(255,255,255,.85); text-shadow: 0 1px 0 rgba(0,0,0,.6); text-transform: uppercase; letter-spacing: .04em; }
 
 /* lanes */
 .lanes { position: relative; z-index: 1; flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr minmax(0, .9fr) 1fr; }
@@ -537,11 +537,11 @@ details.help[open] > summary { margin-bottom: 8px; }
 .spot.slot.over { background: rgba(255,207,58,.38); }
 .droptag { position: absolute; bottom: 3px; font-family: var(--display); font-size: 11px; color: var(--gold); text-shadow: 0 1px 0 #000; pointer-events: none; }
 @keyframes droppulse { 50% { box-shadow: 0 0 14px rgba(255,207,58,.6); } }
-.lanes .mid { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; z-index: 2; }
-.mid .round { font-family: var(--display); font-size: 15px; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.5); background: rgba(11, 20, 48, .7); border-radius: 10px; padding: 2px 10px; }
-.mid .rule { font-size: 11px; line-height: 1.2; color: #fff; background: rgba(11, 20, 48, .55); border-radius: 8px; padding: 2px 6px; white-space: nowrap; }
+.lanes .mid { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; z-index: 2; container-type: inline-size; }
+.mid .round { font-family: var(--display); font-size: max(14px, min(calc(var(--cw) * .36), 15cqi)); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.5); background: rgba(11, 20, 48, .7); border-radius: 10px; padding: 2px 10px; }
+.mid .rule { font-size: max(11px, min(calc(var(--cw) * .3), 10cqi)); font-weight: 700; line-height: 1.2; color: #fff; background: rgba(11, 20, 48, .7); border-radius: 10px; padding: 3px 9px; white-space: nowrap; }
 .mid .rule b { color: var(--gold); }
-.mid .wheelmini i { font-style: normal; font-size: 13px; color: #fff; }
+.mid .wheelmini i { font-style: normal; font-size: 1.25em; color: #fff; }
 .mid .wheelmini i.r { color: #ff6b78; }
 .mid .wheelmini em { font-style: normal; color: var(--gold); margin: 0 1px; }
 .mid .wheelmini span { margin-left: 4px; color: var(--gold); font-weight: 800; }
@@ -554,7 +554,7 @@ details.help[open] > summary { margin-bottom: 8px; }
 
 /* the tray: what just happened, elixir, hand */
 .tray { flex: none; display: flex; flex-direction: column; gap: 5px; }
-.feed { min-height: 2.5em; display: flex; flex-direction: column; justify-content: center; font-size: 13px; line-height: 1.25; text-align: center; color: #fff; background: rgba(11, 20, 48, .7); border: 2px solid rgba(61, 95, 192, .6); border-radius: 12px; padding: 3px 10px; }
+.feed { min-height: 2.5em; display: flex; flex-direction: column; justify-content: center; font-size: 16px; line-height: 1.25; text-align: center; color: #fff; background: rgba(11, 20, 48, .7); border: 2px solid rgba(61, 95, 192, .6); border-radius: 12px; padding: 3px 10px; }
 .feed.warn { color: #ffc4c4; border-color: #b3261e; }
 .elixrow { display: flex; align-items: center; gap: 8px; }
 .elixrow .big { padding: 7px 16px; font-size: 16px; }
@@ -571,22 +571,23 @@ details.help[open] > summary { margin-bottom: 8px; }
 .arena.turn-enemy .handrow { opacity: .6; }
 .nextcard { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .nextcard .tcard { width: calc(var(--cw) * .66); height: calc(var(--ch) * .66); font-size: calc(var(--cw) * .19); }
-.nextcard.mine { margin-right: 6px; align-self: flex-end; }
-.nextcard.mine span { font-family: var(--display); font-size: 11px; color: rgba(255,255,255,.8); text-transform: uppercase; }
-.lanes .mid .nextcard .tcard { width: calc(var(--cw) * .5); height: calc(var(--ch) * .5); font-size: calc(var(--cw) * .15); }
+.nextcard.mine { --nl: max(11px, calc(var(--ch) * .17)); --nh: calc(var(--ch) - var(--nl) - 2px); height: var(--ch); margin-right: 6px; align-self: flex-end; }
+.nextcard.mine span { font-family: var(--display); font-size: var(--nl); line-height: 1; color: rgba(255,255,255,.8); text-transform: uppercase; }
+.nextcard.mine .tcard { width: calc(var(--nh) * .714); height: var(--nh); font-size: calc(var(--nh) * .2); }
+.lanes .mid .nextcard .tcard { width: calc(var(--cw) * .66); height: calc(var(--ch) * .66); font-size: calc(var(--cw) * .19); }
 .arena .tcard .cost { right: 3px; top: 3px; width: 1.5em; height: 1.5em; font-size: .85em; border-width: 1px; }
 .arena .stepbar { bottom: calc(var(--ch) + 60px); }
 .arena .stepbar.over { bottom: 8px; }
 
 /* ---------- teaching by playing: one tip at a time over the field, the enemy waits while it is open ---------- */
-.coach { position: absolute; z-index: 45; left: 50%; transform: translateX(-50%); bottom: calc(var(--ch) + 104px); width: min(460px, calc(100% - 24px)); box-sizing: border-box;
+.coach { position: absolute; z-index: 45; left: 50%; transform: translateX(-50%); bottom: calc(var(--ch) + 112px); width: min(540px, calc(100% - 24px)); box-sizing: border-box;
   padding: 12px 16px; background: linear-gradient(#fffbea, #ffeeb0); color: #2a1d00; border: 3px solid var(--gold-d); border-radius: 16px; box-shadow: 0 0 0 3px #0b1430, 0 14px 30px rgba(0,0,0,.5);
   animation: stepin .2s ease-out; }
 .coach::after { content: ''; position: absolute; left: 50%; bottom: -12px; margin-left: -10px; border: 10px solid transparent; border-bottom: 0; border-top-color: var(--gold-d); }
-.coach p { margin: 0 0 8px; font-size: 15px; line-height: 1.35; font-weight: 600; }
+.coach p { margin: 0 0 10px; font-size: 18px; line-height: 1.35; font-weight: 600; }
 .coach .row { display: flex; align-items: center; gap: 12px; margin: 0; }
-.coach .big { padding: 6px 18px; font-size: 15px; }
-button.linkish { background: none; border: none; box-shadow: none; text-shadow: none; color: #6e4300; font-family: 'Baloo 2 Variable', system-ui, sans-serif; font-weight: 700; text-decoration: underline; padding: 4px; font-size: 13px; }
+.coach .big { padding: 7px 22px; font-size: 18px; }
+button.linkish { background: none; border: none; box-shadow: none; text-shadow: none; color: #6e4300; font-family: 'Baloo 2 Variable', system-ui, sans-serif; font-weight: 700; text-decoration: underline; padding: 4px; font-size: 16px; }
 button.linkish:active { transform: none; }
 .elixrow .hint:not(.green) { font-size: 14px; }
 
