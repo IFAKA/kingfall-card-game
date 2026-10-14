@@ -2,7 +2,7 @@
 // Plays full games through the same code the app uses and fails if a rule invariant breaks or balance drifts.
 import { autoTowers, canPlay as engineCanPlay, compare, cost, DEFAULT_RULES, endRound, freshDeck, newGame, playCard as enginePlay, shuffle, suggestDeck } from '../src/engine.ts'
 import type { Card } from '../src/engine.ts'
-import { advise, canPlay, endMyTurn, enterEnemyCard, enterTowerCard, lastStandPlay, makeGame, next, playCard, startRound } from '../src/guide.ts'
+import { advise, canPlay, describe, endMyTurn, enterEnemyCard, enterTowerCard, lastStandPlay, makeGame, next, playCard, startRound } from '../src/guide.ts'
 import type { Advice, GuideState } from '../src/guide.ts'
 
 function mulberry(a: number) {
@@ -29,6 +29,26 @@ function invariantError(g: GuideState): string | null {
   return null
 }
 
+// The events a step reports (what the screen animates) match what the step wrote in the log, and the fight winners follow the rules.
+function eventError(prev: GuideState, g: GuideState): string | null {
+  const added = g.log.slice(prev.log.length), ev = g.events ?? []
+  const count = (re: RegExp) => added.filter(l => re.test(l)).length
+  const of = (t: string) => ev.filter(e => e.type === t)
+  const pairs: [string, RegExp][] = [['round', /^— Round/], ['play', /^(You play|Enemy plays|Your last stand|Enemy last stand)/], ['fight', / beats | ties /], ['tower', / breaks | holds but cracks/]]
+  for (const [t, re] of pairs) if (of(t).length !== count(re)) return `${of(t).length} ${t} events for ${count(re)} log lines`
+  for (const e of ev) {
+    const d = describe(e)
+    if ((e.type === 'play' || e.type === 'fight' || e.type === 'tower' || e.type === 'blocked') && (!d || /undefined|NaN|\[object/.test(d))) return `bad ${e.type} description: "${d}"`
+    if (e.type === 'fight') {
+      const r = compare(e.mine.card, e.theirs.card, g.rules)
+      if (e.winner !== (r > 0 ? 'P' : r < 0 ? 'E' : 'tie')) return `fight event says ${e.winner} won ${e.mine.card.id} vs ${e.theirs.card.id}`
+    }
+    if (e.type === 'tower' && e.destroyed !== ((e.side === 'P' ? g.E.towers : g.P.towers)[e.stack].length === 0)) return `tower event destroyed=${e.destroyed} disagrees with the board`
+  }
+  if ((g.stage === 'over') !== (of('over').length === 1) && prev.stage !== 'over') return 'game over without an over event (or the reverse)'
+  return null
+}
+
 type Player = (g: GuideState, rnd: () => number) => Advice
 const suggestions: Player = g => advise(g)
 const random: Player = (g, rnd) => {
@@ -52,7 +72,7 @@ function playGuided(n: number, player: Player, seed: number) {
     let g = startRound(makeGame(deck, autoTowers(my16.filter(c => !deck.includes(c))), my16, DEFAULT_RULES))
     let steps = 0, playsThisTurn = 0
     while (g.stage !== 'over' && g.round < 200 && steps++ < 60000) {
-      const st = g.stage
+      const st = g.stage, before = g
       if (st === 'my_play') {
         const a = playsThisTurn++ < 8 ? player(g, rnd) : ({ kind: 'wait', reason: '' } as Advice)
         if (a.kind === 'play') g = playCard(g, a.handIndex, a.lane)
@@ -65,7 +85,7 @@ function playGuided(n: number, player: Player, seed: number) {
         g = enterTowerCard(g, real.get(g.E.towers[key][0].tid)!)
       } else if (st === 'my_last_stand') g = lastStandPlay(g, 0)
       else g = next(g)
-      error = invariantError(g)
+      error = invariantError(g) ?? (g !== before ? eventError(before, g) : null)
       if (error) { error = `game ${k}, round ${g.round}, stage ${g.stage}: ${error}`; break }
     }
     if (g.stage !== 'over') unfinished++

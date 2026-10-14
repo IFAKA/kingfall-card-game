@@ -25,8 +25,9 @@ When the rules change in a way that makes old saved games invalid, bump `STORAGE
 ## Code map
 
 - `src/engine.ts`: cards, costs, deal and a compact rules engine (used by the quick balance checks).
-- `src/guide.ts`: the guided rules engine the app runs: every step of a round, the instructions shown for the physical cards, and the suggestion lookahead.
-- `src/App.tsx`: setup screens and the play screen; `src/ErrorBoundary.tsx` recovers from an unreadable saved game.
+- `src/guide.ts`: the guided rules engine the app runs: every step of a round, the instructions shown for the physical cards, the events each step reports for the screen to animate (`GameEvent`, with `describe` putting each one into words), and the suggestion lookahead.
+- `src/App.tsx`: title, setup screens, the real-cards table, the on-screen arena and the first-game tips; `src/ErrorBoundary.tsx` recovers from an unreadable saved game.
+- `src/fx.ts`: turns each step's events into pop-ups, board shake and sounds, placed on board elements marked `data-anchor`; `src/sfx.ts` synthesizes the sounds with Web Audio (no audio files) and keeps the mute setting.
 - `scripts/check.ts`: the automated rules and balance checks behind `npm test`.
 
 The rules themselves live in `../RULEBOOK.md`; keep the rulebook, `guide.ts` and `engine.ts` in sync.

@@ -1,17 +1,20 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import confetti from 'canvas-confetti'
 import './App.css'
 import { DEFAULT_RULES, RANKS, SUITS, autoTowers, cost, deal, freshDeck, isRed, label, shuffle, suggestDeck } from './engine'
 import type { Card, Unit } from './engine'
 import {
-  advise, autoReveal, canPlay, endMyTurn, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary,
+  advise, autoReveal, canPlay, describe, endMyTurn, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary,
 } from './guide'
 import type { Discarded, ESlot, GuideState } from './guide'
+import { useFx } from './fx'
+import type { Pop } from './fx'
+import { isMuted, setMuted, sfx } from './sfx'
 
 type Help = 'off' | 'explain' | 'suggest'
-type Screen = 'deal' | 'enter' | 'draft' | 'table' | 'play'
+type Screen = 'title' | 'deal' | 'enter' | 'draft' | 'table' | 'play'
 interface Saved { mode?: 'guide' | 'play'; secret?: Record<string, Card>; screen: Screen; my16: string[]; deckIds: string[]; slotIds: string[]; help: Help; pre: GuideState | null; game: GuideState | null; history: GuideState[] }
 
 const ALL = freshDeck()
@@ -50,7 +53,7 @@ function makeGhost(el: HTMLElement, x: number, y: number, rot: boolean, sw: numb
   ghost.querySelector('.backside')?.remove()
   ghost.querySelectorAll<HTMLElement>('.cf').forEach(f => { f.style.backfaceVisibility = 'visible'; f.style.setProperty('-webkit-backface-visibility', 'visible') })
   Object.assign(ghost.style, { position: 'absolute', left: '0', top: '0', width: `${w}px`, height: `${h}px`, pointerEvents: 'none', zIndex: '9999', opacity: '1', filter: 'none', boxShadow: '0 8px 18px rgba(0,0,0,.5)' })
-  const play = el.closest('.play') as HTMLElement
+  const play = el.closest('.play, .arena') as HTMLElement
   const pr = play.getBoundingClientRect()
   // screen point -> the table's own coordinates (a quarter turn when rotated), card centred on the pointer
   const move = (px: number, py: number, scale = 1.08) => {
@@ -113,6 +116,101 @@ function TCard({ tid, card, down, selected, dim, showCost, onClick }: {
         <div className="cf backside" />
       </div>
     </motion.div>
+  )
+}
+
+// Pop-ups from the latest step (see fx.ts), drawn over the board.
+function FxLayer({ pops }: { pops: Pop[] }) {
+  return (
+    <div className="fxlayer" aria-hidden>
+      {pops.map(p => (
+        <div key={p.id} className={`pop ${p.kind}`} style={{ left: p.x, top: p.y }}>
+          {p.text}{p.sub && <small>{p.sub}</small>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ---------- the arena (on-screen play): upright like Clash, enemy on top, you at the bottom ----------
+const STACK_NAME = { L: 'Left', R: 'Right', K: 'King' } as const
+
+// A tower drawn as a castle: one armor pip per card left (a cracked card shows cracked), and the armor to beat on its top card when it is known.
+function Castle({ k, items, own, cracked }: { k: 'L' | 'R' | 'K'; items: ESlot[]; own: boolean; cracked: string[] }) {
+  const top = items[0]
+  const known = top?.card
+  return (
+    <div className={`castle ${own ? 'mine' : 'theirs'} ${k === 'K' ? 'king' : ''} ${items.length ? '' : 'fallen'}`} data-anchor={`tower-${own ? 'P' : 'E'}-${k}`}
+      title={`${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower: ${items.length} card${items.length === 1 ? '' : 's'} of armor${known ? `; a soldier needs rank ${RANKS[known.rank]} or more to break the top one` : ''}`}>
+      <svg className="cart" viewBox="0 0 64 56" aria-hidden>
+        {k === 'K'
+          ? <path d="M6 54V22h8v6h8V14h8v6h4v-6h8v14h8v-6h8v32z" />
+          : <path d="M12 54V18h8v6h6v-6h12v6h6v-6h8v36z" />}
+        {k === 'K' && <path className="crown" d="M22 10l4-8 6 6 6-6 4 8z" />}
+        <path className="door" d="M27 54V42a5 5 0 0 1 10 0v12z" />
+      </svg>
+      {items.length > 0 && <div className="armor">{items.map(it => <i key={it.tid} className={cracked.includes(it.tid) ? 'crk' : ''} />)}</div>}
+      {known && <div className={`topcard ${isRed(known) ? 'red' : ''}`}>{RANKS[known.rank]}{SUITS[known.suit]}</div>}
+      <div className="cname">{items.length ? STACK_NAME[k] : 'Fallen'}</div>
+    </div>
+  )
+}
+
+// Elixir as one bar that fills smoothly; hovering or dragging a card shows what it would cost.
+function ElixirBar({ n, spend }: { n: number; spend: number }) {
+  const [a, b] = spendRange(n, spend)
+  return (
+    <div className="ebar" role="meter" aria-valuemin={0} aria-valuemax={10} aria-valuenow={n} aria-label="Your elixir">
+      <div className="drop">{n}</div>
+      <div className="segs">
+        <div className="fill" style={{ width: `${n * 10}%` }} />
+        {spend > 0 && <div className={`spend ${spend > n ? 'short' : ''}`} style={{ left: `${a * 10}%`, width: `${(b - a) * 10}%` }} />}
+        {Array.from({ length: 9 }, (_, i) => <i key={i} style={{ left: `${(i + 1) * 10}%` }} />)}
+      </div>
+    </div>
+  )
+}
+
+// One lane, top to bottom: your soldiers hitting the enemy tower, the enemy's slot, the river, your slot, enemy soldiers hitting your tower.
+function ArenaLane({ idx, units, laneLen, dragging, hint, over, onPlace }: { idx: 0 | 1; units: Unit[]; laneLen: number; dragging: boolean; hint: boolean; over: boolean; onPlace: () => void }) {
+  const here = (pred: (u: Unit) => boolean) => units.filter(u => u.lane === idx && pred(u)).map(u => (
+    <div key={u.uid} className={`unit ${u.side}`}><TCard tid={u.tid!} card={u.card} down={false} showCost /></div>
+  ))
+  return (
+    <div className="alane">
+      <div className="spot atk">{here(u => u.side === 'P' && u.pos >= laneLen)}</div>
+      <div className="spot slot" data-anchor={`lane-${idx}`}>{here(u => u.pos === laneLen - 1)}</div>
+      <div className="river" />
+      <div className={`spot slot mine ${dragging || hint ? 'droppable' : ''} ${dragging && over ? 'over' : ''}`} data-lane={idx} data-anchor={`lane-${idx}`} onClick={hint ? onPlace : undefined}>
+        {here(u => u.pos === 0)}
+        {(dragging || hint) && <span className="droptag">{idx === 0 ? 'LEFT' : 'RIGHT'}</span>}
+      </div>
+      <div className="spot atk">{here(u => u.side === 'E' && u.pos < 0)}</div>
+    </div>
+  )
+}
+
+// ---------- setup at the real table: one step per screen, each with a picture ----------
+// Mini cards for the pictures: face-down by default, or a known card face-up; "side" is a marker turned sideways.
+function Mc({ card, side, hot }: { card?: Card; side?: boolean; hot?: boolean }) {
+  return <span className={`mc${card ? ' face' : ''}${card && isRed(card) ? ' red' : ''}${side ? ' side' : ''}${hot ? ' hot' : ''}`}>{card && <>{RANKS[card.rank]}{SUITS[card.suit]}</>}</span>
+}
+const backs = (n: number, gapAfter?: number, sideAt?: number) => Array.from({ length: n }, (_, i) => <Fragment key={i}>{i === gapAfter && <span className="mgap" />}<Mc side={i === sideAt} hot={i === sideAt} /></Fragment>)
+
+interface SetupStep { title: string; pic: ReactNode; body: ReactNode }
+function Stepper({ steps, at, setAt, done }: { steps: SetupStep[]; at: number; setAt: (n: number) => void; done: ReactNode }) {
+  const st = steps[Math.min(at, steps.length - 1)]
+  return (
+    <div className="stepper">
+      <div className="dots" aria-label={`Step ${at + 1} of ${steps.length}`}>{steps.map((_, i) => <i key={i} className={i === at ? 'on' : i < at ? 'past' : ''} />)}</div>
+      <h2>{st.title}</h2>
+      <div className="pic">{st.pic}</div>
+      <div className="stepbody">{st.body}</div>
+      <div className="row">
+        {at > 0 && <button onClick={() => setAt(at - 1)}>Back</button>}
+        {at < steps.length - 1 ? <button className="big" onClick={() => setAt(at + 1)}>Next</button> : done}
+      </div>
+    </div>
   )
 }
 
@@ -188,14 +286,16 @@ const at: At = (col, row) => ({ gridColumn: col, gridRow: row })
 
 // The table is always landscape. On a phone held upright we turn it a quarter turn instead, so it fills the screen either way
 // and the player never has to care whether rotation is locked. W x H is the size of the table as drawn (after the turn).
-function useStage() {
-  const read = () => ({ rot: innerHeight > innerWidth, sw: innerWidth, sh: innerHeight })
+function useStage(active: boolean) {
+  const read = () => ({ rot: active && innerHeight > innerWidth, sw: innerWidth, sh: innerHeight })
   const [v, setV] = useState(read)
   useEffect(() => {
     const f = () => setV(read())
+    f()
     addEventListener('resize', f); addEventListener('orientationchange', f)
     return () => { removeEventListener('resize', f); removeEventListener('orientationchange', f) }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active])
   useEffect(() => { document.documentElement.classList.toggle('rot', v.rot) }, [v.rot])
   return { ...v, W: v.rot ? v.sh : v.sw, H: v.rot ? v.sw : v.sh }
 }
@@ -211,7 +311,7 @@ function LaneCells({ idx, units, laneLen, row, at, dragging, hint, over, onPlace
     <>
       {defs.map((d, k) => (
         <div key={k} className={`cell lanecell ${d.cls} ${(dragging || hint) && k === 1 ? 'droppable' : ''} ${dragging && k === 1 && over ? 'over' : ''}`} style={at(4 + k, row)} onClick={k === 1 && hint ? onPlace : undefined}
-          data-lane={k === 1 ? idx : undefined}>
+          data-lane={k === 1 ? idx : undefined} data-anchor={k === 1 || k === 2 ? `lane-${idx}` : undefined}>
           <span className="clabel">{d.label}</span>
           <div className="cellbody">
             {units.filter(u => u.lane === idx && d.pred(u)).map(u => (
@@ -246,6 +346,15 @@ const TITLES: Record<string, string> = {
   tower_result: 'Tower hit', my_last_stand: 'LAST STAND: place a free card', last_stand_enter: 'Enemy LAST STAND: flip its top card', over: 'Game over',
 }
 
+function Logo({ small }: { small?: boolean }) {
+  return (
+    <div className={`logo${small ? ' small' : ''}`}>
+      <svg className="crown" viewBox="0 0 64 40" aria-hidden><path d="M6 36 L2 8 L18 20 L32 2 L46 20 L62 8 L58 36 Z" /><circle cx="2" cy="8" r="4" /><circle cx="32" cy="3" r="4" /><circle cx="62" cy="8" r="4" /></svg>
+      <span>KINGFALL</span>
+    </div>
+  )
+}
+
 const RULES_60 = (
   <ul>
     <li><b>Goal:</b> destroy the enemy's <b>king tower</b> (a stack of 2 cards) before it destroys yours.</li>
@@ -259,13 +368,26 @@ const RULES_60 = (
   </ul>
 )
 
+// First on-screen games teach by playing: one tip at a time, each shown the first time its situation comes up (and the enemy waits while it is open).
+type TipId = 'drag' | 'elixir' | 'enemy' | 'fight' | 'tower'
+const TIPS: Record<TipId, string> = {
+  drag: 'Drag a card from your hand onto one of your lane slots, the bottom half of the field. The purple number is its elixir cost.',
+  elixir: 'Elixir pays for cards. You get 3 more every round, up to 10. Play another card, or press End turn to let the enemy move.',
+  enemy: 'The enemy defends: it plays into the lane where you have more cards.',
+  fight: 'When two cards meet, the higher rank wins. A card of the suit that beats the other counts double (♠ › ♥ › ♦ › ♣ › ♠), and aces beat J, Q and K.',
+  tower: "A card that reaches a tower breaks its top card if its rank is at least that card's (shown under your castles). If not, the tower card cracks, and any later hit breaks it. Break both king cards to win.",
+}
+const TIPS_KEY = 'kingfall-tips-seen', PLAYED_KEY = 'kingfall-games-played'
+const readJSON = <T,>(key: string, fallback: T): T => { try { const v = localStorage.getItem(key); return v ? (JSON.parse(v) as T) : fallback } catch { return fallback } }
+const writeJSON = (key: string, v: unknown) => { try { localStorage.setItem(key, JSON.stringify(v)) } catch { /* storage full or blocked */ } }
+
 const AUTO_STAGES = ['round_start', 'enemy_play', 'enemy_stop', 'move', 'fight', 'tower_result']
 // hold each step longer the more it shows (one line per event), so busy fights can be followed
 const autoDelay = (events: number) => Math.min(4000, 700 + 600 * events)
 
 export default function App() {
   const saved = useMemo(() => load(), [])
-  const [screen, setScreen] = useState<Screen>(saved?.screen ?? 'deal')
+  const [screen, setScreen] = useState<Screen>(saved?.screen ?? 'title')
   const [my16, setMy16] = useState<string[]>(saved?.my16 ?? [])
   const [deckIds, setDeckIds] = useState<string[]>(saved?.deckIds ?? [])
   const [slotIds, setSlotIds] = useState<string[]>(saved?.slotIds ?? [])
@@ -291,8 +413,51 @@ export default function App() {
   const justDragged = useRef(false)
   const [hov, setHov] = useState<number | null>(null)
   const logRef = useRef<HTMLDivElement>(null)
-  const stage_ = useStage()
+  const stage_ = useStage(screen === 'play' && mode === 'guide')
   const [overSeen, setOverSeen] = useState(false)
+  const [doSeen, setDoSeen] = useState(-1)
+  const [setupStep, setSetupStep] = useState(0)
+  useEffect(() => { setSetupStep(0) }, [screen])
+  const [muted, setMutedState] = useState(isMuted)
+  const toggleMute = () => { setMuted(!muted); setMutedState(!muted); if (muted) sfx('tap') }
+  // the state the latest step produced: only it gets effects (not undo, redo or a reloaded game)
+  const fresh = useRef<GuideState | null>(null)
+  const advance = (g: GuideState) => { fresh.current = g; setGame(g) }
+  const playRef = useRef<HTMLDivElement>(null)
+  const { pops, shake } = useFx(game, fresh.current, playRef, stage_.rot, stage_.sw)
+  const [tipsSeen, setTipsSeen] = useState<TipId[]>(() => readJSON(TIPS_KEY, []))
+  const [tip, setTip] = useState<TipId | null>(null)
+  const [played, setPlayed] = useState<number>(() => readJSON(PLAYED_KEY, 0))
+  const [hintAt, setHintAt] = useState(-1) // the hint (suggested move) is open for this log length only
+  const seeTip = (ids: TipId[]) => { const n = [...new Set([...tipsSeen, ...ids])]; setTipsSeen(n); writeJSON(TIPS_KEY, n); setTip(null) }
+  useEffect(() => {
+    if (mode !== 'play' || screen !== 'play' || !game) return
+    const doneNow: TipId[] = tip === 'drag' && game.stats.placed > 0 ? ['drag'] : [] // done by doing it
+    if (doneNow.length) seeTip(doneNow)
+    else if (tip) return
+    const ev = game.events ?? [], isFresh = game === fresh.current
+    const wants = (id: TipId) => !tipsSeen.includes(id) && !doneNow.includes(id)
+    const happened = (f: (e: NonNullable<GuideState['events']>[number]) => boolean) => isFresh && ev.some(f)
+    const next: TipId | undefined = ([
+      ['drag', game.stage === 'my_play' && game.stats.placed === 0],
+      ['elixir', happened(e => e.type === 'play' && e.side === 'P')],
+      ['enemy', happened(e => e.type === 'play' && e.side === 'E')],
+      ['fight', happened(e => e.type === 'fight')],
+      ['tower', happened(e => e.type === 'tower')],
+    ] as [TipId, boolean][]).find(([id, now]) => now && wants(id))?.[0]
+    if (next) setTip(next)
+    // count finished on-screen games: after the first one, the suggested move hides behind a Hint button
+    if (isFresh && ev.some(e => e.type === 'over')) { setPlayed(n => { writeJSON(PLAYED_KEY, n + 1); return n + 1 }) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game, mode, screen])
+  // the arena's "what happened" line keeps the last thing worth saying until something new happens
+  const [said, setSaid] = useState<string[]>([])
+  useEffect(() => {
+    if (!game || game !== fresh.current) return
+    const d = (game.events ?? []).map(describe).filter((x): x is string => !!x)
+    if (d.length) setSaid(d.slice(-2))
+    else if (game.stage === 'my_play') setSaid([])
+  }, [game])
   useEffect(() => { if (game?.stage !== 'over') setOverSeen(false) }, [game?.stage])
 
   useEffect(() => {
@@ -303,20 +468,21 @@ export default function App() {
 
   // on screen, informational steps advance by themselves, slowly enough to follow what happens; not recorded for undo
   useEffect(() => {
-    if (mode !== 'play' || screen !== 'play' || !game || !AUTO_STAGES.includes(game.stage)) return
-    const t = setTimeout(() => setGame(settle(next(game))), autoDelay(game.lines.length))
+    if (mode !== 'play' || screen !== 'play' || !game || tip || !AUTO_STAGES.includes(game.stage)) return
+    const t = setTimeout(() => advance(settle(next(game))), autoDelay(game.lines.length))
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, screen, game])
+  }, [mode, screen, game, tip])
 
   const mine = my16.map(byId).sort((a, b) => b.rank - a.rank || a.suit - b.suit)
   const deck = mine.filter(c => deckIds.includes(c.id))
 
   const reset = () => {
-    setScreen('deal'); setMy16([]); setDeckIds([]); setSlotIds([]); setPre(null); setGame(null); setHistory([]); setFuture([]); setSel(null); setMode('guide'); setSecret({})
+    setTip(null); setHintAt(-1)
+    setScreen('title'); setMy16([]); setDeckIds([]); setSlotIds([]); setPre(null); setGame(null); setHistory([]); setFuture([]); setSel(null); setMode('guide'); setSecret({})
   }
   const settle = (g: GuideState) => (mode === 'play' ? autoReveal(g, secret) : g)
-  const commit = (g: GuideState) => { setHistory(h => [...h, game!]); setFuture([]); setGame(settle(g)); setSel(null); setNote(null) }
+  const commit = (g: GuideState) => { setHistory(h => [...h, game!]); setFuture([]); advance(settle(g)); setSel(null); setNote(null) }
   const undo = () => { if (!history.length || !game) return; setFuture(f => [...f, game]); setGame(history[history.length - 1]); setHistory(h => h.slice(0, -1)); setSel(null) }
   const redo = () => { if (!future.length || !game) return; setHistory(h => [...h, game]); setGame(future[future.length - 1]); setFuture(f => f.slice(0, -1)); setSel(null) }
 
@@ -339,39 +505,74 @@ export default function App() {
     const d = deal()
     const enemy = shuffle(d.theirs)
     setSecret(Object.fromEntries(enemy.map((c, i) => [i < 8 ? `ep${i}` : `et${i - 8}`, c])))
-    setMode('play'); setMy16(d.mine.map(c => c.id)); setDeckIds([]); setSlotIds([]); setScreen('draft')
+    // start from the suggested deck so "Start the game" is one tap; the player can still change it
+    const deck = suggestDeck(d.mine)
+    setMode('play'); setMy16(d.mine.map(c => c.id)); setDeckIds(deck.map(c => c.id)); setSlotIds(autoTowers(d.mine.filter(c => !deck.includes(c))).map(c => c.id)); setScreen('draft')
+  }
+  // straight into the next game of the same kind, skipping the title screen
+  const playAgain = () => {
+    const m = mode
+    reset()
+    if (m === 'play') startOnScreen()
+    else { setMode('guide'); setScreen('deal') }
   }
   const reshuffle = () => setPre(makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES))
 
   const header = (
     <div className="topbar">
-      <b>Kingfall — {mode === 'play' ? 'on screen' : 'table guide'}</b>
-      <span className="muted">{mode === 'play' ? 'The app deals, plays the enemy and runs the rules.' : 'You play with real cards; this page runs the rules and tells you what to do.'}</span>
+      <Logo small />
+      <span className="modechip">{mode === 'play' ? 'On screen' : 'Real cards'}</span>
       {game && screen === 'play' && <>
-        <button onClick={undo} disabled={!history.length}>↶ Undo</button>
-        <button onClick={redo} disabled={!future.length}>↷ Redo</button>
+        <button onClick={undo} disabled={!history.length} aria-label="Undo">↶<span className="lbl"> Undo</span></button>
+        <button onClick={redo} disabled={!future.length} aria-label="Redo">↷<span className="lbl"> Redo</span></button>
       </>}
-      <button onClick={() => { if (confirm('Start over? This discards the current game.')) reset() }}>Start over</button>
+      <button className="mute" onClick={toggleMute} aria-label={muted ? 'Sound off' : 'Sound on'} title={muted ? 'Sound off' : 'Sound on'}>{muted ? '🔇' : '🔊'}</button>
+      <button className="red" onClick={() => { if (confirm('Leave this game? It will be discarded.')) reset() }}>Menu</button>
     </div>
   )
 
+  // ---------- title ----------
+  if (screen === 'title') {
+    const fan = ['1-0', '13-1', '12-2'].map(byId)
+    return (
+      <div className="title">
+        <div className="titlefan" aria-hidden>{fan.map(c => <CardView key={c.id} card={c} />)}</div>
+        <Logo />
+        <p className="tagline">A lane battle for one player and a deck of cards</p>
+        <div className="menu">
+          <button className="big xl" onClick={startOnScreen}>Play<small>the app deals and plays the enemy</small></button>
+          <button className="xl" onClick={() => { setMode('guide'); setScreen('deal') }}>Play with real cards<small>you play at the table, the app guides you</small></button>
+          <button className="green" onClick={() => rulesRef.current?.showModal()}>How to play</button>
+        </div>
+        <dialog ref={rulesRef} className="modal" onClick={e => { if (e.target === e.currentTarget) e.currentTarget.close() }}>
+          <button className="close" onClick={() => rulesRef.current?.close()}>✕</button>
+          <h3>How to play</h3>
+          <div className="legend">{RULES_60}</div>
+        </dialog>
+      </div>
+    )
+  }
+
   // ---------- setup screens ----------
   if (screen === 'deal') {
+    const sample = ['13-1', '7-0', '1-2', '10-3', '4-1'].map(byId)
+    const steps: SetupStep[] = [
+      { title: 'Shuffle a deck', pic: <div className="mstack">{backs(6)}</div>,
+        body: <p>Take a standard 52-card deck, <b>no jokers</b>, and <b>shuffle it well</b>.</p> },
+      { title: 'Deal 16 cards each', pic: <div className="mcols"><div><div className="mfan">{sample.map(c => <Mc key={c.id} card={c} />)}<span className="more">+11</span></div><span className="mlbl">You: 16, face-up in your hand</span></div><div><div className="mstack">{backs(6)}</div><span className="mlbl">Enemy: 16, face-down</span></div></div>,
+        body: <p>Deal <b>16 cards to yourself</b> and look at them. Deal <b>16 face-down to the enemy</b> and don't look at them.</p> },
+      { title: 'Lay out two elixir bars', pic: <div className="mbars"><span className="mlbl">Enemy elixir</span><div className="mrow">{backs(10, 5)}</div><span className="mlbl">Your elixir</span><div className="mrow">{backs(10, 5)}</div></div>,
+        body: <p>Deal <b>10 face-down in a row</b> for your elixir bar and <b>10</b> for the enemy's, with a small gap after the 5th card. That uses all 52 cards.</p> },
+      { title: 'Set the markers at 5', pic: <div className="mbars"><span className="mlbl">Enemy elixir: 5</span><div className="mrow">{backs(10, 5, 4)}</div><span className="mlbl">Your elixir: 5</span><div className="mrow">{backs(10, 5, 4)}</div></div>,
+        body: <>
+          <p>In each bar, turn the <b>5th card sideways</b>, still face-down. That's the <b>marker</b>: its position is the elixir, so both start at 5. Spending or gaining just moves the marker left or right.</p>
+          <details className="help"><summary>The rules in 60 seconds</summary>{RULES_60}</details>
+        </> },
+    ]
     return (
       <div className="page">{header}
-        <div className="row">
-          <button className="big" onClick={startOnScreen}>Play here on screen</button>
-          <span className="muted">or play with real cards and let this page guide you ↓</span>
-        </div>
         <h1>1. Deal the cards</h1>
-        <ol className="steps">
-          <li>Take a standard 52-card deck (no jokers) and <b>shuffle it well</b>.</li>
-          <li>Deal <b>16 cards to yourself</b> (keep them in your hand, look at them) and <b>16 face-down to the enemy</b> (don't look).</li>
-          <li>Deal <b>10 face-down in a row</b> for YOUR elixir bar and <b>10 face-down in a row</b> for the ENEMY's elixir bar, with a small gap after the 5th card. (That's all 52 cards.)</li>
-          <li>In each bar, turn the <b>5th card sideways</b> (still face-down). That's the <b>marker</b>: its position from the left is the elixir, so both start at 5. Spending or gaining just moves the marker left or right.</li>
-        </ol>
-        <div className="help"><b>The rules in 60 seconds</b>{RULES_60}</div>
-        <div className="row"><button className="big" onClick={() => setScreen('enter')}>Done — I have my 16 cards</button></div>
+        <Stepper steps={steps} at={setupStep} setAt={setSetupStep} done={<button className="big" onClick={() => setScreen('enter')}>Done — I have my 16 cards</button>} />
       </div>
     )
   }
@@ -384,7 +585,7 @@ export default function App() {
         <p className="help">Tap each card you were dealt. <b>{my16.length}/16</b> selected. Tap again to deselect.</p>
         <CardPicker disabled={new Set()} selected={set} onPick={c => setMy16(a => a.includes(c.id) ? a.filter(x => x !== c.id) : a.length < 16 ? [...a, c.id] : a)} />
         <div className="row">
-          <button className="big" disabled={my16.length !== 16} onClick={() => { pickDeck([]); setScreen('draft') }}>Next: build my deck</button>
+          <button className="big" disabled={my16.length !== 16} onClick={() => { pickDeck(suggestDeck(mine).map(c => c.id)); setScreen('draft') }}>Next: build my deck</button>
           <button onClick={() => setMy16([])}>Clear</button>
         </div>
       </div>
@@ -399,7 +600,9 @@ export default function App() {
     return (
       <div className="page">{header}
         <h1>{mode === 'play' ? 'Your 16 cards: build your deck' : '3. Build your deck'}</h1>
-        <div className="help">
+        <p className="help">Pick <b>8 cards to play with</b>; the other 8 become your <b>towers</b>. A good deck is already picked for you: start now, or tap cards to change it.</p>
+        <details className="help">
+          <summary>How to build a good deck</summary>
           <b>First: what a card is.</b> Cards have <u>no special abilities</u>. A card is just a soldier with one number, its <b>rank</b> (2 … 10, J=11, Q=12, K=13, A=1). Higher rank wins fights. The only extra rules:
           <ul>
             <li><b>Cost:</b> stronger cards cost more elixir to play (the purple number: 2→2, 6→5, 10→8, K→10).</li>
@@ -414,66 +617,84 @@ export default function App() {
             <li>Good recipe (from thousands of simulated games): <b>a mix</b>, for example 2–5 heavy cards (cost 7+) to win fights and break towers plus <b>cheap cards</b> (cost 1–3). All-cheap and all-heavy decks are only a little behind: aces kill picture cards for 1 elixir, and the wheel lets a mid card beat a big one. Watch out: an enemy ace can kill your king. Try "Suggest a deck" for an example, then change it.</li>
             <li>Don't put <i>all</i> your best cards in the deck — the cards you leave out are your tower armor. Also try to have a mix of suits so the wheel helps you.</li>
           </ol>
-        </div>
+        </details>
         <div className="row">
           <button onClick={() => pickDeck(suggestDeck(mine).map(c => c.id))}>Suggest a deck</button>
           <button onClick={() => pickDeck([])}>Clear</button>
         </div>
-        <div className="grid">
-          {mine.map(c => {
-            const inDeck = deckIds.includes(c.id)
-            return <div key={c.id} className={`pick ${inDeck ? 'indeck' : ''}`}><CardView card={c} showCost selected={inDeck} onClick={() => toggleDeck(c)} /><div className="picktag">{inDeck ? 'DECK' : 'TOWER'}</div></div>
-          })}
+        {/* the deck as 8 slots on top, the other cards below: tapping moves a card between them */}
+        <div className="deckbox">
+          <div className="deckhead"><b>Your deck</b> <span className="muted">{deck.length}/8 · tap a card to take it out</span>
+            <div className="avgcost" title="Average elixir cost of your deck"><span className="edrop">{avg}</span><span className="avgbar"><i style={{ width: `${deck.length ? (Number(avg) / 10) * 100 : 0}%` }} /></span><span className="avglbl">{!deck.length ? '' : Number(avg) < 3.5 ? 'fast' : Number(avg) <= 5.5 ? 'balanced' : 'heavy'}</span></div>
+          </div>
+          <div className="deckslots">
+            {Array.from({ length: 8 }, (_, i) => deck[i]
+              ? <motion.div key={deck[i].id} layoutId={`pick-${deck[i].id}`} className="dslot"><CardView card={deck[i]} showCost onClick={() => toggleDeck(deck[i])} /></motion.div>
+              : <div key={`empty${i}`} className="dslot empty" />)}
+          </div>
         </div>
-        <div className="summary">
-          Deck {deck.length}/8 · average cost <b>{avg}</b> · heavy (7+): <b>{heavy}</b> · cheap (1–3): <b>{cheap}</b>
-          {deck.length === 8 && heavy === 0 && <span className="warn"> — all-cheap decks work (aces beat picture cards, and the wheel doubles your cards), but tests won a bit more with 2–5 heavy cards.</span>}
-        </div>
-        {deck.length === 8 && slotIds.length === 8 && (
-          <>
-            <h3>Your towers <small>(tap two cards to swap; "top" is hit first; default gives the king your two strongest)</small></h3>
+        {deck.length === 8 && slotIds.length === 8
+          ? <>
+            <h3 className="towerhead">Your towers <small>the other 8 cards are their armor · tap two to swap them; the top card is hit first</small></h3>
             <div className="towerrow">
-              {[[0, 1, 2], [3, 4, 5], [6, 7]].map((idxs, g) => (
-                <div key={g} className="tgroup"><div className="tname">{['Left tower', 'Right tower', 'King tower'][g]}</div>
-                  <div className="row">{idxs.map(i => <div key={i} className="slotpick"><CardView card={byId(slotIds[i])} selected={swapFrom === i} onClick={() => swapClick(i)} /><div className="picktag">{slotName[i]}</div></div>)}</div>
+              {[[0, 1, 2], [3, 4, 5], [6, 7]].map((idxs, gi) => (
+                <div key={gi} className="tgroup"><div className="tname">{['Left tower', 'Right tower', 'King tower'][gi]}</div>
+                  <div className="row">{idxs.map(i => <motion.div key={slotIds[i]} layoutId={`pick-${slotIds[i]}`} className="slotpick"><CardView card={byId(slotIds[i])} selected={swapFrom === i} onClick={() => swapClick(i)} /><div className="picktag">{slotName[i]}</div></motion.div>)}</div>
                 </div>
               ))}
             </div>
-            {mode === 'play'
-              ? <button className="big" onClick={() => { setGame(settle(startRound(makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES)))); setHistory([]); setScreen('play') }}>Start the game</button>
-              : <button className="big" onClick={() => { reshuffle(); setScreen('table') }}>Next: set up the table</button>}
           </>
-        )}
+          : <>
+            <h3 className="towerhead">Other cards <small>tap one to put it in your deck; the ones left out become your towers</small></h3>
+            <div className="grid">
+              {mine.filter(c => !deckIds.includes(c.id)).map(c => (
+                <motion.div key={c.id} layoutId={`pick-${c.id}`} className="pick"><CardView card={c} showCost onClick={() => toggleDeck(c)} /></motion.div>
+              ))}
+            </div>
+          </>}
+        {/* stays at the bottom of the window while scrolling, so starting never needs a scroll */}
+        <div className="draftbar">
+          <div className="summary">
+            Deck {deck.length}/8 · average cost <b>{avg}</b> · heavy (7+): <b>{heavy}</b> · cheap (1–3): <b>{cheap}</b>
+            {deck.length === 8 && heavy === 0 && <span className="warn"> — all-cheap decks work (aces beat picture cards, and the wheel doubles your cards), but tests won a bit more with 2–5 heavy cards.</span>}
+          </div>
+          {deck.length !== 8 || slotIds.length !== 8
+            ? <button className="big" disabled>Pick {8 - deck.length} more card{8 - deck.length === 1 ? '' : 's'}</button>
+            : mode === 'play'
+              ? <button className="big" onClick={() => { advance(settle(startRound(makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES)))); setHistory([]); setScreen('play') }}>Start the game</button>
+              : <button className="big" onClick={() => { reshuffle(); setScreen('table') }}>Next: set up the table</button>}
+        </div>
       </div>
     )
   }
 
   if (screen === 'table') {
     const g = pre ?? makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES)
+    const stack = (name: string, cards: Card[]) => <div className="mtower"><div className="mrow">{cards.map((c, i) => <Mc key={c.id} card={c} hot={i === 0} />)}</div><span className="mlbl">{name}</span></div>
+    const eStack = (name: string, n: number) => <div className="mtower"><div className="mrow">{backs(n)}</div><span className="mlbl">{name}</span></div>
+    const steps: SetupStep[] = [
+      { title: 'Build your three towers', pic: <div className="mcols">{stack('Left', g.P.towers.L)}{stack('Right', g.P.towers.R)}{stack('King', g.P.towers.K)}</div>,
+        body: <p>Make three stacks <b>face-up</b>, the <b>top card first</b> (gold above): <b>Left</b> {g.P.towers.L.map(label).join(' · ')}, <b>Right</b> {g.P.towers.R.map(label).join(' · ')}, <b>King</b> {g.P.towers.K.map(label).join(' · ')}. Fan each stack so you can see every card.</p> },
+      { title: 'Your hand and your queue', pic: <div className="mbars"><span className="mlbl">Hand, face-up</span><div className="row">{g.P.hand.map(c => <CardView key={c.id} card={c} showCost />)}</div><span className="mlbl">Queue, face-down, top card first</span><div className="mrow">{g.P.queue.map(c => <Mc key={c.id} card={c} />)}</div></div>,
+        body: <>
+          <p>I shuffled your 8 deck cards. Take the <b>4 hand cards</b> into your hand and stack the other <b>4 face-down</b> as your queue, in this order, top card first.</p>
+          <button onClick={reshuffle}>Shuffle again</button>
+        </> },
+      { title: "The enemy's side", pic: <div className="mcols"><div className="mtower"><div className="mstack">{backs(6)}</div><span className="mlbl">Pile: 8</span></div>{eStack('Left', 3)}{eStack('Right', 3)}{eStack('King', 2)}</div>,
+        body: <p>Shuffle the enemy's 16 cards <b>without looking</b>. Put <b>8</b> face-down as its <b>pile</b>. With the other 8, make its towers, all <b>face-down</b>: <b>Left 3</b>, <b>Right 3</b>, <b>King 2</b>.</p> },
+      { title: 'The table', pic: (
+          <div className="mtable">
+            <span className="mt-bar">Enemy elixir bar</span>
+            <span>Your queue</span><span className="mt-k">Your King</span><span className="mt-me">Your Left</span><span className="mt-lane">Left lane: 2 slots</span><span className="mt-them">Enemy Left</span><span className="mt-k them">Enemy King</span><span>Enemy pile</span>
+            <span>Your discard</span><span className="mt-me">Your Right</span><span className="mt-lane">Right lane: 2 slots</span><span className="mt-them">Enemy Right</span><span>Enemy discard</span>
+            <span className="mt-bar">Your elixir bar</span>
+          </div>),
+        body: <p>Your towers on your side, the enemy's on the other, with room between them for <b>two lanes of 2 slots</b>. The screen shows the same table, so you can always check it.</p> },
+    ]
     return (
       <div className="page">{header}
         <h1>4. Set up the table</h1>
-        <div className="cols">
-          <div>
-            <h3>Your side</h3>
-            <ol className="steps">
-              <li>Build your three tower stacks <b>face-up</b>, top card first: <b>Left</b> {g.P.towers.L.map(label).join(' · ')} — <b>Right</b> {g.P.towers.R.map(label).join(' · ')} — <b>King</b> {g.P.towers.K.map(label).join(' · ')}.</li>
-              <li>Take your 8 deck cards in this order (I shuffled for you). <b>Hand</b> (face-up): {g.P.hand.map(label).join(', ')}. <b>Queue</b> pile, face-down, TOP card first: {g.P.queue.map(label).join(', ')}.</li>
-            </ol>
-            <div className="row">{g.P.hand.map(c => <CardView key={c.id} card={c} showCost />)}</div>
-            <div className="row"><span className="muted">queue (top → bottom):</span>{g.P.queue.map(c => <CardView key={c.id} card={c} small />)}</div>
-            <button onClick={reshuffle}>Shuffle again</button>
-          </div>
-          <div>
-            <h3>The enemy's side (don't look at its cards)</h3>
-            <ol className="steps">
-              <li>Take the enemy's 16 face-down cards, <b>shuffle</b> them without looking. Put <b>8</b> as its <b>pile</b> (face-down, one stack).</li>
-              <li>With the other 8, make its towers, all <b>face-down</b>: <b>Left 3</b>, <b>Right 3</b>, <b>King 2</b>.</li>
-              <li>Lanes: leave room for two lanes (left and right) between the towers, each with 2 slots.</li>
-            </ol>
-          </div>
-        </div>
-        <div className="row"><button className="big" onClick={() => { setGame(startRound(g)); setHistory([]); setPre(null); setScreen('play') }}>Start the game</button></div>
+        <Stepper steps={steps} at={setupStep} setAt={setSetupStep} done={<button className="big" onClick={() => { advance(startRound(g)); setHistory([]); setPre(null); setScreen('play') }}>Start the game</button>} />
       </div>
     )
   }
@@ -488,7 +709,10 @@ export default function App() {
   const previewCard = standing ? undefined : g.P.hand[drag ?? sel ?? hov ?? -1]
   const spend = previewCard ? cost(previewCard.rank) : 0
   const side = stage === 'my_play' || standing ? 'me' : stage.startsWith('enemy_') || stage === 'last_stand_enter' ? 'enemy' : null
-  const inform = ['round_start', 'enemy_play', 'enemy_stop', 'move', 'fight', 'tower_result'].includes(stage)
+  const inform = mode === 'guide' && ['round_start', 'enemy_play', 'enemy_stop', 'move', 'fight', 'tower_result'].includes(stage)
+  const showStep = standing || (mode === 'guide' && stage !== 'my_play' && stage !== 'over')
+  // at the table, a play also means moving real cards: keep those instructions in view until the player says OK
+  const doNow = mode === 'guide' && stage === 'my_play' && g.lastAction.length > 0 && doSeen !== g.log.length
   const bottomKnown = g.E.queue.filter(x => x.card).length
   const mineSlots = (k: 'L' | 'R' | 'K'): ESlot[] => g.P.towers[k].map(c => ({ tid: c.id, card: c }))
   // pointer-based drag: one code path for mouse, touch and pen (HTML5 drag-and-drop never fires on touch screens)
@@ -497,7 +721,7 @@ export default function App() {
     const el = e.currentTarget, x0 = e.clientX, y0 = e.clientY
     let ghost: ReturnType<typeof makeGhost> = null, lane: 0 | 1 | null = null
     const laneAt = (x: number, y: number) => {
-      const t = (document.elementFromPoint(x, y) as HTMLElement | null)?.closest('.lanecell.droppable') as HTMLElement | null
+      const t = (document.elementFromPoint(x, y) as HTMLElement | null)?.closest('.droppable[data-lane]') as HTMLElement | null
       return t?.dataset.lane === undefined ? null : (Number(t.dataset.lane) as 0 | 1)
     }
     const move = (ev: PointerEvent) => {
@@ -523,67 +747,38 @@ export default function App() {
     window.addEventListener('pointermove', move, { passive: false }); window.addEventListener('pointerup', end); window.addEventListener('pointercancel', end)
   }
 
-  return (
-    <div className={`play${stage_.rot ? ' rot' : ''}${stage_.H < 560 ? ' compact' : ''}${side ? ' turn-' + side : ''}`} style={{ '--vw': `${stage_.W / 100}px`, '--vh': `${stage_.H / 100}px`, ...(stage_.rot ? { left: stage_.sw, width: stage_.W, height: stage_.H } : {}) } as CSSProperties}>
-      <div className="top">{header}
-        {stage === 'my_play' && (
-          <div className="actions">
-            {note && <span className="warn">{note}</span>}
-            {sel !== null && <>Play {label(g.P.hand[sel])} → <button className="big" onClick={() => commit(playCard(g, sel, 0))}>LEFT</button><button className="big" onClick={() => commit(playCard(g, sel, 1))}>RIGHT</button></>}
-            {advice?.kind === 'play' && <button className="suggest" title={advice.reason} onClick={() => commit(playCard(g, advice.handIndex, advice.lane))}>Suggest: {label(g.P.hand[advice.handIndex])} → {advice.lane === 0 ? 'LEFT' : 'RIGHT'}</button>}
-            <button className="big done" onClick={() => commit(endMyTurn(g))}>End turn →</button>
-          </div>
-        )}
-        {stage !== 'my_play' && <span className="spacer" />}
-        <button onClick={() => helpRef.current?.showModal()}>Help</button>
-        <button onClick={() => logDlgRef.current?.showModal()}>What happened</button>
-        <button onClick={() => rulesRef.current?.showModal()}>Rules</button>
-      </div>
-      <div className="board">
-        {/* columns: 1 queue/discard · 2 king · 3 tower · 4-7 lane · 8 tower · 9 king · 10 pile/discard; rows: enemy elixir · left lane · right lane · your elixir */}
-        <BarCells n={g.E.elixir} who="ENEMY" row={1} at={at} />
-        <div className={`cell epilecell ${qpile ? 'open' : ''}`} style={at(1, 2)} onMouseEnter={() => setQpile(true)} onMouseLeave={() => setQpile(false)}><span className="clabel">your queue (next on top)</span><Pile items={g.P.queue.map(c => ({ tid: c.id, card: c }))} spread={qpile} /></div>
-        <div className="cell kingcell" style={at(2, '2 / 4')}>
-          <span className="clabel">YOUR KING tower · {g.P.towers.K.length}</span>
-          <HStack items={mineSlots('K')} own mirror={false} cracked={g.cracked ?? []} />
+  const tapHand = (i: number) => {
+    const c = g.P.hand[i]
+    if (justDragged.current) return
+    if (standing) return commit(lastStandPlay(g, i))
+    if (canPlay(g, i)) { setNote(null); setSel(sel === i ? null : i); return }
+    setSel(null); setNote(`${label(c)} costs ${cost(c.rank)} elixir but you only have ${g.P.elixir}. Pick a card whose purple number is ${g.P.elixir} or less.`)
+  }
+  const handCards = g.P.hand.map((c, i) => (
+    <div key={c.id} data-i={i} className={`hdrag ${drag === i ? 'lifted' : ''} ${!standing && !canPlay(g, i) ? 'off' : ''}`} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} onPointerDown={e => startDrag(e, i)}>
+      <TCard tid={c.id} card={c} down={false} showCost selected={sel === i} dim={!standing && !canPlay(g, i)} onClick={() => tapHand(i)} />
+    </div>
+  ))
+  const overlays = (
+    <>
+      <FxLayer pops={pops} />
+      {/* what to do right now sits on the table, never only behind Help: the next step of the real-cards guide, a last stand, the end of the game */}
+      {(showStep || (stage === 'over' && overSeen)) && (
+        <div className={`stepbar ${stage === 'over' ? 'over' : ''}`}>
+          <div className="dntitle">{TITLES[stage]}</div>
+          {stage !== 'over' && <ul className="todo">{g.lines.map((l, i) => <li key={i}>{l}</li>)}</ul>}
+          {picker && <><CardPicker disabled={excludedIds(g)} onPick={c => commit(hitEnemy ? enterTowerCard(g, c) : enterEnemyCard(g, c))} /><div className="muted">Cards already known are greyed out.</div></>}
+          {standing && <div className="row">{g.P.hand.map((c, i) => <button key={c.id} className="big" onClick={() => commit(lastStandPlay(g, i))}>{label(c)} → {g.lastStand?.lane === 0 ? 'LEFT' : 'RIGHT'}</button>)}</div>}
+          {inform && <div className="row"><button className="big" onClick={() => commit(next(g))}>Done — next →</button></div>}
+          {stage === 'over' && <div className="row"><button className="big" onClick={playAgain}>Play again</button><button onClick={() => setOverSeen(false)}>Result</button></div>}
         </div>
-        {(['L', 'R'] as const).map((k, r) => (
-          <div key={'pt' + k} className="cell" style={at(3, r + 2)}>
-            <span className="clabel">YOUR {k === 'L' ? 'LEFT' : 'RIGHT'} tower · {g.P.towers[k].length}</span>
-            <HStack items={mineSlots(k)} own mirror={false} cracked={g.cracked ?? []} />
-          </div>
-        ))}
-
-        <LaneCells idx={0} units={g.units} laneLen={g.rules.laneLen} row={2} at={at} dragging={drag !== null && (!standing || g.lastStand?.lane === 0)} hint={standing ? g.lastStand?.lane === 0 : sel !== null} over={overLane === 0} onPlace={() => sel !== null && commit(playCard(g, sel, 0))} />
-        <LaneCells idx={1} units={g.units} laneLen={g.rules.laneLen} row={3} at={at} dragging={drag !== null && (!standing || g.lastStand?.lane === 1)} hint={standing ? g.lastStand?.lane === 1 : sel !== null} over={overLane === 1} onPlace={() => sel !== null && commit(playCard(g, sel, 1))} />
-        <div className="cell" style={at(1, 3)}><span className="clabel">your discard · {g.discard.filter(d => d.owner === 'P').length}</span><Discard items={g.discard.filter(d => d.owner === 'P')} /></div>
-        <div className="cell" style={at(10, 3)}><span className="clabel">enemy discard · {g.discard.filter(d => d.owner === 'E').length}</span><Discard items={g.discard.filter(d => d.owner === 'E')} /></div>
-
-        {(['L', 'R'] as const).map((k, r) => (
-          <div key={'et' + k} className="cell" style={at(8, r + 2)}>
-            <span className="clabel">ENEMY {k === 'L' ? 'LEFT' : 'RIGHT'} tower · {g.E.towers[k].length}</span>
-            <HStack items={g.E.towers[k]} own={false} mirror cracked={g.cracked ?? []} />
-          </div>
-        ))}
-        <div className="cell kingcell" style={at(9, '2 / 4')}>
-          <span className="clabel">ENEMY KING tower · {g.E.towers.K.length}</span>
-          <HStack items={g.E.towers.K} own={false} mirror cracked={g.cracked ?? []} />
+      )}
+      {doNow && (
+        <div className="stepbar donow-top">
+          <ul className="todo">{g.lastAction.map((l, i) => <li key={i}>{l}</li>)}</ul>
+          <button className="green" onClick={() => setDoSeen(g.log.length)}>OK</button>
         </div>
-        <div className={`cell epilecell ${epile ? 'open' : ''}`} style={at(10, 2)} onMouseEnter={() => setEpile(true)} onMouseLeave={() => setEpile(false)}><span className="clabel">enemy pile ({g.E.queue.length}; {bottomKnown} known)</span><Pile items={g.E.queue} spread={epile} /></div>
-        <BarCells n={g.P.elixir} who="YOU" row={4} at={at} spend={spend} />
-      </div>
-
-      <div className="hand">
-        <span className="clabel">your hand</span>
-        {g.P.hand.map((c, i) => (
-<div key={c.id} data-i={i} className={`hdrag ${drag === i ? 'lifted' : ''} ${!standing && !canPlay(g, i) ? 'off' : ''}`} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} onPointerDown={e => startDrag(e, i)}>
-  <TCard tid={c.id} card={c} down={false} showCost selected={sel === i} dim={!standing && !canPlay(g, i)} onClick={() => justDragged.current ? undefined : standing ? commit(lastStandPlay(g, i)) : canPlay(g, i) ? (setNote(null), setSel(sel === i ? null : i)) : (setSel(null), setNote(`${label(c)} costs ${cost(c.rank)} elixir but you only have ${g.P.elixir}. Pick a card whose purple number is ${g.P.elixir} or less.`))} />
-          </div>
-        ))}
-        {!g.P.hand.length && <span className="muted">no cards in hand</span>}
-        <div className="wheel aces" title="Aces beat picture cards: in a fight, an ace beats a J, Q or K, whatever the suits (it works for the enemy too)"><b>ACES</b><span className="ud"><i className="chip">A</i><em>➜</em>J Q K</span></div>
-        <div className="wheel" title="Suit wheel: each suit beats the next one (a card of the winning suit counts double in a fight); clubs beat spades again"><b>BEATS ×2</b>{['♠', '♥', '♦', '♣'].map((x, k) => <Fragment key={x}><i className={`chip ${k === 1 || k === 2 ? 'r' : ''}`}>{x}</i><em>{k < 3 ? '➜' : '↺'}</em></Fragment>)}</div>
-      </div>
+      )}
 
       <dialog ref={helpRef} className="modal" onClick={e => { if (e.target === e.currentTarget) e.currentTarget.close() }}>
         <button className="close" onClick={() => helpRef.current?.close()}>✕</button>
@@ -591,13 +786,13 @@ export default function App() {
         <div className="row"><b>Help:</b>
           <label><input type="checkbox" checked={explainOn} onChange={e => setExplainOn(e.target.checked)} /> explain options</label>
           <label><input type="checkbox" checked={suggestOn} onChange={e => setSuggestOn(e.target.checked)} /> suggest moves</label>
+          {mode === 'play' && <button onClick={() => { setTipsSeen([]); writeJSON(TIPS_KEY, []); helpRef.current?.close() }}>Show the tips again</button>}
         </div>
         <div className="donow">
           <div className="dntitle">{TITLES[stage]}</div>
           {stage !== 'my_play' && <ul className="todo">{g.lines.map((l, i) => <li key={i}>{l}</li>)}</ul>}
           {stage === 'my_play' && (
             <>
-              {g.lastAction.length > 0 && <div className="lastaction"><b>Do now:</b><ul className="todo">{g.lastAction.map((l, i) => <li key={i}>{l}</li>)}</ul></div>}
               <p>Choose a card from your hand (or none), then where it goes. Faded cards cost more elixir than you have.</p>
               {explainOn && <div className="explain"><b>Your options</b><ul>{options(g).map((o, i) => <li key={i}>{o}</li>)}</ul></div>}
               {advice && (
@@ -605,20 +800,6 @@ export default function App() {
                   <div className="muted">It looks one round ahead using only what you can see on the table; it can't know the enemy's face-down cards. The plan can change as you draw new cards.</div>
                 </div>
               )}
-            </>
-          )}
-          {standing && <div className="row">{g.P.hand.map((c, i) => <button key={c.id} className="big" onClick={() => commit(lastStandPlay(g, i))}>{label(c)} → {g.lastStand?.lane === 0 ? 'LEFT' : 'RIGHT'}</button>)}</div>}
-          {picker && (
-            <>
-              <p className="muted">Cards already known are greyed out.</p>
-              <CardPicker disabled={excludedIds(g)} onPick={c => commit(hitEnemy ? enterTowerCard(g, c) : enterEnemyCard(g, c))} />
-            </>
-          )}
-          {inform && mode !== 'play' && <div className="row"><button className="big" onClick={() => commit(next(g))}>Done — next →</button></div>}
-          {stage === 'over' && (
-            <>
-              <ul className="todo">{summary(g).map((l, i) => <li key={i}>{l}</li>)}</ul>
-              <div className="row"><button className="big" onClick={reset}>New game</button></div>
             </>
           )}
           {help !== 'off' && g.why.length > 0 && <div className="why"><b>Why:</b> {g.why.join(' ')}</div>}
@@ -633,7 +814,7 @@ export default function App() {
             <p>{g.lines[0]}</p>
             <ul className="todo">{summary(g).map((l, i) => <li key={i}>{l}</li>)}</ul>
             <div className="row">
-              <button className="big" onClick={reset}>New game</button>
+              <button className="big" onClick={playAgain}>Play again</button>
               <button onClick={() => setOverSeen(true)}>View board</button>
             </div>
           </div>
@@ -651,6 +832,144 @@ export default function App() {
         <h3>Rules</h3>
         <div className="legend">{RULES_60}</div>
       </dialog>
+    </>
+  )
+
+  // on screen: the arena; card size follows the window so the whole field, the bar and the hand always fit
+  const arena = () => {
+    const aw = Math.min(stage_.sw, 640)
+    const ch = Math.max(52, Math.min((stage_.sh - 196) / 6.4, (aw - 72) / 4.75 / 0.714, 128))
+    const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px` } as CSSProperties
+    const prompt = stage === 'my_play' ? 'Your turn: drag a card onto a lane, then End turn.' : standing ? TITLES[stage] : stage === 'round_start' ? `Round ${g.round}: you get ${g.rules.regen} more elixir.` : 'Enemy turn…'
+    const lines = note ? [note] : said.length ? said : [prompt]
+    const lane = (l: 0 | 1) => ({
+      dragging: drag !== null && (!standing || g.lastStand?.lane === l), hint: standing ? g.lastStand?.lane === l : sel !== null,
+      over: overLane === l, onPlace: () => { if (standing) return; if (sel !== null) commit(playCard(g, sel, l)) },
+    })
+    const eNext = g.E.queue[0]
+    return (
+      <div ref={playRef} className={`arena${side ? ' turn-' + side : ''}`} style={vars}>
+        <div className="top">{header}
+          <span className="spacer" />
+          <button onClick={() => helpRef.current?.showModal()}>Help</button>
+          <button onClick={() => logDlgRef.current?.showModal()}>Log</button>
+          <button onClick={() => rulesRef.current?.showModal()}>Rules</button>
+        </div>
+        <div className={`field ${shake}`}>
+          <div className="castles theirs">
+            {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} />)}
+          </div>
+          <div className="lanes">
+            <ArenaLane idx={0} units={g.units} laneLen={g.rules.laneLen} {...lane(0)} />
+            <div className="mid">
+              <div className="sidechip enemy" title="Enemy elixir and the next card of its pile (face-down until you have seen it)">
+                <span className="edrop">{g.E.elixir}</span>
+                {eNext && <div className="nextcard"><TCard key={eNext.tid} tid={eNext.tid} card={eNext.card} down={!eNext.card} /></div>}
+              </div>
+              <div className="round">Round {g.round}</div>
+              <div className="rule" title="Aces beat picture cards in a fight, whatever the suits"><b>A</b> beats <b>J Q K</b></div>
+              <div className="rule wheelmini" title="Each suit beats the next one; the winning suit counts double">{['♠', '♥', '♦', '♣', '♠'].map((x, k) => <Fragment key={k}>{k > 0 && <em>›</em>}<i className={x === '♥' || x === '♦' ? 'r' : ''}>{x}</i></Fragment>)}<span>×2</span></div>
+            </div>
+            <ArenaLane idx={1} units={g.units} laneLen={g.rules.laneLen} {...lane(1)} />
+          </div>
+          <div className="castles mine">
+            {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={mineSlots(k)} own cracked={g.cracked ?? []} />)}
+          </div>
+        </div>
+        <div className="tray">
+          <div className={`feed ${note ? 'warn' : ''}`} aria-live="polite">
+            {lines.map((l, i) => <div key={i}>{l}</div>)}
+          </div>
+          <div className="elixrow">
+            <ElixirBar n={g.P.elixir} spend={spend} />
+            {/* both buttons stay in place (disabled off-turn) so the bar doesn't jump in width every turn */}
+            {suggestOn && (advice?.kind === 'play' && (played === 0 || hintAt === g.log.length)
+              ? <button className="green hint" title={advice.reason} onClick={() => commit(playCard(g, advice.handIndex, advice.lane))}>{label(g.P.hand[advice.handIndex])} → {advice.lane === 0 ? 'L' : 'R'}</button>
+              : played === 0
+                ? <button className="green hint" disabled title={advice?.reason ?? 'Suggestions appear on your turn'}>{advice ? 'No play' : 'Suggest'}</button>
+                : <button className="hint" disabled={advice?.kind !== 'play'} title={advice?.reason ?? 'Show a suggested move on your turn'} onClick={() => setHintAt(g.log.length)}>💡 Hint</button>)}
+            <button className="big done" disabled={stage !== 'my_play'} onClick={() => commit(endMyTurn(g))}>End turn</button>
+          </div>
+          <div className="handrow">
+            <div className="nextcard mine" title="Your next card: it comes into your hand when you play one"><span>Next</span>{g.P.queue[0] && <TCard key={g.P.queue[0].id} tid={g.P.queue[0].id} card={g.P.queue[0]} down={false} showCost />}</div>
+            {handCards}
+          </div>
+        </div>
+        {tip && (
+          <div className="coach" role="dialog" aria-label="Tip">
+            <p>{TIPS[tip]}</p>
+            <div className="row">
+              <button className="big" onClick={() => seeTip([tip])}>Got it</button>
+              <button className="linkish" onClick={() => seeTip(Object.keys(TIPS) as TipId[])}>Skip all tips</button>
+            </div>
+          </div>
+        )}
+        {overlays}
+      </div>
+    )
+  }
+
+  if (mode === 'play') return arena()
+
+  return (
+    <div ref={playRef} className={`play${stage_.rot ? ' rot' : ''}${stage_.H < 560 ? ' compact' : ''}${side ? ' turn-' + side : ''}`} style={{ '--vw': `${stage_.W / 100}px`, '--vh': `${stage_.H / 100}px`, ...(stage_.rot ? { left: stage_.sw, width: stage_.W, height: stage_.H } : {}) } as CSSProperties}>
+      <div className="top">{header}
+        {stage === 'my_play' && (
+          <div className="actions">
+            {note && <span className="warn">{note}</span>}
+            {sel !== null && <>Play {label(g.P.hand[sel])} → <button className="big" onClick={() => commit(playCard(g, sel, 0))}>LEFT</button><button className="big" onClick={() => commit(playCard(g, sel, 1))}>RIGHT</button></>}
+            {advice?.kind === 'play' && <button className="suggest" title={advice.reason} onClick={() => commit(playCard(g, advice.handIndex, advice.lane))}>Suggest: {label(g.P.hand[advice.handIndex])} → {advice.lane === 0 ? 'LEFT' : 'RIGHT'}</button>}
+            <button className="big done" onClick={() => commit(endMyTurn(g))}>End turn →</button>
+          </div>
+        )}
+        {stage !== 'my_play' && <span className="spacer" />}
+        <button onClick={() => helpRef.current?.showModal()}>Help</button>
+        <button onClick={() => logDlgRef.current?.showModal()}>What happened</button>
+        <button onClick={() => rulesRef.current?.showModal()}>Rules</button>
+      </div>
+      <div className={`board ${shake}`}>
+        {/* columns: 1 queue/discard · 2 king · 3 tower · 4-7 lane · 8 tower · 9 king · 10 pile/discard; rows: enemy elixir · left lane · right lane · your elixir */}
+        <BarCells n={g.E.elixir} who="ENEMY" row={1} at={at} />
+        <div className={`cell epilecell ${qpile ? 'open' : ''}`} style={at(1, 2)} onMouseEnter={() => setQpile(true)} onMouseLeave={() => setQpile(false)}><span className="clabel">your queue (next on top)</span><Pile items={g.P.queue.map(c => ({ tid: c.id, card: c }))} spread={qpile} /></div>
+        <div className="cell kingcell" style={at(2, '2 / 4')} data-anchor="tower-P-K">
+          <span className="clabel">YOUR KING tower · {g.P.towers.K.length}</span>
+          <HStack items={mineSlots('K')} own mirror={false} cracked={g.cracked ?? []} />
+        </div>
+        {(['L', 'R'] as const).map((k, r) => (
+          <div key={'pt' + k} className="cell" style={at(3, r + 2)} data-anchor={`tower-P-${k}`}>
+            <span className="clabel">YOUR {k === 'L' ? 'LEFT' : 'RIGHT'} tower · {g.P.towers[k].length}</span>
+            <HStack items={mineSlots(k)} own mirror={false} cracked={g.cracked ?? []} />
+          </div>
+        ))}
+
+        <LaneCells idx={0} units={g.units} laneLen={g.rules.laneLen} row={2} at={at} dragging={drag !== null && (!standing || g.lastStand?.lane === 0)} hint={standing ? g.lastStand?.lane === 0 : sel !== null} over={overLane === 0} onPlace={() => sel !== null && commit(playCard(g, sel, 0))} />
+        <LaneCells idx={1} units={g.units} laneLen={g.rules.laneLen} row={3} at={at} dragging={drag !== null && (!standing || g.lastStand?.lane === 1)} hint={standing ? g.lastStand?.lane === 1 : sel !== null} over={overLane === 1} onPlace={() => sel !== null && commit(playCard(g, sel, 1))} />
+        <div className="cell" style={at(1, 3)}><span className="clabel">your discard · {g.discard.filter(d => d.owner === 'P').length}</span><Discard items={g.discard.filter(d => d.owner === 'P')} /></div>
+        <div className="cell" style={at(10, 3)}><span className="clabel">enemy discard · {g.discard.filter(d => d.owner === 'E').length}</span><Discard items={g.discard.filter(d => d.owner === 'E')} /></div>
+
+        {(['L', 'R'] as const).map((k, r) => (
+          <div key={'et' + k} className="cell" style={at(8, r + 2)} data-anchor={`tower-E-${k}`}>
+            <span className="clabel">ENEMY {k === 'L' ? 'LEFT' : 'RIGHT'} tower · {g.E.towers[k].length}</span>
+            <HStack items={g.E.towers[k]} own={false} mirror cracked={g.cracked ?? []} />
+          </div>
+        ))}
+        <div className="cell kingcell" style={at(9, '2 / 4')} data-anchor="tower-E-K">
+          <span className="clabel">ENEMY KING tower · {g.E.towers.K.length}</span>
+          <HStack items={g.E.towers.K} own={false} mirror cracked={g.cracked ?? []} />
+        </div>
+        <div className={`cell epilecell ${epile ? 'open' : ''}`} style={at(10, 2)} onMouseEnter={() => setEpile(true)} onMouseLeave={() => setEpile(false)}><span className="clabel">enemy pile ({g.E.queue.length}; {bottomKnown} known)</span><Pile items={g.E.queue} spread={epile} /></div>
+        <BarCells n={g.P.elixir} who="YOU" row={4} at={at} spend={spend} />
+      </div>
+
+      <div className="hand">
+        <span className="clabel">your hand</span>
+        {handCards}
+        {!g.P.hand.length && <span className="muted">no cards in hand</span>}
+        <div className="wheel aces" title="Aces beat picture cards: in a fight, an ace beats a J, Q or K, whatever the suits (it works for the enemy too)"><b>ACES</b><span className="ud"><i className="chip">A</i><em>➜</em>J Q K</span></div>
+        <div className="wheel" title="Suit wheel: each suit beats the next one (a card of the winning suit counts double in a fight); clubs beat spades again"><b>BEATS ×2</b>{['♠', '♥', '♦', '♣'].map((x, k) => <Fragment key={x}><i className={`chip ${k === 1 || k === 2 ? 'r' : ''}`}>{x}</i><em>{k < 3 ? '➜' : '↺'}</em></Fragment>)}</div>
+      </div>
+
+      {overlays}
     </div>
   )
 }

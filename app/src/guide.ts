@@ -1,6 +1,6 @@
 // Guide engine: you play with real cards; this runs the rules and tells you what to do physically.
 // The enemy's face-down cards are unknown (null) until you flip them and tell the app.
-import { DEFAULT_RULES, compare, cost, defendLane, effective, label, playerLaneInfo, shuffle, aceWins } from './engine.ts'
+import { DEFAULT_RULES, RANKS, SUITS, compare, cost, defendLane, effective, label, playerLaneInfo, shuffle, aceWins } from './engine.ts'
 import type { Card, Rules, StackKey, Towers, Unit } from './engine.ts'
 
 export type Stage =
@@ -11,6 +11,17 @@ export type Stage =
 export interface ESlot { tid: string; card: Card | null }
 export interface ETowers { L: ESlot[]; R: ESlot[]; K: ESlot[] }
 export interface Discarded { tid: string; card: Card; owner: 'P' | 'E' }
+/** What a step did, as data, so the screen can animate it (the sentences in lines/log stay the instructions). */
+export type GameEvent =
+  | { type: 'round'; round: number; gain: { P: number; E: number } }
+  | { type: 'play'; side: 'P' | 'E'; tid: string; card: Card; lane: 0 | 1; cost: number; free?: boolean }
+  | { type: 'blocked'; tid: string; card: Card; cost: number } // the enemy's top card is too expensive this round
+  | { type: 'move'; held: (0 | 1)[] } // lanes where the front cards stand face to face and don't move
+  | { type: 'fight'; lane: 0 | 1; mine: { tid: string; card: Card; value: number }; theirs: { tid: string; card: Card; value: number }
+      double: 'P' | 'E' | null; ace: 'P' | 'E' | null; winner: 'P' | 'E' | 'tie' }
+  | { type: 'tower'; side: 'P' | 'E'; tid: string; card: Card; stack: StackKey; top: { tid: string; card: Card }; result: 'break' | 'crack'; wasCracked: boolean; destroyed: boolean }
+  | { type: 'over'; winner: 'P' | 'E' | 'draw' }
+
 export interface Stats { overkills: string[]; leakRounds: number; placed: number; mineBroken: number; theirsBroken: number; rounds: number }
 
 export interface GuideState {
@@ -33,11 +44,15 @@ export interface GuideState {
   cracked?: string[] // tower cards turned sideways by a failed hit (tids); any later hit breaks them
   lastStand?: { side: 'P' | 'E'; lane: 0 | 1 } | null // a princess tower just fell: its owner places one card there for free
   stats: Stats
+  events?: GameEvent[] // what the latest step did
 }
 
 const laneName = (l: number) => (l === 0 ? 'LEFT' : 'RIGHT')
 const stackName = (k: StackKey) => (k === 'K' ? 'KING tower' : k === 'L' ? 'LEFT tower' : 'RIGHT tower')
 const clone = (g: GuideState): GuideState => structuredClone(g)
+/** Every exported transition starts a new step: a fresh copy with no events yet. */
+const step = (g0: GuideState): GuideState => ({ ...clone(g0), events: [] })
+const emit = (g: GuideState, e: GameEvent) => { (g.events ??= []).push(e) }
 const bonusNote = (a: Card, b: Card, r: Rules) =>
   aceWins(a, b, r) ? ' (ace: beats pictures)' : effective(a, b, r.wheel) > a.rank ? ` (winning suit: counts double, ${effective(a, b, r.wheel)})` : ''
 
@@ -89,7 +104,10 @@ function spendLine(its: string, k: number, after: number) {
 
 // ---------- round flow ----------
 export function startRound(g0: GuideState): GuideState {
-  const g = clone(g0)
+  return newRound(step(g0))
+}
+
+function newRound(g: GuideState): GuideState {
   g.round += 1
   const p0 = g.P.elixir, e0 = g.E.elixir
   g.P.elixir = Math.min(g.rules.cap, g.P.elixir + g.rules.regen)
@@ -102,11 +120,12 @@ export function startRound(g0: GuideState): GuideState {
   ]
   g.why = ['Elixir is the position of the sideways card in a bar, counted from the left (no card sideways = 0). It refills a little every round, never past 10, and is what limits how much you can play.']
   g.log.push(`— Round ${g.round} —`)
+  emit(g, { type: 'round', round: g.round, gain: { P: g.P.elixir - p0, E: g.E.elixir - e0 } })
   return g
 }
 
 export function next(g0: GuideState): GuideState {
-  const g = clone(g0)
+  const g = step(g0)
   switch (g.stage) {
     case 'round_start': g.stage = 'my_play'; g.lines = []; g.why = []; return g
     case 'enemy_play': return enemyStep(g)
@@ -136,7 +155,7 @@ function refill(g: GuideState): string[] {
 
 export function playCard(g0: GuideState, i: number, lane: 0 | 1): GuideState {
   if (!canPlay(g0, i)) return g0
-  const g = clone(g0)
+  const g = step(g0)
   const c = g.P.hand.splice(i, 1)[0]
   const k = cost(c.rank)
   g.P.elixir -= k
@@ -149,11 +168,12 @@ export function playCard(g0: GuideState, i: number, lane: 0 | 1): GuideState {
     ...drawn,
   ]
   g.log.push(`You play ${label(c)} (cost ${k}) in the ${laneName(lane).toLowerCase()} lane.`)
+  emit(g, { type: 'play', side: 'P', tid: c.id, card: c, lane, cost: k })
   return g
 }
 
 export function endMyTurn(g0: GuideState): GuideState {
-  const g = clone(g0)
+  const g = step(g0)
   if (g.P.elixir >= g.rules.cap) g.stats.leakRounds++
   g.lastAction = []
   return enemyStep(g)
@@ -178,7 +198,7 @@ function enemyStep(g: GuideState): GuideState {
 }
 
 export function enterEnemyCard(g0: GuideState, card: Card): GuideState {
-  const g = clone(g0)
+  const g = step(g0)
   g.E.queue[0].card = card
   g.enemySeen.push(card)
   return g.stage === 'last_stand_enter' ? enemyLastStand(g) : enemyDecide(g)
@@ -195,6 +215,7 @@ function enemyDecide(g: GuideState): GuideState {
       'Leave that card FACE-UP on top of the enemy pile. The enemy turn is over.',
     ]
     g.why = ['The enemy plays its top card whenever it can afford it. It never skips a card, so a big card blocks its pile until it has the elixir.']
+    emit(g, { type: 'blocked', tid: slot.tid, card: c, cost: k })
     return g
   }
   g.E.queue.shift()
@@ -210,6 +231,7 @@ function enemyDecide(g: GuideState): GuideState {
   ]
   g.why = [`The enemy defends: it sends its card into the lane where you have MORE units (on a tie, the lane with your highest-ranked card; still tied, left). You have ${mine[0]} on the left and ${mine[1]} on the right.`]
   g.log.push(`Enemy plays ${label(c)} (cost ${k}) in the ${laneName(lane).toLowerCase()} lane.`)
+  emit(g, { type: 'play', side: 'E', tid: slot.tid, card: c, lane, cost: k })
   return g
 }
 
@@ -244,6 +266,7 @@ function goMove(g: GuideState): GuideState {
     'A card that moves past the last slot is now "at the tower" (the board shows it above / below the lane).',
   ]
   g.why = ['Every unit advances one slot each round, except cards that are already facing an enemy: those fight where they stand, and the winner then steps into the loser\'s slot. Cards never pass through each other.']
+  emit(g, { type: 'move', held: [...new Set(holdSlots.map(h => h.lane as 0 | 1))] })
   return g
 }
 
@@ -285,6 +308,14 @@ function resolveNext(g: GuideState): GuideState {
     if (!clash(p, e)) continue
     const r = compare(p.card, e.card, g.rules)
     const ace = aceWins(p.card, e.card, g.rules) || aceWins(e.card, p.card, g.rules)
+    const pv = effective(p.card, e.card, g.rules.wheel), ev = effective(e.card, p.card, g.rules.wheel)
+    emit(g, {
+      type: 'fight', lane,
+      mine: { tid: p.tid!, card: p.card, value: pv }, theirs: { tid: e.tid!, card: e.card, value: ev },
+      double: pv > p.card.rank ? 'P' : ev > e.card.rank ? 'E' : null,
+      ace: aceWins(p.card, e.card, g.rules) ? 'P' : aceWins(e.card, p.card, g.rules) ? 'E' : null,
+      winner: r > 0 ? 'P' : r < 0 ? 'E' : 'tie',
+    })
     const head = `${laneName(lane)} lane: your ${label(p.card)}${bonusNote(p.card, e.card, g.rules)} vs enemy ${label(e.card)}${bonusNote(e.card, p.card, g.rules)}.`
     let res: string[]
     if (r === 0) {
@@ -351,7 +382,7 @@ function processHit(g: GuideState): GuideState {
 }
 
 export function enterTowerCard(g0: GuideState, card: Card): GuideState {
-  const g = clone(g0)
+  const g = step(g0)
   const u = g.units.find(x => x.uid === g.hitQueue[0])!
   const k = hitTarget(g, u)
   g.E.towers[k][0].card = card
@@ -368,6 +399,8 @@ function resolveHit(g: GuideState, u: Unit, k: StackKey): GuideState {
   const cracked = g.cracked ?? []
   const wasCracked = cracked.includes(topId)
   const broken = wasCracked || u.card.rank >= top.rank
+  const stackLeft = (mineHit ? g.E.towers[k] : g.P.towers[k]).length - (broken ? 1 : 0)
+  emit(g, { type: 'tower', side: u.side, tid: u.tid!, card: u.card, stack: k, top: { tid: topId, card: top }, result: broken ? 'break' : 'crack', wasCracked, destroyed: stackLeft === 0 })
   const lines: string[] = []
   lines.push(`${mineHit ? 'Your' : 'Enemy'} ${label(u.card)} (rank ${u.card.rank}) hits ${owner} ${stackName(k)}, top card ${label(top)} (rank ${top.rank}${wasCracked ? ', CRACKED' : ''}).`)
   if (broken) {
@@ -430,12 +463,13 @@ function enemyLastStand(g: GuideState): GuideState {
   g.lines = [`ENEMY LAST STAND: place ${label(c)} FREE in the ${laneName(lane)} lane, slot nearest the ENEMY. Don't move its marker.`]
   g.why = ['When a princess tower falls, its owner places one card in that lane for free. The enemy always uses the top card of its pile, so a face-up top card tells you what is coming.']
   g.log.push(`Enemy last stand: ${label(c)} enters the ${laneName(lane).toLowerCase()} lane for free.`)
+  emit(g, { type: 'play', side: 'E', tid: slot.tid, card: c, lane, cost: 0, free: true })
   return g
 }
 
 export function lastStandPlay(g0: GuideState, i: number): GuideState {
   if (g0.stage !== 'my_last_stand' || !g0.P.hand[i]) return g0
-  const g = clone(g0)
+  const g = step(g0)
   const lane = g.lastStand!.lane
   const c = g.P.hand.splice(i, 1)[0]
   g.units.push({ uid: g.nextUid++, card: c, side: 'P', lane, pos: 0, tid: c.id })
@@ -445,6 +479,7 @@ export function lastStandPlay(g0: GuideState, i: number): GuideState {
   g.lines = [`Place ${label(c)} FREE in the ${laneName(lane)} lane, slot nearest YOU. Don't move your marker.`, ...refill(g)]
   g.why = []
   g.log.push(`Your last stand: ${label(c)} enters the ${laneName(lane).toLowerCase()} lane for free.`)
+  emit(g, { type: 'play', side: 'P', tid: c.id, card: c, lane, cost: 0, free: true })
   return g
 }
 
@@ -457,9 +492,10 @@ function finishRound(g: GuideState): GuideState {
     g.stage = 'over'
     g.lines = [g.winner === 'P' ? 'The enemy KING tower is destroyed. YOU WIN!' : g.winner === 'E' ? 'Your KING tower is destroyed. You lose.' : 'Both king towers are gone. Draw.']
     g.why = []
+    emit(g, { type: 'over', winner: g.winner })
     return g
   }
-  return startRound(g)
+  return newRound(g)
 }
 
 // ---------- advice ----------
@@ -561,17 +597,47 @@ export function advise(g: GuideState): Advice {
   return { kind: 'play', handIndex: first.i, lane: first.lane, reason: reason + nextNote(best) }
 }
 
+// ---------- events in words ----------
+/** One short sentence for an event, saying WHY when a rule decided it; null for events the screen only animates. */
+export function describe(e: GameEvent): string | null {
+  const lane = (l: 0 | 1) => laneName(l).toLowerCase()
+  switch (e.type) {
+    case 'play':
+      if (e.free) return `${e.side === 'P' ? 'Your' : 'Enemy'} last stand: ${label(e.card)} enters the ${lane(e.lane)} lane for free.`
+      return `${e.side === 'P' ? 'You play' : 'Enemy plays'} ${label(e.card)} in the ${lane(e.lane)} lane (${e.cost} elixir).`
+    case 'blocked': return `The enemy can't pay for ${label(e.card)} (${e.cost} elixir), so it waits.`
+    case 'fight': {
+      const { mine, theirs } = e
+      const head = e.winner === 'P' ? `Your ${label(mine.card)} beats ${label(theirs.card)}` : e.winner === 'E' ? `Enemy ${label(theirs.card)} beats your ${label(mine.card)}` : `${label(mine.card)} ties ${label(theirs.card)}, both die`
+      if (e.ace) return `${head}: aces beat picture cards.`
+      if (e.double) {
+        const [d, o] = e.double === 'P' ? [mine, theirs] : [theirs, mine]
+        return `${head}: ${SUITS[d.card.suit]} beats ${SUITS[o.card.suit]}, so the ${RANKS[d.card.rank]} counts double (${d.value} vs ${o.value}).`
+      }
+      return `${head} (${mine.value} vs ${theirs.value}).`
+    }
+    case 'tower': {
+      const who = `${e.side === 'P' ? 'Your' : 'Enemy'} ${label(e.card)}`, where = stackName(e.stack).toLowerCase()
+      if (e.result === 'crack') return `${who} is too weak for ${label(e.top.card)} on the ${where}: it cracks.`
+      const how = e.wasCracked ? `breaks the cracked ${label(e.top.card)}` : `breaks ${label(e.top.card)}`
+      return `${who} ${how} on the ${where}${e.destroyed ? `. The ${where} is DESTROYED!` : '.'}`
+    }
+    default: return null
+  }
+}
+
 // ---------- end-of-game summary ----------
+/** The end-of-game box: first something true that went well (or how close it was), then at most one tip. */
 export function summary(g: GuideState): string[] {
   const s = g.stats
-  const out = [
-    `Rounds played: ${s.rounds}. Cards you placed: ${s.placed}.`,
-    `Enemy tower cards you broke: ${s.theirsBroken}. Your tower cards broken: ${s.mineBroken}.`,
-  ]
-  if (s.leakRounds) out.push(`You ended your turn with a FULL elixir bar ${s.leakRounds} time(s) — refill that was wasted. Spend a bit earlier.`)
-  else out.push('You never wasted elixir by sitting at a full bar. Good.')
-  if (s.overkills.length) out.push('Expensive cards used on cheap enemies:', ...s.overkills.slice(0, 4))
-  else out.push('You never used a much more expensive card than needed to win a fight.')
+  const left = (t: Record<'L' | 'R' | 'K', unknown[]>) => t.L.length + t.R.length + t.K.length
+  const out: string[] = []
+  if (s.theirsBroken) out.push(`You broke ${s.theirsBroken} of the enemy's ${s.theirsBroken + left(g.E.towers)} tower cards in ${s.rounds} rounds.`)
+  if (g.winner === 'P') out.push(`${left(g.P.towers)} of your tower cards are still standing.`)
+  else if (g.E.towers.K.length === 1) out.push('Their king tower was down to its last card.')
+  if (s.leakRounds) out.push(`Tip: ${s.leakRounds === 1 ? 'once' : `${s.leakRounds} times`} you ended your turn with a full elixir bar, so that round's refill was lost. Spend a bit earlier.`)
+  else if (s.overkills.length) out.push(`Tip: ${s.overkills[0]}`)
+  else out.push('No elixir wasted and no expensive cards spent on cheap enemies. Clean game.')
   return out
 }
 
@@ -579,12 +645,14 @@ export function summary(g: GuideState): string[] {
 /** On-screen mode: the app holds the enemy's real cards (by tid) and flips them itself whenever the guide would ask you to. */
 export function autoReveal(g0: GuideState, secret: Record<string, Card>): GuideState {
   let g = g0
+  const events = [...(g0.events ?? [])] // flipping is part of the same step, so keep what the step already did
   for (let n = 0; n < 8; n++) {
     if (g.stage === 'enemy_enter' || g.stage === 'last_stand_enter') g = enterEnemyCard(g, secret[g.E.queue[0].tid])
     else if (g.stage === 'tower_enter') {
       const u = g.units.find(x => x.uid === g.hitQueue[0])!
       g = enterTowerCard(g, secret[g.E.towers[hitTarget(g, u)][0].tid])
     } else break
+    events.push(...(g.events ?? []))
   }
-  return g
+  return g === g0 ? g : { ...g, events }
 }
