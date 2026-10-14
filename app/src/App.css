@@ -518,9 +518,9 @@ details.help[open] > summary { margin-bottom: 8px; }
 .castles.theirs { align-items: start; }
 .castle { display: flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1; cursor: default; }
 .castles.theirs .castle { flex-direction: column-reverse; }
-.castle .cart { width: calc(var(--cw) * 1.5); height: calc(var(--cw) * 1.31); fill: #3d78f0; stroke: #12245e; stroke-width: 2.5; stroke-linejoin: round; filter: drop-shadow(0 3px 0 rgba(0,0,0,.35)); }
+.castle .cart { width: calc(var(--cw) * 1.3); height: calc(var(--cw) * 1.135); fill: #3d78f0; stroke: #12245e; stroke-width: 2.5; stroke-linejoin: round; filter: drop-shadow(0 3px 0 rgba(0,0,0,.35)); }
 .castle.theirs .cart { fill: #e24a4a; stroke: #5c1111; }
-.castle.king .cart { width: calc(var(--cw) * 1.95); height: calc(var(--cw) * 1.71); }
+.castle.king .cart { width: calc(var(--cw) * 1.7); height: calc(var(--cw) * 1.49); }
 .castle .cart .door { fill: #2a1a10; stroke: none; }
 .castle .cart .crown { fill: var(--gold); stroke: var(--gold-ink); stroke-width: 1.5; }
 .castle.fallen .cart { fill: #6b6b6b; stroke: #333; opacity: .45; }
@@ -544,11 +544,12 @@ details.help[open] > summary { margin-bottom: 8px; }
 .spot.slot.over { background: rgba(255,207,58,.38); }
 .droptag { position: absolute; bottom: 3px; font-family: var(--display); font-size: 11px; color: var(--gold); text-shadow: 0 1px 0 #000; pointer-events: none; }
 @keyframes droppulse { 50% { opacity: 1; } }
-.lanes .mid { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; z-index: 2; container-type: inline-size; }
-.mid .round { font-family: var(--display); font-size: max(14px, min(calc(var(--cw) * .36), 15cqi)); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.5); background: rgba(11, 20, 48, .7); border-radius: 10px; padding: 2px 10px; }
-.mid .rule { font-size: max(11px, min(calc(var(--cw) * .3), 10cqi)); font-weight: 700; line-height: 1.2; color: #fff; background: rgba(11, 20, 48, .7); border-radius: 10px; padding: 3px 9px; white-space: nowrap; }
+.lanes .mid { --mfont: max(14px, min(calc(var(--cw) * .36), 15cqi)); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; z-index: 2; container-type: inline-size; }
+.mid .round { font-family: var(--display); font-size: var(--mfont); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.5); background: rgba(11, 20, 48, .7); border-radius: 10px; padding: 2px 10px; }
+.mid .rule { font-size: var(--mfont); font-weight: 700; line-height: 1.2; color: #fff; background: rgba(11, 20, 48, .7); border-radius: 10px; padding: 3px 9px; white-space: nowrap; }
 .mid .rule b { color: var(--gold); }
-.mid .wheelmini i { font-style: normal; font-size: 1.25em; color: #fff; }
+.mid .wheelmini { font-size: max(12px, min(calc(var(--cw) * .36), 11.5cqi)); }
+.mid .wheelmini i { font-style: normal; font-size: 1.1em; color: #fff; }
 .mid .wheelmini i.r { color: #ff6b78; }
 .mid .wheelmini em { font-style: normal; color: var(--gold); margin: 0 1px; }
 .mid .wheelmini span { margin-left: 4px; color: var(--gold); font-weight: 800; }
@@ -581,7 +582,8 @@ details.help[open] > summary { margin-bottom: 8px; }
 .nextcard.mine { --nl: max(11px, calc(var(--ch) * .17)); --nh: calc(var(--ch) - var(--nl) - 2px); height: var(--ch); margin-right: 6px; align-self: flex-end; }
 .nextcard.mine span { font-family: var(--display); font-size: var(--nl); line-height: 1; color: rgba(255,255,255,.8); text-transform: uppercase; }
 .nextcard.mine .tcard { width: calc(var(--nh) * .714); height: var(--nh); font-size: calc(var(--nh) * .2); }
-.lanes .mid .nextcard .tcard { width: calc(var(--cw) * .66); height: calc(var(--ch) * .66); font-size: calc(var(--cw) * .19); }
+/* same size as your own Next card in the hand row */
+.lanes .mid .nextcard .tcard { --nh: calc(var(--ch) - max(11px, calc(var(--ch) * .17)) - 2px); width: calc(var(--nh) * .714); height: var(--nh); font-size: calc(var(--nh) * .2); }
 .arena .tcard .cost { right: 3px; top: 3px; width: 1.5em; height: 1.5em; font-size: .85em; border-width: 1px; }
 .arena .stepbar { bottom: calc(var(--ch) + 60px); }
 .arena .stepbar.over { bottom: 8px; }
