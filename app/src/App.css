@@ -7,6 +7,8 @@
   --green: #4cc263; --green-d: #2a8a3e; --green-ink: #13471d;
   --red: #ef5350; --red-d: #b8262a; --red-ink: #5c1013;
   --elixir: #c254f0;
+  /* motion: ease-out for anything answering the player, ease-in-out for things travelling across the table */
+  --ease-out: cubic-bezier(.23, 1, .32, 1); --ease-in-out: cubic-bezier(.77, 0, .175, 1);
 }
 html { background: var(--navy); }
 body { margin: 0; color: #f2f5ff; background: radial-gradient(ellipse at 50% 0%, #2c4a9a 0%, var(--blue) 45%, var(--navy) 100%) fixed; min-height: 100vh; }
@@ -20,7 +22,7 @@ button {
   font-family: var(--display); font-size: 15px; letter-spacing: .02em; color: #fff; cursor: pointer;
   padding: 8px 16px; border-radius: 10px; border: 2px solid #142a66;
   background: linear-gradient(#5b8cf0, #345fcc); box-shadow: inset 0 2px 0 rgba(255,255,255,.4), 0 4px 0 #142a66;
-  text-shadow: 0 2px 0 rgba(0,0,0,.4); transition: transform .08s, box-shadow .08s, filter .15s;
+  text-shadow: 0 2px 0 rgba(0,0,0,.4); transition: transform .08s var(--ease-out), box-shadow .08s var(--ease-out), filter .15s var(--ease-out);
 }
 button:hover:not(:disabled) { filter: brightness(1.1); }
 button:active:not(:disabled) { transform: translateY(3px); box-shadow: inset 0 2px 0 rgba(255,255,255,.4), 0 1px 0 #142a66; }
@@ -68,7 +70,7 @@ select { padding: 6px; }
 .tname { font-size: 12px; opacity: .8; margin-bottom: 3px; }
 
 /* cards */
-.card { width: 62px; height: 88px; border-radius: 7px; position: relative; box-sizing: border-box; flex: none; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,.4); animation: pop .25s ease-out; }
+.card { width: 62px; height: 88px; border-radius: 7px; position: relative; box-sizing: border-box; flex: none; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,.4); animation: pop .2s var(--ease-out); transition: transform .15s var(--ease-out); }
 .card.small { width: 46px; height: 64px; }
 .card.face { background: #fbfbf6; border: 1px solid #999; }
 .card.back { background: repeating-linear-gradient(45deg, #263a8c, #263a8c 5px, #3150b8 5px, #3150b8 10px); border: 2px solid #fff; }
@@ -79,10 +81,10 @@ select { padding: 6px; }
 .card.small .pip { font-size: 18px; }
 .card .cost { position: absolute; right: -6px; top: -6px; background: #7a3fd1; color: #fff; border-radius: 50%; width: 22px; height: 22px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
 .card.clickable { cursor: pointer; }
-.card.clickable:hover { transform: translateY(-4px); }
+@media (hover: hover) { .card.clickable:hover { transform: translateY(-4px); } }
 .card.selected { outline: 3px solid #ffd36b; transform: translateY(-8px); }
 .card.dim { opacity: .45; }
-@keyframes pop { from { transform: scale(.7); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pop { from { transform: scale(.92); opacity: 0; } }
 
 /* play */
 .play { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; padding: 10px 16px; height: calc(100 * var(--vh)); box-sizing: border-box; }
@@ -145,7 +147,7 @@ select { padding: 6px; }
 .tcard.clickable { cursor: pointer; }
 .tcard.selected .front { outline: 3px solid #ffd36b; box-shadow: 0 0 12px #ffd36b; }
 .tcard.dim { opacity: .5; }
-.flip { display: block; width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform .6s ease-in-out; }
+.flip { display: block; width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform .45s var(--ease-in-out); }
 .flip.down { transform: rotateY(180deg); }
 .cf { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 6px; box-sizing: border-box; box-shadow: 0 2px 4px rgba(0,0,0,.45); }
 .cf.front { background: #fbfbf6; border: 1px solid #999; }
@@ -274,7 +276,7 @@ h3 { margin: 18px 0 8px; }
 .bslot { width: calc(var(--cw) * .4); height: calc(var(--ch) * .36); flex: none; box-sizing: border-box; border-radius: 3px; border: 1px solid #fff; background: repeating-linear-gradient(45deg, #263a8c, #263a8c 3px, #3150b8 3px, #3150b8 6px); color: rgba(255,255,255,.45); font-size: calc(var(--cw) * .18); font-weight: 700; display: flex; align-items: center; justify-content: center; transition: transform .4s ease-in-out, box-shadow .4s, margin .4s; }
 .bslot.marker { transform: rotate(90deg); color: #fff; box-shadow: 0 0 0 2px #b06bff, 0 0 8px #b06bff; margin: 0 calc(var(--cw) * .06); }
 .bslot.gap { margin-left: calc(var(--cw) * .25); }
-.crk { transform: rotate(90deg); transition: transform .4s ease-in-out; }
+.crk { transform: rotate(90deg); transition: transform .35s var(--ease-in-out); }
 .crk .tcard { box-shadow: 0 0 0 2px #b06bff, 0 0 8px #b06bff; border-radius: 6px; }
 
 /* setup screens on phones */
@@ -300,7 +302,7 @@ h3 { margin: 18px 0 8px; }
 .hand .tcard { margin: 0 4px; }
 
 /* drag and drop: playable cards can be picked up, unaffordable ones are disabled */
-.hdrag { display: inline-block; cursor: grab; touch-action: none; -webkit-touch-callout: none; transition: opacity .25s ease; }
+.hdrag { display: inline-block; cursor: grab; touch-action: none; -webkit-touch-callout: none; transition: opacity .2s var(--ease-out); }
 .hdrag:active { cursor: grabbing; }
 .hdrag.off { cursor: not-allowed; }
 .lanecell.droppable { outline: 2px dashed #ffd36b; outline-offset: -2px; cursor: pointer; }
@@ -308,14 +310,14 @@ h3 { margin: 18px 0 8px; }
 
 /* turn feedback: green glow + badge on your turn, red on the enemy's */
 .top { display: flex; align-items: center; gap: 12px; }
-.play { background: linear-gradient(to right, rgba(70, 130, 230, .16) 50%, rgba(235, 40, 70, .30) 50%); transition: box-shadow .3s; }
+.play { background: linear-gradient(to right, rgba(70, 130, 230, .16) 50%, rgba(235, 40, 70, .30) 50%); transition: box-shadow .25s var(--ease-out); }
 .play.turn-me { box-shadow: inset 6px 0 0 #4ade80; }
 .play.turn-enemy { box-shadow: inset -6px 0 0 #ef4444; }
 .play.turn-enemy .hand { opacity: .55; }
 
 /* Elixir bar cells: the marker card flips face-up, the one it leaves flips back down. */
 .eslot { width: var(--cw); height: var(--ch); flex: none; perspective: 700px; }
-.eflip { display: block; width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform .6s ease-in-out; transform: rotateY(180deg); }
+.eflip { display: block; width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform .45s var(--ease-in-out); transform: rotateY(180deg); }
 .eflip.up { transform: none; }
 .ef { position: absolute; inset: 0; box-sizing: border-box; border-radius: 6px; border: 2px solid #fff; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: flex; align-items: center; justify-content: center; font-size: calc(var(--cw) * .3); font-weight: 700; }
 .efront { background: #f3e8ff; border-color: #7a3fd1; color: #7a3fd1; box-shadow: 0 0 0 2px #b06bff, 0 0 8px #b06bff; }
@@ -334,6 +336,10 @@ h3 { margin: 18px 0 8px; }
 
 .modal { background: #0a2d20; color: inherit; border: 1px solid #4a9; border-radius: 10px; padding: 14px 18px; width: min(640px, 92vw); max-height: 85vh; overflow: auto; }
 .modal::backdrop { background: rgba(0,0,0,.6); }
+.modal[open], .gameover { animation: dlgin .2s var(--ease-out); }
+.modal[open]::backdrop, .modal-backdrop { animation: fadein .2s var(--ease-out); }
+@keyframes dlgin { from { opacity: 0; scale: .96; } }
+@keyframes fadein { from { opacity: 0; } }
 .modal .close { position: absolute; top: 8px; right: 8px; padding: 2px 8px; }
 .modal .pcol { overflow: visible; }
 .modal .log { max-height: 50vh; overflow: auto; }
@@ -437,7 +443,7 @@ details.help[open] > summary { margin-bottom: 8px; }
 /* ---------- step panel: what to do now, docked on the table (over the hand, which is idle on those steps) ---------- */
 .stepbar { position: absolute; z-index: 40; left: 50%; bottom: 8px; transform: translateX(-50%); width: min(820px, calc(100% - 24px)); max-height: 58%; overflow: auto; box-sizing: border-box;
   padding: 10px 16px 12px; background: linear-gradient(#24408c, #172a5e); border: 3px solid var(--gold-d); border-radius: 16px; box-shadow: 0 0 0 3px #0b1430, 0 14px 30px rgba(0,0,0,.55);
-  animation: stepin .18s ease-out; }
+  animation: stepin .18s var(--ease-out); }
 .stepbar .todo { margin: 2px 0 6px; }
 .stepbar .row { margin: 6px 0 0; }
 .stepbar .picker { margin: 4px 0; }
@@ -533,10 +539,11 @@ details.help[open] > summary { margin-bottom: 8px; }
 .spot.slot { margin: 0 6px; border: 2px dashed rgba(255,255,255,.3); border-radius: 12px; background: rgba(0,0,0,.1); }
 .spot > .unit + .unit { margin-left: calc(var(--cw) * -.55); }
 .alane .river { margin: 0 calc(var(--cw) * .25); background: repeating-linear-gradient(90deg, #a0703c 0 7px, #7b5129 7px 9px); border-radius: 4px; box-shadow: 0 2px 0 rgba(0,0,0,.35); z-index: 1; }
-.spot.slot.droppable { border-color: var(--gold); background: rgba(255,207,58,.16); cursor: pointer; animation: droppulse 1.1s ease-in-out infinite; }
+.spot.slot.droppable { border-color: var(--gold); background: rgba(255,207,58,.16); cursor: pointer; }
+.spot.slot.droppable::after { content: ''; position: absolute; inset: -2px; border-radius: 12px; box-shadow: 0 0 14px rgba(255,207,58,.6); opacity: 0; pointer-events: none; animation: droppulse 1.1s ease-in-out infinite; }
 .spot.slot.over { background: rgba(255,207,58,.38); }
 .droptag { position: absolute; bottom: 3px; font-family: var(--display); font-size: 11px; color: var(--gold); text-shadow: 0 1px 0 #000; pointer-events: none; }
-@keyframes droppulse { 50% { box-shadow: 0 0 14px rgba(255,207,58,.6); } }
+@keyframes droppulse { 50% { opacity: 1; } }
 .lanes .mid { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; z-index: 2; container-type: inline-size; }
 .mid .round { font-family: var(--display); font-size: max(14px, min(calc(var(--cw) * .36), 15cqi)); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.5); background: rgba(11, 20, 48, .7); border-radius: 10px; padding: 2px 10px; }
 .mid .rule { font-size: max(11px, min(calc(var(--cw) * .3), 10cqi)); font-weight: 700; line-height: 1.2; color: #fff; background: rgba(11, 20, 48, .7); border-radius: 10px; padding: 3px 9px; white-space: nowrap; }
@@ -562,7 +569,7 @@ details.help[open] > summary { margin-bottom: 8px; }
 .ebar { flex: 1; display: flex; align-items: center; min-width: 0; }
 .ebar .drop { position: relative; z-index: 1; margin-right: -8px; }
 .ebar .segs { position: relative; flex: 1; height: 20px; background: #1d1238; border: 2px solid #0b0720; border-radius: 0 9px 9px 0; overflow: hidden; }
-.ebar .fill { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(#ec9cff, #b445e8 55%, #7d20c4); box-shadow: 0 0 10px #c35cff; transition: width .55s cubic-bezier(.3,.9,.3,1); }
+.ebar .fill { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(#ec9cff, #b445e8 55%, #7d20c4); box-shadow: 0 0 10px #c35cff; width: 100%; transition: transform .4s var(--ease-out); }
 .ebar .spend { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(45deg, rgba(255,255,255,.75) 0 4px, rgba(255,255,255,.15) 4px 8px); }
 .ebar .spend.short { background: repeating-linear-gradient(45deg, rgba(255,80,80,.9) 0 4px, rgba(255,80,80,.3) 4px 8px); }
 .ebar .segs i { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(0,0,0,.4); }
@@ -582,7 +589,7 @@ details.help[open] > summary { margin-bottom: 8px; }
 /* ---------- teaching by playing: one tip at a time over the field, the enemy waits while it is open ---------- */
 .coach { position: absolute; z-index: 45; left: 50%; transform: translateX(-50%); bottom: calc(var(--ch) + 112px); width: min(540px, calc(100% - 24px)); box-sizing: border-box;
   padding: 12px 16px; background: linear-gradient(#fffbea, #ffeeb0); color: #2a1d00; border: 3px solid var(--gold-d); border-radius: 16px; box-shadow: 0 0 0 3px #0b1430, 0 14px 30px rgba(0,0,0,.5);
-  animation: stepin .2s ease-out; }
+  animation: stepin .2s var(--ease-out); }
 .coach::after { content: ''; position: absolute; left: 50%; bottom: -12px; margin-left: -10px; border: 10px solid transparent; border-bottom: 0; border-top-color: var(--gold-d); }
 .coach p { margin: 0 0 10px; font-size: 18px; line-height: 1.35; font-weight: 600; }
 .coach .row { display: flex; align-items: center; gap: 12px; margin: 0; }
@@ -599,7 +606,7 @@ button.linkish:active { transform: none; }
 .avgcost { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 .avgcost .edrop { width: 32px; height: 34px; font-size: 13px; }
 .avgbar { position: relative; width: 90px; height: 10px; border-radius: 6px; background: #1d1238; border: 2px solid #0b0720; overflow: hidden; }
-.avgbar i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(#ec9cff, #b445e8); transition: width .35s ease; }
+.avgbar i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(#ec9cff, #b445e8); width: 100%; transition: transform .25s var(--ease-out); }
 .avglbl { font-family: var(--display); font-size: 13px; color: #e7c9ff; min-width: 62px; text-transform: uppercase; }
 .deckslots { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; justify-items: center; padding-top: 6px; }
 .dslot.empty { width: 62px; height: 88px; border: 2px dashed rgba(255,255,255,.3); border-radius: 8px; background: rgba(0,0,0,.15); box-sizing: border-box; }
@@ -651,3 +658,11 @@ button.linkish:active { transform: none; }
 .modal { text-align: left; }
 .elixrow .hint { min-width: 92px; }
 .mid .round, .mid .rule { white-space: nowrap; }
+
+/* reduced motion: no flips, slides, pulses or growing; things fade or simply appear */
+@media (prefers-reduced-motion: reduce) {
+  .flip, .eflip, .crk, .card { transition: none; }
+  .card { animation-name: fadein; }
+  .modal[open], .gameover { animation-name: fadein; }
+  .spot.slot.droppable::after { animation: none; opacity: 1; }
+}

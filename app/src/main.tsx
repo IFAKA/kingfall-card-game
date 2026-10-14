@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { MotionConfig } from 'framer-motion'
 import '@fontsource/lilita-one'
 import '@fontsource-variable/baloo-2'
 import './index.css'
@@ -9,7 +10,10 @@ import ErrorBoundary from './ErrorBoundary.tsx'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary storageKey={STORAGE_KEY}>
-      <App />
+      {/* players who ask for reduced motion get board cards that jump instead of slide */}
+      <MotionConfig reducedMotion="user">
+        <App />
+      </MotionConfig>
     </ErrorBoundary>
   </StrictMode>,
 )

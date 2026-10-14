@@ -65,9 +65,9 @@ function makeGhost(el: HTMLElement, x: number, y: number, rot: boolean, sw: numb
   // a drop that didn't land: glide back to the card's slot in the hand, then vanish
   const glideBack = (done: () => void) => {
     const r = card.getBoundingClientRect()
-    ghost.style.transition = 'transform .22s ease'
+    ghost.style.transition = 'transform .2s cubic-bezier(.23, 1, .32, 1)'
     move(r.left + r.width / 2, r.top + r.height / 2, 1)
-    setTimeout(() => { ghost.remove(); done() }, 230)
+    setTimeout(() => { ghost.remove(); done() }, 210)
   }
   return { move, remove: () => ghost.remove(), glideBack }
 }
@@ -101,7 +101,7 @@ function TCard({ tid, card, down, selected, dim, showCost, onClick }: {
   return (
     <motion.div
       layoutId={tid} layout
-      transition={{ layout: { duration: 0.75, ease: [0.4, 0, 0.2, 1] } }}
+      transition={{ layout: { duration: 0.5, ease: [0.77, 0, 0.175, 1] } }}
       className={`tcard ${selected ? 'selected' : ''} ${dim ? 'dim' : ''} ${onClick ? 'clickable' : ''}`}
       style={{ zIndex: 5 }} onClick={onClick} data-tid={tid}
     >
@@ -163,7 +163,7 @@ function ElixirBar({ n, spend }: { n: number; spend: number }) {
     <div className="ebar" role="meter" aria-valuemin={0} aria-valuemax={10} aria-valuenow={n} aria-label="Your elixir">
       <div className="drop">{n}</div>
       <div className="segs">
-        <div className="fill" style={{ width: `${n * 10}%` }} />
+        <div className="fill" style={{ transform: `translateX(${(n - 10) * 10}%)` }} />
         {spend > 0 && <div className={`spend ${spend > n ? 'short' : ''}`} style={{ left: `${a * 10}%`, width: `${(b - a) * 10}%` }} />}
         {Array.from({ length: 9 }, (_, i) => <i key={i} style={{ left: `${(i + 1) * 10}%` }} />)}
       </div>
@@ -625,7 +625,7 @@ export default function App() {
         {/* the deck as 8 slots on top, the other cards below: tapping moves a card between them */}
         <div className="deckbox">
           <div className="deckhead"><b>Your deck</b> <span className="muted">{deck.length}/8 · tap a card to take it out</span>
-            <div className="avgcost" title="Average elixir cost of your deck"><span className="edrop">{avg}</span><span className="avgbar"><i style={{ width: `${deck.length ? (Number(avg) / 10) * 100 : 0}%` }} /></span><span className="avglbl">{!deck.length ? '' : Number(avg) < 3.5 ? 'fast' : Number(avg) <= 5.5 ? 'balanced' : 'heavy'}</span></div>
+            <div className="avgcost" title="Average elixir cost of your deck"><span className="edrop">{avg}</span><span className="avgbar"><i style={{ transform: `translateX(${deck.length ? Number(avg) * 10 - 100 : -100}%)` }} /></span><span className="avglbl">{!deck.length ? '' : Number(avg) < 3.5 ? 'fast' : Number(avg) <= 5.5 ? 'balanced' : 'heavy'}</span></div>
           </div>
           <div className="deckslots">
             {Array.from({ length: 8 }, (_, i) => deck[i]
