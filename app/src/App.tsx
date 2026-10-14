@@ -345,7 +345,7 @@ export default function App() {
 
   const header = (
     <div className="topbar">
-      <b>Solo Clash — {mode === 'play' ? 'on screen' : 'table guide'}</b>
+      <b>Kingfall — {mode === 'play' ? 'on screen' : 'table guide'}</b>
       <span className="muted">{mode === 'play' ? 'The app deals, plays the enemy and runs the rules.' : 'You play with real cards; this page runs the rules and tells you what to do.'}</span>
       {game && screen === 'play' && <>
         <button onClick={undo} disabled={!history.length}>↶ Undo</button>

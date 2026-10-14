@@ -1,4 +1,4 @@
-# Solo Clash: a one-player lane duel with a standard deck
+# Kingfall: a one-player lane duel with a standard deck
 
 **Players:** 1 · **Time:** 20–40 minutes · **You need:** one standard 52-card deck (no jokers). No pen, no counters, no dice.
 

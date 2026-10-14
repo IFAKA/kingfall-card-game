@@ -1,4 +1,4 @@
-"""Build print/Solo-Clash-Rulebook.pdf from RULEBOOK.md using headless Google Chrome.
+"""Build print/Kingfall-Rulebook.pdf from RULEBOOK.md using headless Google Chrome.
 
 Usage (from the project root):  python3 tools/rulebook_pdf.py
 Handles the markdown the rulebook uses: headings, paragraphs, numbered lists with nested bullets, tables, **bold**, *italic*.
@@ -7,7 +7,7 @@ import html, os, re, subprocess, sys, tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "RULEBOOK.md")
-OUT = os.path.join(ROOT, "print", "Solo-Clash-Rulebook.pdf")
+OUT = os.path.join(ROOT, "print", "Kingfall-Rulebook.pdf")
 CHROME = os.environ.get("CHROME", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 
 CSS = """
@@ -79,7 +79,7 @@ def convert(md):
 
 def main():
     body = convert(open(SRC, encoding="utf-8").read())
-    page = f'<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Solo Clash Rulebook</title><style>{CSS}</style></head><body>{body}</body></html>'
+    page = f'<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Kingfall Rulebook</title><style>{CSS}</style></head><body>{body}</body></html>'
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         src = os.path.join(tmp, "rulebook.html")

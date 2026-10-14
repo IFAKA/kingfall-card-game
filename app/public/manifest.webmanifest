@@ -1,7 +1,7 @@
 {
-  "name": "Solo Clash — table guide",
-  "short_name": "Solo Clash",
-  "description": "Companion app for Solo Clash, a one-player lane battle played with a standard 52-card deck.",
+  "name": "Kingfall — table guide",
+  "short_name": "Kingfall",
+  "description": "Companion app for Kingfall, a one-player lane battle played with a standard 52-card deck.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

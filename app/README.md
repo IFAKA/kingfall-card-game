@@ -1,6 +1,6 @@
-# Solo Clash — table guide (web app)
+# Kingfall — table guide (web app)
 
-Companion app for Solo Clash. You play with a real 52-card deck; the app runs the enemy automaton and tells you, step by step, what to move on the table. It works on phones (upright board) and desktops (wide board), saves the game in the browser, and has undo.
+Companion app for Kingfall. You play with a real 52-card deck; the app runs the enemy automaton and tells you, step by step, what to move on the table. It works on phones (upright board) and desktops (wide board), saves the game in the browser, and has undo.
 
 ## Commands
 
