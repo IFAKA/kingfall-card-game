@@ -145,23 +145,24 @@ function FxLayer({ pops }: { pops: Pop[] }) {
 // ---------- the arena (on-screen play): upright like Clash, enemy on top, you at the bottom ----------
 const STACK_NAME = { L: 'Left', R: 'Right', K: 'King' } as const
 
-// A tower drawn as a castle: one armor pip per card left (a cracked card shows cracked), and the armor to beat on its top card when it is known.
+// A tower drawn as a castle: one armor pip per card left (a cracked card shows cracked), and the armor to beat on its top card when it is known (an empty slot until then).
 function Castle({ k, items, own, cracked }: { k: 'L' | 'R' | 'K'; items: ESlot[]; own: boolean; cracked: string[] }) {
   const top = items[0]
   const known = top?.card
   return (
     <div className={`castle ${own ? 'mine' : 'theirs'} ${k === 'K' ? 'king' : ''} ${items.length ? '' : 'fallen'}`} data-anchor={`tower-${own ? 'P' : 'E'}-${k}`}
       title={`${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower: ${items.length} card${items.length === 1 ? '' : 's'} of armor${known ? `; a soldier needs rank ${RANKS[known.rank]} or more to break the top one` : ''}`}>
-      <svg className="cart" viewBox="0 0 64 56" aria-hidden>
+      <svg className="cart" viewBox={k === 'K' ? '0 0 64 56' : '0 16 64 40'} aria-hidden>
         {k === 'K'
           ? <path d="M6 54V22h8v6h8V14h8v6h4v-6h8v14h8v-6h8v32z" />
           : <path d="M12 54V18h8v6h6v-6h12v6h6v-6h8v36z" />}
         {k === 'K' && <path className="crown" d="M21 10l1-8 5 5 5-6 5 6 5-5 1 8z" />}
         <path className="door" d="M27 54V42a5 5 0 0 1 10 0v12z" />
       </svg>
-      {items.length > 0 && <div className="armor">{items.map(it => <i key={it.tid} className={cracked.includes(it.tid) ? 'crk' : ''} />)}</div>}
-      {known && <div className={`topcard ${isRed(known) ? 'red' : ''}`}>{RANKS[known.rank]}{SUITS[known.suit]}</div>}
-      {!items.length && <div className="cname">Fallen</div>}
+      <div className="armor">{items.map(it => <i key={it.tid} className={cracked.includes(it.tid) ? 'crk' : ''} />)}</div>
+      <div className="tslot">{known
+        ? <div className={`topcard ${isRed(known) ? 'red' : ''}`}>{RANKS[known.rank]}{SUITS[known.suit]}</div>
+        : items.length ? <div className="topcard empty" /> : <div className="cname">Fallen</div>}</div>
     </div>
   )
 }

@@ -490,7 +490,8 @@ details.help[open] > summary { margin-bottom: 8px; }
 .field { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 6px 4px; border-radius: 18px;
   background: radial-gradient(ellipse at 50% 50%, #5cbf4a, #3f9a37 60%, #2f7d2b);
   border: 3px solid #0b1430; box-shadow: inset 0 0 0 2px rgba(255,255,255,.12), inset 0 0 40px rgba(0,0,0,.25), 0 8px 20px rgba(0,0,0,.4); }
-.field::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 14px; transform: translateY(-50%);
+/* the river runs through the middle of the lanes, under the bridges */
+.lanes::before { content: ''; position: absolute; left: -4px; right: -4px; top: 50%; height: 14px; transform: translateY(-50%);
   background: linear-gradient(#56b8ff, #2c7de0); box-shadow: inset 0 2px 0 rgba(255,255,255,.35), 0 0 0 2px rgba(0,0,0,.15); }
 .field::after { content: ''; position: absolute; inset: 0; border-radius: 15px; pointer-events: none;
   background: linear-gradient(rgba(230, 60, 60, .12), transparent 30%, transparent 70%, rgba(60, 120, 240, .14)); }
@@ -684,8 +685,20 @@ button.linkish:active { transform: none; }
 /* undo/redo and the menu sit inside the field's top corners; after the game Play again and Result take the place of the status line */
 .field > .corner { position: absolute; top: 6px; z-index: 5; }
 .field > .corner.left { left: 6px; } .field > .corner.right { right: 6px; }
-/* the enemy's left and right towers start below those corner buttons; the king sits between them */
-.castles.theirs .castle:not(.king) { position: relative; top: 38px; }
+/* the enemy's left and right towers start below those corner buttons, the king sits between them; the row is as tall as its castles */
+.castles.theirs .castle:not(.king) { padding-top: 46px; justify-content: flex-end; }
+/* every castle keeps its armor row and top-card slot when they are empty, so the rows never change height */
+.castles { height: auto; }
+.castles .castle { height: auto; box-sizing: border-box; }
+/* the side towers' picture is cut to the castle (no empty sky above it), so their top edge is the castle's */
+.castle:not(.king) .cart { height: calc(var(--cw) * .625); }
+.castle .armor { min-height: calc(max(9px, var(--cw) * .28) + 3px); }
+.castle .tslot { height: calc(max(12px, var(--cw) * .27) + 4px); display: flex; align-items: center; }
+.castle .topcard.empty { width: 2.2em; height: 100%; box-sizing: border-box; padding: 0; background: none; box-shadow: none; border: 1.5px dashed rgba(255,255,255,.5); }
+/* each slot sits halfway between its towers and the bridge: tower, gap, slot, gap, bridge, gap, slot, gap, tower */
+.alane { grid-template-rows: 1fr calc(var(--ch) + 8px) minmax(var(--rgap), 1fr) 18px minmax(var(--rgap), 1fr) calc(var(--ch) + 8px) 1fr; }
+.alane > :nth-child(1) { grid-row: 1; } .alane > :nth-child(2) { grid-row: 2; } .alane > :nth-child(4) { grid-row: 6; } .alane > :nth-child(5) { grid-row: 7; }
+.alane > .river { grid-row: 4; margin: 0 calc(var(--cw) * .25); }
 .overbtns { position: static; transform: none; flex: none; min-height: 2.5em; display: flex; justify-content: center; align-items: center; gap: 12px; padding: 3px 0; }
 /* primary and secondary buttons share one size */
 .overbtns button, .gameover .row button { font-size: 17px; padding: 10px 24px; }
