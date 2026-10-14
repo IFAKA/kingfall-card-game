@@ -549,8 +549,8 @@ export default function App() {
       <Logo small />
       <span className="modechip">{mode === 'play' ? 'On screen' : 'Real cards'}</span>
       {game && screen === 'play' && <span className="undoredo">
-        <Button variant="ghost" size="icon-lg" aria-label="Undo" title="Undo" onClick={undo} disabled={!history.length}><Undo2 /></Button>
-        <Button variant="ghost" size="icon-lg" aria-label="Redo" title="Redo" onClick={redo} disabled={!future.length}><Redo2 /></Button>
+        <Button variant="secondary" size="icon-lg" aria-label="Undo" title="Undo" onClick={undo} disabled={!history.length}><Undo2 /></Button>
+        <Button variant="secondary" size="icon-lg" aria-label="Redo" title="Redo" onClick={redo} disabled={!future.length}><Redo2 /></Button>
       </span>}
       <span className="spacer" />
       {mid}
@@ -874,8 +874,8 @@ export default function App() {
       <div ref={playRef} className={`arena${side ? ' turn-' + side : ''}`} style={vars}>
         <div className={`field ${shake}`}>
           <span className="undoredo corner left">
-            <Button variant="ghost" size="icon-lg" aria-label="Undo" title="Undo" onClick={undo} disabled={!history.length}><Undo2 /></Button>
-            <Button variant="ghost" size="icon-lg" aria-label="Redo" title="Redo" onClick={redo} disabled={!future.length}><Redo2 /></Button>
+            <Button variant="secondary" size="icon-lg" aria-label="Undo" title="Undo" onClick={undo} disabled={!history.length}><Undo2 /></Button>
+            <Button variant="secondary" size="icon-lg" aria-label="Redo" title="Redo" onClick={redo} disabled={!future.length}><Redo2 /></Button>
           </span>
           <span className="corner right"><GameMenu rules={RULES_60} muted={muted} toggleMute={toggleMute} onLeave={reset} log={g.log} hints={hints} /></span>
           <div className="castles theirs">
