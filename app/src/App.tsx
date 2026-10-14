@@ -858,7 +858,7 @@ export default function App() {
   // on screen: the arena; card size follows the window so the whole field, the bar and the hand always fit
   const arena = () => {
     const aw = Math.min(stage_.sw, 640)
-    const ch = Math.max(52, Math.min((stage_.sh - 196) / 6.4, (aw - 72) / 4.75 / 0.714, 128))
+    const ch = Math.max(52, Math.min((stage_.sh - 196) / 6.9, (aw - 72) / 4.75 / 0.714, 128))
     const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px` } as CSSProperties
     const prompt = stage === 'my_play' ? 'Your turn: drag a card onto a lane, then tap ✓.' : standing ? TITLES[stage] : stage === 'round_start' ? `Round ${g.round}: you get ${g.rules.regen} more elixir.` : 'Enemy turn…'
     const lines = note ? [note] : said.length ? said : [prompt]

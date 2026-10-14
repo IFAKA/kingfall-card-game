@@ -674,3 +674,10 @@ button.linkish:active { transform: none; }
 .castles .castle { height: 100%; justify-content: flex-start; }
 .castles.theirs { align-items: stretch; } .castles.mine { align-items: stretch; }
 .castle.fallen .cname { margin-top: 2px; }
+
+/* tighter castles so the field is balanced: castle rows and lanes share the height with no overlap */
+.castles { height: calc(var(--cw) * 1.2 + max(9px, var(--cw) * .28) + max(12px, var(--cw) * .27) + 20px); }
+.castle .cart { width: calc(var(--cw) * 1.0); height: calc(var(--cw) * .875); }
+.castle.king .cart { width: calc(var(--cw) * 1.35); height: calc(var(--cw) * 1.18); }
+.castles .castle { justify-content: flex-start; align-self: stretch; }
+.field { justify-content: space-between; padding: 8px 4px; }
