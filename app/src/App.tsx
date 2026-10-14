@@ -422,6 +422,7 @@ export default function App() {
   const [hov, setHov] = useState<number | null>(null)
   const stage_ = useStage(screen === 'play' && mode === 'guide')
   const [overSeen, setOverSeen] = useState(false)
+  const [resultViewed, setResultViewed] = useState(false) // the win confetti only throws the first time the result opens
   const [doSeen, setDoSeen] = useState(-1)
   const [setupStep, setSetupStep] = useState(0)
   useEffect(() => { setSetupStep(0) }, [screen])
@@ -480,7 +481,7 @@ export default function App() {
     else if (game.stage === 'my_play') setSaid([])
   }, [game])
   const browsing = useRef(false) // undo/redo after the end is the player studying the game, so the result stays dismissed
-  useEffect(() => { if (game?.stage !== 'over' && !browsing.current) setOverSeen(false); browsing.current = false }, [game?.stage])
+  useEffect(() => { if (game?.stage !== 'over' && !browsing.current) { setOverSeen(false); setResultViewed(false) } browsing.current = false }, [game?.stage])
 
   useEffect(() => {
     const s: Saved = { mode, secret, screen, my16, deckIds, slotIds, help, pre, game, history: history.slice(-60) }
@@ -841,13 +842,13 @@ export default function App() {
       {stage === 'over' && !overSeen && (
         <div className="modal-backdrop">
           <div className={`gameover ${g.winner === 'P' ? 'won' : g.winner === 'E' ? 'lost' : 'drawn'}`}>
-            {g.winner === 'P' && <WinConfetti />}
+            {g.winner === 'P' && !resultViewed && <WinConfetti />}
             <h2>{g.winner === 'P' ? 'You win!' : g.winner === 'E' ? 'You lose' : 'Draw'}</h2>
             <p>{g.lines[0]}</p>
             <ul className="todo">{summary(g).map((l, i) => <li key={i}>{l}</li>)}</ul>
             <div className="row">
               <button className="big" onClick={playAgain}>Play again</button>
-              <button onClick={() => setOverSeen(true)}>View board</button>
+              <button onClick={() => { setResultViewed(true); setOverSeen(true) }}>View board</button>
             </div>
           </div>
         </div>
@@ -871,8 +872,12 @@ export default function App() {
     const eNext = g.E.queue[0]
     return (
       <div ref={playRef} className={`arena${side ? ' turn-' + side : ''}`} style={vars}>
-        <div className="top">{bar(stage === 'over' && overSeen ? <span className="overbtns"><button className="big" onClick={playAgain}>Play again</button><button onClick={() => setOverSeen(false)}>Result</button></span> : null, { log: g.log, hints })}</div>
         <div className={`field ${shake}`}>
+          <span className="undoredo corner left">
+            <Button variant="ghost" size="icon-lg" aria-label="Undo" title="Undo" onClick={undo} disabled={!history.length}><Undo2 /></Button>
+            <Button variant="ghost" size="icon-lg" aria-label="Redo" title="Redo" onClick={redo} disabled={!future.length}><Redo2 /></Button>
+          </span>
+          <span className="corner right"><GameMenu rules={RULES_60} muted={muted} toggleMute={toggleMute} onLeave={reset} log={g.log} hints={hints} /></span>
           <div className="castles theirs">
             {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} />)}
           </div>
@@ -894,9 +899,11 @@ export default function App() {
           </div>
         </div>
         <div className="tray">
-          <div className={`feed ${note ? 'warn' : ''}`} aria-live="polite">
-            {lines.map((l, i) => <div key={i}>{l}</div>)}
-          </div>
+          {stage === 'over' && overSeen
+            ? <div className="overbtns"><button className="big" onClick={playAgain}>Play again</button><button onClick={() => setOverSeen(false)}>Result</button></div>
+            : <div className={`feed ${note ? 'warn' : ''}`} aria-live="polite">
+              {lines.map((l, i) => <div key={i}>{l}</div>)}
+            </div>}
           <div className="elixrow">
             <ElixirBar n={g.P.elixir} spend={spend} />
           </div>

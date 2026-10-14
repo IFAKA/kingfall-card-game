@@ -490,7 +490,7 @@ function finishRound(g: GuideState): GuideState {
   if (pk || ek) {
     g.winner = pk && ek ? 'draw' : ek ? 'P' : 'E'
     g.stage = 'over'
-    g.lines = [g.winner === 'P' ? 'The enemy KING tower is destroyed. YOU WIN!' : g.winner === 'E' ? 'Your KING tower is destroyed. You lose.' : 'Both king towers are gone. Draw.']
+    g.lines = [g.winner === 'P' ? 'The enemy KING tower is destroyed.' : g.winner === 'E' ? 'Your KING tower is destroyed.' : 'Both king towers are gone.']
     g.why = []
     emit(g, { type: 'over', winner: g.winner })
     return g

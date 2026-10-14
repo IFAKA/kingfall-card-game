@@ -681,3 +681,10 @@ button.linkish:active { transform: none; }
 .castle.king .cart { width: calc(var(--cw) * 1.35); height: calc(var(--cw) * 1.18); }
 .castles .castle { justify-content: flex-start; align-self: stretch; }
 .field { justify-content: space-between; padding: 8px 4px; }
+
+/* undo/redo and the menu sit inside the field's top corners; after the game Play again and Result take the place of the status line */
+.field > .corner { position: absolute; top: 6px; z-index: 5; }
+.field > .corner.left { left: 6px; } .field > .corner.right { right: 6px; }
+.overbtns { position: static; transform: none; flex: none; min-height: 2.5em; display: flex; justify-content: center; align-items: center; gap: 12px; padding: 3px 0; }
+/* primary and secondary buttons share one size */
+.overbtns button, .gameover .row button { font-size: 17px; padding: 10px 24px; }
