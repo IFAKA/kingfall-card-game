@@ -180,7 +180,7 @@ function ElixirBar({ n, spend }: { n: number; spend: number }) {
 }
 
 // One lane, top to bottom: your soldiers hitting the enemy tower, the enemy's slot, the river, your slot, enemy soldiers hitting your tower.
-function ArenaLane({ idx, units, laneLen, dragging, hint, over, onPlace }: { idx: 0 | 1; units: Unit[]; laneLen: number; dragging: boolean; hint: boolean; over: boolean; onPlace: () => void }) {
+function ArenaLane({ idx, units, laneLen, dragging, hint, suggested, over, onPlace }: { idx: 0 | 1; units: Unit[]; laneLen: number; dragging: boolean; hint: boolean; suggested: boolean; over: boolean; onPlace: () => void }) {
   const here = (pred: (u: Unit) => boolean) => units.filter(u => u.lane === idx && pred(u)).map(u => (
     <div key={u.uid} className={`unit ${u.side}`}><TCard tid={u.tid!} card={u.card} down={false} /></div>
   ))
@@ -189,9 +189,9 @@ function ArenaLane({ idx, units, laneLen, dragging, hint, over, onPlace }: { idx
       <div className="spot atk">{here(u => u.side === 'P' && u.pos >= laneLen)}</div>
       <div className="spot slot" data-anchor={`lane-${idx}`}>{here(u => u.pos === laneLen - 1)}</div>
       <div className="river" />
-      <div className={`spot slot mine ${dragging || hint ? 'droppable' : ''} ${dragging && over ? 'over' : ''}`} data-lane={idx} data-anchor={`lane-${idx}`} onClick={hint ? onPlace : undefined}>
+      <div className={`spot slot mine ${dragging || hint || suggested ? 'droppable' : ''} ${dragging && over ? 'over' : ''} ${suggested ? 'suggested' : ''}`} data-lane={idx} data-anchor={`lane-${idx}`} onClick={hint || suggested ? onPlace : undefined}>
         {here(u => u.pos === 0)}
-        {(dragging || hint) && <span className="droptag">{idx === 0 ? 'LEFT' : 'RIGHT'}</span>}
+        {(dragging || hint || suggested) && <span className="droptag">{suggested && '★ '}{idx === 0 ? 'LEFT' : 'RIGHT'}</span>}
       </div>
       <div className="spot atk">{here(u => u.side === 'E' && u.pos < 0)}</div>
     </div>
@@ -385,7 +385,8 @@ const TIPS: Record<TipId, string> = {
   fight: 'When two cards meet, the higher rank wins. A card of the suit that beats the other counts double (♠ › ♥ › ♦ › ♣ › ♠), and aces beat J, Q and K.',
   tower: "A card that reaches a tower breaks its top card if its rank is at least that card's (shown under your castles). If not, the tower card cracks, and any later hit breaks it. Break both king cards to win.",
 }
-const TIPS_KEY = 'kingfall-tips-seen', PLAYED_KEY = 'kingfall-games-played'
+const TIPS_KEY = 'kingfall-tips-seen'
+const PULSES = ['droppulse', 'suggestglow', 'suggestring']
 const readJSON = <T,>(key: string, fallback: T): T => { try { const v = localStorage.getItem(key); return v ? (JSON.parse(v) as T) : fallback } catch { return fallback } }
 const writeJSON = (key: string, v: unknown) => { try { localStorage.setItem(key, JSON.stringify(v)) } catch { /* storage full or blocked */ } }
 
@@ -427,6 +428,10 @@ export default function App() {
   useEffect(() => { setSetupStep(0) }, [screen])
   const [muted, setMutedState] = useState(isMuted)
   const toggleMute = () => { setMuted(!muted); setMutedState(!muted); if (muted) sfx('tap') }
+  // the hint and drop-target pulses beat together: every one is pinned to the page clock, whenever it appeared
+  useEffect(() => {
+    for (const a of document.getAnimations()) if (a instanceof CSSAnimation && PULSES.includes(a.animationName) && a.startTime !== 0) a.startTime = 0
+  })
   // every button answers with a soft click
   useEffect(() => {
     const click = (e: MouseEvent) => { if ((e.target as Element | null)?.closest?.('button:not(:disabled)')) sfx('tap') }
@@ -440,8 +445,6 @@ export default function App() {
   const { pops, shake } = useFx(game, fresh.current, playRef, stage_.rot, stage_.sw)
   const [tipsSeen, setTipsSeen] = useState<TipId[]>(() => readJSON(TIPS_KEY, []))
   const [tip, setTip] = useState<TipId | null>(null)
-  const [played, setPlayed] = useState<number>(() => readJSON(PLAYED_KEY, 0))
-  const [hintAt, setHintAt] = useState(-1) // the hint (suggested move) is open for this log length only
   const seeTip = (ids: TipId[]) => { const n = [...new Set([...tipsSeen, ...ids])]; setTipsSeen(n); writeJSON(TIPS_KEY, n); setTip(null) }
   useEffect(() => {
     if (mode !== 'play' || screen !== 'play' || !game) return
@@ -459,8 +462,6 @@ export default function App() {
       ['tower', happened(e => e.type === 'tower')],
     ] as [TipId, boolean][]).find(([id, now]) => now && wants(id))?.[0]
     if (next) setTip(next)
-    // count finished on-screen games: after the first one, the suggested move hides behind a Hint button
-    if (isFresh && ev.some(e => e.type === 'over')) { setPlayed(n => { writeJSON(PLAYED_KEY, n + 1); return n + 1 }) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game, mode, screen])
   // the arena's "what happened" line keeps the last thing worth saying until something new happens
@@ -492,7 +493,7 @@ export default function App() {
   const deck = mine.filter(c => deckIds.includes(c.id))
 
   const reset = () => {
-    setTip(null); setHintAt(-1)
+    setTip(null)
     setScreen('title'); setMy16([]); setDeckIds([]); setSlotIds([]); setPre(null); setGame(null); setHistory([]); setFuture([]); setSel(null); setMode('guide'); setSecret({})
   }
   const settle = (g: GuideState) => (mode === 'play' ? autoReveal(g, secret) : g)
@@ -777,8 +778,10 @@ export default function App() {
     if (canPlay(g, i)) { sfx(sel === i ? 'unpick' : 'pick'); setNote(null); setSel(sel === i ? null : i); return }
     sfx('deny'); setSel(null); setNote(`${label(c)} costs ${cost(c.rank)} elixir but you only have ${g.P.elixir}. Pick a card whose purple number is ${g.P.elixir} or less.`)
   }
+  // on screen, the suggestion is shown on the board itself: the card and its lane glow, or End turn does
+  const suggested = mode === 'play' && advice?.kind === 'play' ? advice : null
   const handCards = g.P.hand.map((c, i) => (
-    <div key={c.id} data-i={i} className={`hdrag ${drag === i ? 'lifted' : ''} ${!standing && !canPlay(g, i) ? 'off' : ''}`} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} onPointerDown={e => startDrag(e, i)}>
+    <div key={c.id} data-i={i} className={`hdrag ${drag === i ? 'lifted' : ''} ${!standing && !canPlay(g, i) ? 'off' : ''} ${suggested?.handIndex === i && drag === null ? 'suggested' : ''}`} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} onPointerDown={e => startDrag(e, i)}>
       <TCard tid={c.id} card={c} down={false} showCost selected={sel === i} dim={!standing && !canPlay(g, i)} onClick={() => tapHand(i)} />
     </div>
   ))
@@ -786,7 +789,7 @@ export default function App() {
   const hints = (
     <div className="gm-hints">
       <Toggle on={explainOn} set={setExplainOn}><b>Explain my options</b><small>List every card you can play and where</small></Toggle>
-      <Toggle on={suggestOn} set={setSuggestOn}><b>Suggest moves</b><small>{mode === 'play' ? 'A Hint button appears next to End turn' : 'The suggested move appears in the top bar'}</small></Toggle>
+      <Toggle on={suggestOn} set={setSuggestOn}><b>Suggest moves</b><small>{mode === 'play' ? 'The suggested card and lane glow green, or End turn does' : 'The suggested move appears in the top bar'}</small></Toggle>
       {mode === 'play' && <button onClick={() => { setTipsSeen([]); writeJSON(TIPS_KEY, []); setMenuOpen(false) }}>Show the tips again</button>}
       <div className="donow">
         <div className="dntitle">{TITLES[stage]}</div>
@@ -851,9 +854,11 @@ export default function App() {
     const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px` } as CSSProperties
     const prompt = stage === 'my_play' ? 'Your turn: drag a card onto a lane, then End turn.' : standing ? TITLES[stage] : stage === 'round_start' ? `Round ${g.round}: you get ${g.rules.regen} more elixir.` : 'Enemy turn…'
     const lines = note ? [note] : said.length ? said : [prompt]
+    // the suggested lane glows only while no other card is picked up; tapping it with nothing picked plays the suggestion
     const lane = (l: 0 | 1) => ({
       dragging: drag !== null && (!standing || g.lastStand?.lane === l), hint: standing ? g.lastStand?.lane === l : sel !== null,
-      over: overLane === l, onPlace: () => { if (standing) return; if (sel !== null) commit(playCard(g, sel, l)) },
+      suggested: suggested?.lane === l && (drag ?? sel ?? suggested.handIndex) === suggested.handIndex,
+      over: overLane === l, onPlace: () => { if (standing) return; const i = sel ?? suggested?.handIndex; if (i !== undefined) commit(playCard(g, i, l)) },
     })
     const eNext = g.E.queue[0]
     return (
@@ -886,11 +891,7 @@ export default function App() {
           </div>
           <div className="elixrow">
             <ElixirBar n={g.P.elixir} spend={spend} />
-            {/* the suggestion button only shows when there's a move to suggest; after your first play it hides behind a Hint button */}
-            {suggestOn && advice?.kind === 'play' && (played === 0 || hintAt === g.log.length
-              ? <button className="green hint" title={advice.reason} onClick={() => commit(playCard(g, advice.handIndex, advice.lane))}>{label(g.P.hand[advice.handIndex])} → {advice.lane === 0 ? 'L' : 'R'}</button>
-              : <button className="hint" title={advice.reason} onClick={() => setHintAt(g.log.length)}>💡 Hint</button>)}
-            <button className="big done" disabled={stage !== 'my_play'} onClick={() => commit(endMyTurn(g))}>End turn</button>
+            <button className={`big done ${advice?.kind === 'wait' ? 'suggested' : ''}`} title={advice?.kind === 'wait' ? advice.reason : undefined} disabled={stage !== 'my_play'} onClick={() => commit(endMyTurn(g))}>End turn</button>
           </div>
           <div className="handrow">
             <div className="nextcard mine" title="Your next card: it comes into your hand when you play one"><span>Next</span>{g.P.queue[0] && <TCard key={g.P.queue[0].id} tid={g.P.queue[0].id} card={g.P.queue[0]} down={false} showCost />}</div>
