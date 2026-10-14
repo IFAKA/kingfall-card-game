@@ -684,6 +684,8 @@ button.linkish:active { transform: none; }
 /* undo/redo and the menu sit inside the field's top corners; after the game Play again and Result take the place of the status line */
 .field > .corner { position: absolute; top: 6px; z-index: 5; }
 .field > .corner.left { left: 6px; } .field > .corner.right { right: 6px; }
+/* the enemy's left and right towers start below those corner buttons; the king sits between them */
+.castles.theirs .castle:not(.king) { position: relative; top: 38px; }
 .overbtns { position: static; transform: none; flex: none; min-height: 2.5em; display: flex; justify-content: center; align-items: center; gap: 12px; padding: 3px 0; }
 /* primary and secondary buttons share one size */
 .overbtns button, .gameover .row button { font-size: 17px; padding: 10px 24px; }
