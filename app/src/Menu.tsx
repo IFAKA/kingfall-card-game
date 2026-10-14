@@ -3,7 +3,6 @@ import type { ComponentProps, CSSProperties, ReactElement, ReactNode } from 'rea
 import { BookOpen, Castle, ChevronRight, Hand, Lightbulb, LogOut, Menu as MenuIcon, ScrollText, Shield, Swords, Volume2, VolumeX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
-import { Field, FieldContent, FieldDescription, FieldLabel, FieldTitle } from '@/components/ui/field'
 import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from '@/components/ui/item'
 import { Switch } from '@/components/ui/switch'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -51,18 +50,17 @@ function PageRow({ icon, title, description, children }: { icon: ReactNode; titl
   )
 }
 
-// a setting that is on or off: a switch on a card that is tappable as a whole
+// a setting that is on or off: a switch on a card that is tappable as a whole, laid out like the menu rows
 export function Choice({ id, icon, title, description, checked, onChange }: {
   id: string; icon?: ReactNode; title: string; description?: string; checked: boolean; onChange: (checked: boolean) => void
 }) {
   return (
-    <FieldLabel htmlFor={id} className={`${row} rounded-lg border`}>
-      <Field orientation="horizontal" className="items-center! p-3">
-        {icon && <span className="text-primary [&_svg]:size-5">{icon}</span>}
-        <FieldContent><FieldTitle className={rowTitle}>{title}</FieldTitle>{description && <FieldDescription>{description}</FieldDescription>}</FieldContent>
-        <Switch id={id} size="lg" checked={checked} onCheckedChange={onChange} />
-      </Field>
-    </FieldLabel>
+    <Item variant="outline" render={<label htmlFor={id} />}
+      className={`${row} cursor-pointer has-data-checked:border-primary/20 has-data-checked:bg-primary/10 has-focus-visible:border-ring has-focus-visible:ring-3 has-focus-visible:ring-ring/50`}>
+      {icon && <ItemMedia variant="icon" className="h-7 translate-y-px! text-primary [&_svg]:size-5!">{icon}</ItemMedia>}
+      <ItemContent><ItemTitle className={rowTitle}>{title}</ItemTitle>{description && <ItemDescription className="line-clamp-none">{description}</ItemDescription>}</ItemContent>
+      <ItemActions><Switch id={id} size="lg" checked={checked} onCheckedChange={onChange} /></ItemActions>
+    </Item>
   )
 }
 
@@ -137,7 +135,7 @@ export function GameMenu({ turned, rules, log, hints, muted, toggleMute, onLeave
             </PageRow>}
             {hints && <PageRow icon={<Lightbulb />} title="Hints" description="Explain options, suggest moves, tips">{hints(close)}</PageRow>}
           </ItemGroup>
-          <Choice id="sound" icon={muted ? <VolumeX /> : <Volume2 />} title="Sound" checked={!muted} onChange={toggleMute} />
+          <Choice id="sound" icon={muted ? <VolumeX /> : <Volume2 />} title="Sound" description="Plays, fights and falling towers" checked={!muted} onChange={toggleMute} />
         </Panel>
       </Sheet>
     </Turned.Provider>
