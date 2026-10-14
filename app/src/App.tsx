@@ -2,7 +2,6 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import confetti from 'canvas-confetti'
-import './App.css'
 import { DEFAULT_RULES, RANKS, SUITS, autoTowers, cost, deal, freshDeck, isRed, label, shuffle, suggestDeck } from './engine'
 import type { Card, Unit } from './engine'
 import {
@@ -12,6 +11,8 @@ import type { Discarded, ESlot, GuideState } from './guide'
 import { useFx } from './fx'
 import type { Pop } from './fx'
 import { isMuted, setMuted, sfx } from './sfx'
+import { GameMenu, IconButton, Toggle } from './Menu'
+import type { MenuPage } from './Menu'
 
 type Help = 'off' | 'explain' | 'suggest'
 type Screen = 'title' | 'deal' | 'enter' | 'draft' | 'table' | 'play'
@@ -412,14 +413,13 @@ export default function App() {
   const [history, setHistory] = useState<GuideState[]>(saved?.history ?? [])
   const [future, setFuture] = useState<GuideState[]>([])
   const [sel, setSel] = useState<number | null>(null)
-  const helpRef = useRef<HTMLDialogElement>(null)
-  const rulesRef = useRef<HTMLDialogElement>(null)
-  const logDlgRef = useRef<HTMLDialogElement>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuPage, setMenuPage] = useState<MenuPage>('main')
+  const openMenu = (p: MenuPage = 'main') => { setMenuPage(p); setMenuOpen(true) }
   const [drag, setDrag] = useState<number | null>(null)
   const [overLane, setOverLane] = useState<0 | 1 | null>(null)
   const justDragged = useRef(false)
   const [hov, setHov] = useState<number | null>(null)
-  const logRef = useRef<HTMLDivElement>(null)
   const stage_ = useStage(screen === 'play' && mode === 'guide')
   const [overSeen, setOverSeen] = useState(false)
   const [doSeen, setDoSeen] = useState(-1)
@@ -479,7 +479,6 @@ export default function App() {
     const s: Saved = { mode, secret, screen, my16, deckIds, slotIds, help, pre, game, history: history.slice(-60) }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)) } catch { /* storage full: ignore */ }
   }, [mode, secret, screen, my16, deckIds, slotIds, help, pre, game, history])
-  useEffect(() => { logRef.current?.scrollTo({ top: logRef.current.scrollHeight }) }, [game?.log.length])
 
   // on screen, informational steps advance by themselves, slowly enough to follow what happens; not recorded for undo
   useEffect(() => {
@@ -536,17 +535,23 @@ export default function App() {
   }
   const reshuffle = () => setPre(makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES))
 
-  const header = (
+  // the top bar: where you are, undo/redo while playing, the moves of the moment (real-cards table) and one menu for everything else
+  const bar = (mid?: ReactNode) => (
     <div className="topbar">
       <Logo small />
       <span className="modechip">{mode === 'play' ? 'On screen' : 'Real cards'}</span>
-      {game && screen === 'play' && <>
-        <button onClick={undo} disabled={!history.length} aria-label="Undo">↶<span className="lbl"> Undo</span></button>
-        <button onClick={redo} disabled={!future.length} aria-label="Redo">↷<span className="lbl"> Redo</span></button>
-      </>}
-      <button className="mute" onClick={toggleMute} aria-label={muted ? 'Sound off' : 'Sound on'} title={muted ? 'Sound off' : 'Sound on'}>{muted ? '🔇' : '🔊'}</button>
-      <button className="red" onClick={() => { if (confirm('Leave this game? It will be discarded.')) reset() }}>Menu</button>
+      {game && screen === 'play' && <span className="undoredo">
+        <IconButton icon="undo" label="Undo" onClick={undo} disabled={!history.length} />
+        <IconButton icon="redo" label="Redo" onClick={redo} disabled={!future.length} />
+      </span>}
+      <span className="spacer" />
+      {mid}
+      <IconButton icon="menu" label="Menu" className="menubtn" onClick={() => openMenu()} />
     </div>
+  )
+  const menu = (more?: { log?: string[]; hints?: ReactNode; turned?: CSSProperties }) => (
+    <GameMenu open={menuOpen} page={menuPage} setOpen={setMenuOpen} setPage={setMenuPage} rules={RULES_60} muted={muted} toggleMute={toggleMute}
+      onLeave={screen === 'title' ? undefined : reset} {...more} />
   )
 
   // ---------- title ----------
@@ -560,13 +565,9 @@ export default function App() {
         <div className="menu">
           <button className="big xl" onClick={startOnScreen}>Play<small>the app deals and plays the enemy</small></button>
           <button className="xl" onClick={() => { setMode('guide'); setScreen('deal') }}>Play with real cards<small>you play at the table, the app guides you</small></button>
-          <button className="green" onClick={() => rulesRef.current?.showModal()}>How to play</button>
+          <button className="green" onClick={() => openMenu('rules')}>How to play</button>
         </div>
-        <dialog ref={rulesRef} className="modal" onClick={e => { if (e.target === e.currentTarget) e.currentTarget.close() }}>
-          <button className="close" onClick={() => rulesRef.current?.close()}>✕</button>
-          <h3>How to play</h3>
-          <div className="legend">{RULES_60}</div>
-        </dialog>
+        {menu()}
       </div>
     )
   }
@@ -588,9 +589,10 @@ export default function App() {
         </> },
     ]
     return (
-      <div className="page">{header}
+      <div className="page">{bar()}
         <h1>1. Deal the cards</h1>
         <Stepper steps={steps} at={setupStep} setAt={setSetupStep} done={<button className="big" onClick={() => setScreen('enter')}>Done — I have my 16 cards</button>} />
+        {menu()}
       </div>
     )
   }
@@ -598,7 +600,7 @@ export default function App() {
   if (screen === 'enter') {
     const set = new Set(my16)
     return (
-      <div className="page">{header}
+      <div className="page">{bar()}
         <h1>2. Tell me your 16 cards</h1>
         <p className="help">Tap each card you were dealt. <b>{my16.length}/16</b> selected. Tap again to deselect.</p>
         <CardPicker disabled={new Set()} selected={set} onPick={c => setMy16(a => a.includes(c.id) ? a.filter(x => x !== c.id) : a.length < 16 ? [...a, c.id] : a)} />
@@ -606,6 +608,7 @@ export default function App() {
           <button className="big" disabled={my16.length !== 16} onClick={() => { pickDeck(suggestDeck(mine).map(c => c.id)); setScreen('draft') }}>Next: build my deck</button>
           <button onClick={() => setMy16([])}>Clear</button>
         </div>
+        {menu()}
       </div>
     )
   }
@@ -616,7 +619,7 @@ export default function App() {
     const cheap = deck.filter(c => cost(c.rank) <= 3).length
     const slotName = ['Left (top)', 'Left 2', 'Left 3', 'Right (top)', 'Right 2', 'Right 3', 'King (top)', 'King 2']
     return (
-      <div className="page">{header}
+      <div className="page">{bar()}
         <h1>{mode === 'play' ? 'Your 16 cards: build your deck' : '3. Build your deck'}</h1>
         <p className="help">Pick <b>8 cards to play with</b>; the other 8 become your <b>towers</b>. A good deck is already picked for you: start now, or tap cards to change it.</p>
         <details className="help">
@@ -682,6 +685,7 @@ export default function App() {
               ? <button className="big" onClick={() => { advance(settle(startRound(makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES)))); setHistory([]); setScreen('play') }}>Start the game</button>
               : <button className="big" onClick={() => { reshuffle(); setScreen('table') }}>Next: set up the table</button>}
         </div>
+        {menu()}
       </div>
     )
   }
@@ -710,9 +714,10 @@ export default function App() {
         body: <p>Your towers on your side, the enemy's on the other, with room between them for <b>two lanes of 2 slots</b>. The screen shows the same table, so you can always check it.</p> },
     ]
     return (
-      <div className="page">{header}
+      <div className="page">{bar()}
         <h1>4. Set up the table</h1>
         <Stepper steps={steps} at={setupStep} setAt={setSetupStep} done={<button className="big" onClick={() => { advance(startRound(g)); setHistory([]); setPre(null); setScreen('play') }}>Start the game</button>} />
+        {menu()}
       </div>
     )
   }
@@ -777,6 +782,30 @@ export default function App() {
       <TCard tid={c.id} card={c} down={false} showCost selected={sel === i} dim={!standing && !canPlay(g, i)} onClick={() => tapHand(i)} />
     </div>
   ))
+  // the Hints page of the menu: the switches, then what they say about this moment
+  const hints = (
+    <div className="gm-hints">
+      <Toggle on={explainOn} set={setExplainOn}><b>Explain my options</b><small>List every card you can play and where</small></Toggle>
+      <Toggle on={suggestOn} set={setSuggestOn}><b>Suggest moves</b><small>{mode === 'play' ? 'A Hint button appears next to End turn' : 'The suggested move appears in the top bar'}</small></Toggle>
+      {mode === 'play' && <button onClick={() => { setTipsSeen([]); writeJSON(TIPS_KEY, []); setMenuOpen(false) }}>Show the tips again</button>}
+      <div className="donow">
+        <div className="dntitle">{TITLES[stage]}</div>
+        {stage !== 'my_play' && <ul className="todo">{g.lines.map((l, i) => <li key={i}>{l}</li>)}</ul>}
+        {stage === 'my_play' && (
+          <>
+            <p>Choose a card from your hand (or none), then where it goes. Faded cards cost more elixir than you have.</p>
+            {explainOn && <div className="explain"><b>Your options</b><ul>{options(g).map((o, i) => <li key={i}>{o}</li>)}</ul></div>}
+            {advice && (
+              <div className="advice"><b>Suggestion:</b> {advice.reason}
+                <div className="muted">It looks one round ahead using only what you can see on the table; it can't know the enemy's face-down cards. The plan can change as you draw new cards.</div>
+              </div>
+            )}
+          </>
+        )}
+        {help !== 'off' && g.why.length > 0 && <div className="why"><b>Why:</b> {g.why.join(' ')}</div>}
+      </div>
+    </div>
+  )
   const overlays = (
     <>
       <FxLayer pops={pops} />
@@ -798,32 +827,6 @@ export default function App() {
         </div>
       )}
 
-      <dialog ref={helpRef} className="modal" onClick={e => { if (e.target === e.currentTarget) e.currentTarget.close() }}>
-        <button className="close" onClick={() => helpRef.current?.close()}>✕</button>
-        <div className="pcol">
-        <div className="row"><b>Help:</b>
-          <label><input type="checkbox" checked={explainOn} onChange={e => setExplainOn(e.target.checked)} /> explain options</label>
-          <label><input type="checkbox" checked={suggestOn} onChange={e => setSuggestOn(e.target.checked)} /> suggest moves</label>
-          {mode === 'play' && <button onClick={() => { setTipsSeen([]); writeJSON(TIPS_KEY, []); helpRef.current?.close() }}>Show the tips again</button>}
-        </div>
-        <div className="donow">
-          <div className="dntitle">{TITLES[stage]}</div>
-          {stage !== 'my_play' && <ul className="todo">{g.lines.map((l, i) => <li key={i}>{l}</li>)}</ul>}
-          {stage === 'my_play' && (
-            <>
-              <p>Choose a card from your hand (or none), then where it goes. Faded cards cost more elixir than you have.</p>
-              {explainOn && <div className="explain"><b>Your options</b><ul>{options(g).map((o, i) => <li key={i}>{o}</li>)}</ul></div>}
-              {advice && (
-                <div className="advice"><b>Suggestion:</b> {advice.reason}
-                  <div className="muted">It looks one round ahead using only what you can see on the table; it can't know the enemy's face-down cards. The plan can change as you draw new cards.</div>
-                </div>
-              )}
-            </>
-          )}
-          {help !== 'off' && g.why.length > 0 && <div className="why"><b>Why:</b> {g.why.join(' ')}</div>}
-        </div>
-        </div>
-      </dialog>
       {stage === 'over' && !overSeen && (
         <div className="modal-backdrop">
           <div className={`gameover ${g.winner === 'P' ? 'won' : g.winner === 'E' ? 'lost' : 'drawn'}`}>
@@ -838,18 +841,6 @@ export default function App() {
           </div>
         </div>
       )}
-      <dialog ref={logDlgRef} className="modal" onClick={e => { if (e.target === e.currentTarget) e.currentTarget.close() }}>
-        <button className="close" onClick={() => logDlgRef.current?.close()}>✕</button>
-        <div className="pcol">
-        <h3>What happened</h3>
-        <div className="log" ref={logRef}>{g.log.map((l, i) => <div key={i} className={l.startsWith('—') ? 'sep' : ''}>{l}</div>)}</div>
-        </div>
-      </dialog>
-      <dialog ref={rulesRef} className="modal" onClick={e => { if (e.target === e.currentTarget) e.currentTarget.close() }}>
-        <button className="close" onClick={() => rulesRef.current?.close()}>✕</button>
-        <h3>Rules</h3>
-        <div className="legend">{RULES_60}</div>
-      </dialog>
     </>
   )
 
@@ -867,12 +858,7 @@ export default function App() {
     const eNext = g.E.queue[0]
     return (
       <div ref={playRef} className={`arena${side ? ' turn-' + side : ''}`} style={vars}>
-        <div className="top">{header}
-          <span className="spacer" />
-          <button onClick={() => helpRef.current?.showModal()}>Help</button>
-          <button onClick={() => logDlgRef.current?.showModal()}>Log</button>
-          <button onClick={() => rulesRef.current?.showModal()}>Rules</button>
-        </div>
+        <div className="top">{bar()}</div>
         <div className={`field ${shake}`}>
           <div className="castles theirs">
             {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} />)}
@@ -921,6 +907,7 @@ export default function App() {
           </div>
         )}
         {overlays}
+        {menu({ log: g.log, hints })}
       </div>
     )
   }
@@ -929,20 +916,14 @@ export default function App() {
 
   return (
     <div ref={playRef} className={`play${stage_.rot ? ' rot' : ''}${stage_.H < 560 ? ' compact' : ''}${side ? ' turn-' + side : ''}`} style={{ '--vw': `${stage_.W / 100}px`, '--vh': `${stage_.H / 100}px`, ...(stage_.rot ? { left: stage_.sw, width: stage_.W, height: stage_.H } : {}) } as CSSProperties}>
-      <div className="top">{header}
-        {stage === 'my_play' && (
+      <div className="top">{bar(stage === 'my_play' && (
           <div className="actions">
             {note && <span className="warn">{note}</span>}
             {sel !== null && <>Play {label(g.P.hand[sel])} → <button className="big" onClick={() => commit(playCard(g, sel, 0))}>LEFT</button><button className="big" onClick={() => commit(playCard(g, sel, 1))}>RIGHT</button></>}
             {advice?.kind === 'play' && <button className="suggest" title={advice.reason} onClick={() => commit(playCard(g, advice.handIndex, advice.lane))}>Suggest: {label(g.P.hand[advice.handIndex])} → {advice.lane === 0 ? 'LEFT' : 'RIGHT'}</button>}
             <button className="big done" onClick={() => commit(endMyTurn(g))}>End turn →</button>
           </div>
-        )}
-        {stage !== 'my_play' && <span className="spacer" />}
-        <button onClick={() => helpRef.current?.showModal()}>Help</button>
-        <button onClick={() => logDlgRef.current?.showModal()}>What happened</button>
-        <button onClick={() => rulesRef.current?.showModal()}>Rules</button>
-      </div>
+        ))}</div>
       <div className={`board ${shake}`}>
         {/* columns: 1 queue/discard · 2 king · 3 tower · 4-7 lane · 8 tower · 9 king · 10 pile/discard; rows: enemy elixir · left lane · right lane · your elixir */}
         <BarCells n={g.E.elixir} who="ENEMY" row={1} at={at} />
@@ -986,6 +967,7 @@ export default function App() {
       </div>
 
       {overlays}
+      {menu({ log: g.log, hints, turned: stage_.rot ? { left: stage_.sw, width: stage_.W, height: stage_.H } : undefined })}
     </div>
   )
 }

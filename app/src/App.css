@@ -17,16 +17,16 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; letter-spacing: .01e
 .page { max-width: 1000px; margin: 0 auto; padding: 16px 20px 60px; }
 .help { line-height: 1.5; background: var(--panel); border: 2px solid var(--edge); padding: 10px 14px; border-radius: 14px; box-shadow: inset 0 2px 0 rgba(255,255,255,.08), 0 6px 18px rgba(0,0,0,.35); }
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
-/* push buttons: a bevel on top, a solid "base" underneath that the button presses into */
-button {
+/* push buttons (shadcn's Button gets the same look from the `push` utility in index.css): a bevel on top, a solid "base" underneath that the button presses into */
+button:where(:not([data-slot])) {
   font-family: var(--display); font-size: 15px; letter-spacing: .02em; color: #fff; cursor: pointer;
   padding: 8px 16px; border-radius: 10px; border: 2px solid #142a66;
   background: linear-gradient(#5b8cf0, #345fcc); box-shadow: inset 0 2px 0 rgba(255,255,255,.4), 0 4px 0 #142a66;
   text-shadow: 0 2px 0 rgba(0,0,0,.4); transition: transform .08s var(--ease-out), box-shadow .08s var(--ease-out), filter .15s var(--ease-out);
 }
-button:hover:not(:disabled) { filter: brightness(1.1); }
-button:active:not(:disabled) { transform: translateY(3px); box-shadow: inset 0 2px 0 rgba(255,255,255,.4), 0 1px 0 #142a66; }
-button:disabled { filter: grayscale(.8) brightness(.7); cursor: not-allowed; }
+button:where(:not([data-slot])):hover:not(:disabled) { filter: brightness(1.1); }
+button:where(:not([data-slot])):active:not(:disabled) { transform: translateY(3px); box-shadow: inset 0 2px 0 rgba(255,255,255,.4), 0 1px 0 #142a66; }
+button:where(:not([data-slot])):disabled { filter: grayscale(.8) brightness(.7); cursor: not-allowed; }
 button.big { font-size: 17px; padding: 10px 24px; border-color: var(--gold-ink); background: linear-gradient(var(--gold), var(--gold-d)); box-shadow: inset 0 2px 0 rgba(255,255,255,.55), 0 4px 0 var(--gold-ink); text-shadow: 0 2px 0 var(--gold-ink), 0 0 3px var(--gold-ink); }
 button.big:active:not(:disabled) { box-shadow: inset 0 2px 0 rgba(255,255,255,.55), 0 1px 0 var(--gold-ink); }
 button.green { border-color: var(--green-ink); background: linear-gradient(var(--green), var(--green-d)); box-shadow: inset 0 2px 0 rgba(255,255,255,.45), 0 4px 0 var(--green-ink); }
@@ -334,21 +334,16 @@ h3 { margin: 18px 0 8px; }
 .hand .aces .ud { display: flex; align-items: center; gap: 3px; color: #fff; font-size: calc(var(--cw) * .3); font-weight: 800; white-space: nowrap; }
 .hdrag.lifted { opacity: .35; }
 
-.modal { background: #0a2d20; color: inherit; border: 1px solid #4a9; border-radius: 10px; padding: 14px 18px; width: min(640px, 92vw); max-height: 85vh; overflow: auto; }
-.modal::backdrop { background: rgba(0,0,0,.6); }
-.modal[open], .gameover { animation: dlgin .2s var(--ease-out); }
-.modal[open]::backdrop, .modal-backdrop { animation: fadein .2s var(--ease-out); }
+.gameover { animation: dlgin .2s var(--ease-out); }
+.modal-backdrop { animation: fadein .2s var(--ease-out); }
 @keyframes dlgin { from { opacity: 0; scale: .96; } }
 @keyframes fadein { from { opacity: 0; } }
-.modal .close { position: absolute; top: 8px; right: 8px; padding: 2px 8px; }
-.modal .pcol { overflow: visible; }
-.modal .log { max-height: 50vh; overflow: auto; }
 
 /* cost preview: one frame around the elixir cards the dragged / hovered / selected card would spend */
 .sgroup { display: inline-flex; align-items: center; gap: 3px; padding: 3px; border: 3px solid #ffd34d; border-radius: 8px; }
 .sgroup.cells { display: block; padding: 0; margin-top: 14px; pointer-events: none; z-index: 5; }
 
-.topbar button:disabled { opacity: .35; cursor: not-allowed; }
+.topbar button:where(:not([data-slot])):disabled { opacity: .35; cursor: not-allowed; }
 
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: grid; place-items: center; z-index: 50; }
 .gameover { background: #0a2d20; border: 2px solid #4a9; border-radius: 12px; padding: 18px 26px; width: min(480px, 92vw); max-height: 85vh; overflow: auto; text-align: center; }
@@ -363,9 +358,8 @@ html:has(.play), html:has(.play) body { overflow: hidden; overscroll-behavior: n
 .play { position: relative; }
 /* upright phone: turn the table a quarter turn about its top-left corner so it fills the screen */
 .play.rot { position: fixed; top: 0; transform-origin: 0 0; transform: rotate(90deg); }
-/* dialogs live in the top layer, outside the turned table, so turn them the same way */
-html.rot .modal .log { max-height: 50dvw; }
-html.rot .modal, html.rot .gameover { transform: rotate(90deg); width: min(640px, 92dvh); max-height: 85dvw; }
+/* the game-over box sits outside the turned table, so turn it the same way */
+html.rot .gameover { transform: rotate(90deg); width: min(640px, 92dvh); max-height: 85dvw; }
 
 /* short screens (phones on their side): trim the chrome so the cards get the room */
 .play.compact { gap: 2px; padding: 2px 10px 4px; --cw: min(calc(((100 * var(--vw)) - 90px) / 18.5), calc(((100 * var(--vh)) - 150px) / 5 * .714)); }
@@ -394,7 +388,7 @@ html.rot .modal, html.rot .gameover { transform: rotate(90deg); width: min(640px
 .play.compact .top .actions .warn { display: none; }
 
 .top { flex-wrap: nowrap; gap: 8px; white-space: nowrap; }
-.top button { padding: 5px 10px; font-size: 13px; }
+.top button:where(:not([data-slot])) { padding: 5px 10px; font-size: 13px; }
 .top .muted { display: none; }
 .top .actions { flex-wrap: nowrap; gap: 6px; font-size: 13px; }
 .top .actions .big { padding: 5px 12px; font-size: 13px; }
@@ -411,15 +405,14 @@ html.rot .modal, html.rot .gameover { transform: rotate(90deg); width: min(640px
 .top .actions .done { background: linear-gradient(var(--gold), var(--gold-d)); border-color: var(--gold-ink); }
 .top .actions .suggest { border-color: var(--green-ink); background: linear-gradient(var(--green), var(--green-d)); box-shadow: inset 0 2px 0 rgba(255,255,255,.45), 0 4px 0 var(--green-ink); }
 .top .actions .warn { font-family: 'Baloo 2 Variable', system-ui, sans-serif; }
-.top button { box-shadow: inset 0 2px 0 rgba(255,255,255,.4), 0 3px 0 rgba(0,0,0,.45); }
+.top button:where(:not([data-slot])) { box-shadow: inset 0 2px 0 rgba(255,255,255,.4), 0 3px 0 rgba(0,0,0,.45); }
 
 /* card picker keys stay card-like */
 .pbtn { font-family: 'Baloo 2 Variable', system-ui, sans-serif; font-weight: 800; text-shadow: none; background: #f4f4ee; border: 2px solid #8b8b84; box-shadow: 0 3px 0 #6d6d66; }
 .pbtn:hover:not(:disabled) { background: #ffe9a8; filter: none; }
 
-/* dialogs and the game-over box: blue panels with a gold rim */
-.modal, .gameover { background: linear-gradient(#24408c, #172a5e); border: 3px solid var(--gold-d); border-radius: 16px; box-shadow: 0 0 0 3px #0b1430, 0 18px 40px rgba(0,0,0,.6); }
-.modal .close { padding: 2px 9px; font-size: 13px; }
+/* the game-over box and the menu: blue panels with a gold rim */
+.gameover { background: linear-gradient(#24408c, #172a5e); border: 3px solid var(--gold-d); border-radius: 16px; box-shadow: 0 0 0 3px #0b1430, 0 18px 40px rgba(0,0,0,.6); }
 .donow, .explain, .advice, .lastaction { border-radius: 10px; }
 .donow { background: rgba(0,0,0,.25); border-color: var(--edge); }
 .dntitle { font-family: var(--display); font-weight: 400; font-size: 20px; color: var(--gold); text-shadow: 0 2px 0 rgba(0,0,0,.5); }
@@ -429,7 +422,6 @@ html.rot .modal, html.rot .gameover { transform: rotate(90deg); width: min(640px
 
 /* setup pages */
 .topbar { gap: 12px; padding: 4px 0 10px; }
-.topbar .red { margin-left: auto; }
 .picktag { font-family: var(--display); letter-spacing: .05em; }
 .pick.indeck .picktag { color: var(--gold); }
 
@@ -494,16 +486,14 @@ details.help[open] > summary { margin-bottom: 8px; }
 }
 @media (prefers-reduced-motion: reduce) { .pop, .pop.round { animation: fade 1.4s forwards; } }
 @keyframes fade { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
-.topbar .mute { padding-left: 10px; padding-right: 10px; }
 
 /* ---------- arena: on-screen play, upright like Clash (enemy on top, you at the bottom) ---------- */
 .arena { position: relative; height: 100dvh; max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 5px; box-sizing: border-box; overflow: hidden;
   padding: 4px 8px calc(6px + env(safe-area-inset-bottom)); --popsize: clamp(24px, calc(var(--cw) * .5), 44px); }
 .arena .top { flex: none; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .arena .topbar { flex-wrap: nowrap; gap: 6px; padding: 0; }
-.arena .top button { padding: 4px 9px; font-size: 13px; }
-.arena .topbar .red { margin-left: 0; }
-@media (max-width: 520px) { .arena .logo, .arena .modechip, .arena .lbl { display: none; } }
+.arena .top button:where(:not([data-slot])) { padding: 4px 9px; font-size: 13px; }
+@media (max-width: 520px) { .arena .logo, .arena .modechip { display: none; } }
 
 .field { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 6px 4px; border-radius: 18px;
   background: radial-gradient(ellipse at 50% 50%, #5cbf4a, #3f9a37 60%, #2f7d2b);
@@ -656,8 +646,7 @@ button.linkish:active { transform: none; }
 .mtable .mt-lane { background: rgba(255,255,255,.12); border: 1px dashed rgba(255,255,255,.5); min-width: 110px; }
 @media (max-width: 440px) { .page .topbar .modechip { display: none; } .page .topbar { flex-wrap: nowrap; } }
 @media (min-width: 700px) { .mc { width: 32px; height: 45px; font-size: 13px; } .mstack { width: 52px; height: 62px; } }
-.modal, .gameover { box-sizing: border-box; }
-.modal { text-align: left; }
+.gameover { box-sizing: border-box; }
 .elixrow .hint { min-width: 92px; }
 .mid .round, .mid .rule { white-space: nowrap; }
 
@@ -665,6 +654,7 @@ button.linkish:active { transform: none; }
 @media (prefers-reduced-motion: reduce) {
   .flip, .eflip, .crk, .card { transition: none; }
   .card { animation-name: fadein; }
-  .modal[open], .gameover { animation-name: fadein; }
+  .gameover { animation-name: fadein; }
   .spot.slot.droppable::after { animation: none; opacity: 1; }
 }
+
