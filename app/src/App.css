@@ -443,8 +443,8 @@ details.help[open] > summary { margin-bottom: 8px; }
 @media (prefers-reduced-motion: reduce) { .stepbar { animation: none; } }
 /* .pbtn.red means a red suit, not the red "leave" button */
 .pbtn.red { color: #c0262d; background: #f4f4ee; border-color: #8b8b84; box-shadow: 0 3px 0 #6d6d66; text-shadow: none; }
-.stepbar.over { width: auto; display: flex; align-items: center; gap: 18px; }
-.stepbar.over .row { margin: 0; }
+.stepbar.over { width: auto; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.stepbar.over .row { margin: 0; flex-wrap: nowrap; }
 
 /* ---------- game feel: pop-ups over the board and the board shake (driven by the step's events, see fx.tsx) ---------- */
 .fxlayer { position: absolute; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
