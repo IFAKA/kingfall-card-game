@@ -479,7 +479,8 @@ export default function App() {
     if (d.length) setSaid((sp && !last.includes(sp) ? [sp, d[d.length - 1]] : last).map(x => x.s))
     else if (game.stage === 'my_play') setSaid([])
   }, [game])
-  useEffect(() => { if (game?.stage !== 'over') setOverSeen(false) }, [game?.stage])
+  const browsing = useRef(false) // undo/redo after the end is the player studying the game, so the result stays dismissed
+  useEffect(() => { if (game?.stage !== 'over' && !browsing.current) setOverSeen(false); browsing.current = false }, [game?.stage])
 
   useEffect(() => {
     const s: Saved = { mode, secret, screen, my16, deckIds, slotIds, help, pre, game, history: history.slice(-60) }
@@ -503,8 +504,8 @@ export default function App() {
   }
   const settle = (g: GuideState) => (mode === 'play' ? autoReveal(g, secret) : g)
   const commit = (g: GuideState) => { setHistory(h => [...h, game!]); setFuture([]); advance(settle(g)); setSel(null); setBad(null) }
-  const undo = () => { if (!history.length || !game) return; setFuture(f => [...f, game]); setGame(history[history.length - 1]); setHistory(h => h.slice(0, -1)); setSel(null); setBad(null) }
-  const redo = () => { if (!future.length || !game) return; setHistory(h => [...h, game]); setGame(future[future.length - 1]); setFuture(f => f.slice(0, -1)); setSel(null); setBad(null) }
+  const undo = () => { if (!history.length || !game) return; browsing.current = true; setFuture(f => [...f, game]); setGame(history[history.length - 1]); setHistory(h => h.slice(0, -1)); setSel(null); setBad(null) }
+  const redo = () => { if (!future.length || !game) return; browsing.current = true; setHistory(h => [...h, game]); setGame(future[future.length - 1]); setFuture(f => f.slice(0, -1)); setSel(null); setBad(null) }
 
   const pickDeck = (ids: string[]) => {
     setDeckIds(ids)
