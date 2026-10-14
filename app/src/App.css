@@ -668,3 +668,9 @@ button.linkish:active { transform: none; }
 /* after the game: Play again and Result sit in the middle of the top bar, each on one line */
 .arena .topbar { position: relative; }
 .overbtns { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; gap: 8px; white-space: nowrap; }
+
+/* fixed castle rows: a fallen tower (no armor or top card) must not resize the row and shift the lanes and the middle */
+.castles { height: calc(var(--cw) * 1.49 + max(9px, var(--cw) * .28) + max(12px, var(--cw) * .27) * 1.3 + 24px); flex: none; }
+.castles .castle { height: 100%; justify-content: flex-start; }
+.castles.theirs { align-items: stretch; } .castles.mine { align-items: stretch; }
+.castle.fallen .cname { margin-top: 2px; }
