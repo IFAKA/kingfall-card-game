@@ -1,7 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#0d3b2a"/>
-  <rect x="17" y="9" width="30" height="44" rx="4" fill="#3150b8" stroke="#fff" stroke-width="2" transform="rotate(-12 32 31)"/>
-  <rect x="19" y="11" width="30" height="44" rx="4" fill="#fbfbf6" stroke="#999" stroke-width="1.5" transform="rotate(8 34 33)"/>
-  <path d="M24 40 L22 26 L29 32 L34 22 L39 32 L46 26 L44 40 Z" fill="#c8861b" stroke="#7a4c08" stroke-width="1.5" stroke-linejoin="round" transform="rotate(8 34 33)"/>
-  <circle cx="47" cy="49" r="8" fill="#7a3fd1" stroke="#fff" stroke-width="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="20%" r="85%"><stop offset="0" stop-color="#3a5cb8"/><stop offset=".5" stop-color="#1d3474"/><stop offset="1" stop-color="#0e1838"/></radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff2b0"/><stop offset=".45" stop-color="#ffcf3a"/><stop offset="1" stop-color="#e39a00"/></linearGradient>
+    <pattern id="stripes" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="16" fill="#263a8c"/><rect x="8" width="8" height="16" fill="#3150b8"/></pattern>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <g transform="rotate(-13 256 270)"><rect x="166" y="140" width="180" height="252" rx="18" fill="url(#stripes)" stroke="#fff" stroke-width="8"/></g>
+  <g transform="rotate(9 256 270)">
+    <rect x="176" y="136" width="180" height="252" rx="18" fill="#fbfbf6" stroke="#0b1430" stroke-width="5"/>
+    <path d="M206 312 L196 222 L238 252 L266 196 L294 252 L336 222 L326 312 Z" fill="url(#gold)" stroke="#3a2300" stroke-width="7" stroke-linejoin="round"/>
+    <circle cx="196" cy="220" r="11" fill="#ffcf3a" stroke="#3a2300" stroke-width="6"/><circle cx="266" cy="194" r="11" fill="#ffcf3a" stroke="#3a2300" stroke-width="6"/><circle cx="336" cy="220" r="11" fill="#ffcf3a" stroke="#3a2300" stroke-width="6"/>
+    <rect x="206" y="322" width="120" height="20" rx="6" fill="url(#gold)" stroke="#3a2300" stroke-width="6"/>
+  </g>
 </svg>

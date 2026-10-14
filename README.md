@@ -33,13 +33,14 @@ Full rules: [RULEBOOK.md](RULEBOOK.md) · Printable rulebook (2 pages, A4): [pri
 
 - **Game feel:** "×2!", "ACE!", "CRACK" and "TOWER DOWN!" pop-ups, board shake and sound effects. Every fight also says in plain words why it was won.
 - **Arena view** on screen: castles with armor pips, two lanes with a river, an elixir bar and your hand with the next card. The purple elixir cost shows only where you need it: your hand, your next card and the enemy's next card. Cards already in the lanes stay clean.
-- **Deck building:** pick 8 of your 16 cards with an average-cost meter. A good deck is picked for you, so you can start in one tap.
+- **Deck building:** your 16 cards arrive split at random into a deck of 8 and three towers; building a good deck is up to you. Tap two cards to swap them and watch the average-cost meter. **Suggest** sets a good split once per hand. On screen, **Deal** shuffles all 52 cards and deals new hands, card by card, as often as you like.
+- **Installable app:** add it to your home screen (Install in the menu, or Share → Add to Home Screen on iPhone). After one visit it plays offline.
 - **Real-cards setup in pictures:** one step per screen, from shuffling to laying out the table.
 - **Undo and redo**, game saved in the browser, an optional suggested move, and a log of everything that happened.
 - **Balanced by simulation:** thousands of simulated games tuned the rules. Random play wins about 4%, a careful player about 85–90%.
 
 <p align="center">
-  <img src="docs/screenshots/deck.png" alt="Kingfall deck building screen: 8 deck slots with an average elixir cost meter, and the other cards below" width="420" />
+  <img src="docs/screenshots/deck.png" alt="Kingfall deck building screen: the 8 deck cards on top, the three towers with their armor cards under blue castles, and the average elixir cost meter with Start the game at the bottom" width="420" />
   &nbsp;
   <img src="docs/screenshots/real-cards-setup.png" alt="Kingfall real-cards setup step: two rows of face-down cards as elixir bars with the 5th card turned sideways as the marker" width="420" />
 </p>

@@ -28,6 +28,10 @@ npm run preview    # serve the production build locally
 - **Vercel (the live site):** the Vercel project `kingfall` builds from this `app/` folder; every push to `main` deploys to production.
 - **Netlify / Cloudflare Pages / GitHub Pages:** publish the `dist/` folder; there is no server code.
 
+It is also an installable app (PWA): `public/manifest.webmanifest` and the icons in `public/` describe it, and the build writes `dist/sw.js`, a service worker that saves every file the game needs so it plays offline after one visit (see `vite.config.ts`; it registers only in production builds). Each build gets a new cache name, so a deploy replaces the old copy.
+
+It is also an installable app (PWA): `public/manifest.webmanifest` and the icons in `public/` describe it, and the build writes `dist/sw.js`, a service worker that saves every file of the game on the first visit so it then starts and plays offline. Each release gets a new cache, so players get the new version on their next visit. `npm run dev` doesn't register it; try it with `npm run build && npm run preview`.
+
 The SEO tags (title, description, preview image, structured data) are in `index.html`; `public/robots.txt`, `public/sitemap.xml` and `public/og.png` go with them. Update the URLs there if the site moves to another domain.
 
 When the rules change in a way that makes old saved games invalid, bump `STORAGE_KEY` in `src/App.tsx`.

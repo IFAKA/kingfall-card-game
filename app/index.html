@@ -2,14 +2,19 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Kingfall: free solo card game, a lane battle with a 52-card deck</title>
     <meta name="description" content="Kingfall is a free one-player card game: a Clash Royale-inspired lane battle. Play it in your browser, or with a real 52-card deck while the app runs the enemy. Spend elixir, send cards down two lanes, crack the towers and take down the enemy king." />
     <link rel="canonical" href="https://kingfall-card-game.vercel.app/" />
     <meta name="theme-color" content="#14234f" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <link rel="apple-touch-icon" href="./favicon.svg" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
+    <!-- installed on a phone's home screen: full screen, the page draws under the status bar (the safe-area insets keep it clear) -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Kingfall" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Kingfall" />

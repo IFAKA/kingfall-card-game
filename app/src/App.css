@@ -60,14 +60,6 @@ button.red:active:not(:disabled) { box-shadow: inset 0 2px 0 rgba(255,255,255,.4
 @keyframes bob { 0%, 100% { transform: translate(var(--x), var(--y)) rotate(var(--r)); } 50% { transform: translate(var(--x), calc(var(--y) - 7px)) rotate(var(--r)); } }
 @media (prefers-reduced-motion: reduce) { .titlefan .card { animation: none; transform: translate(var(--x), var(--y)) rotate(var(--r)); } }
 select { padding: 6px; }
-.pickgrid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; }
-.pick, .slotpick { text-align: center; }
-.picktag { font-size: 11px; opacity: .75; margin-top: 2px; }
-.pick.indeck .picktag { color: #ffd36b; font-weight: 700; opacity: 1; }
-.summary { margin: 12px 0; font-size: 15px; }
-.warn { color: #ffb86b; }
-.towerrow { display: flex; gap: 28px; flex-wrap: wrap; }
-.tname { font-size: 12px; opacity: .8; margin-bottom: 3px; }
 
 /* cards */
 .card { width: 62px; height: 88px; border-radius: 7px; position: relative; box-sizing: border-box; flex: none; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,.4); animation: pop .2s var(--ease-out); transition: transform .15s var(--ease-out); }
@@ -166,12 +158,6 @@ select { padding: 6px; }
 .help ul, .help ol { margin: 6px 0 10px; padding-left: 22px; } .help li { margin: 3px 0; }
 .help { padding: 14px 18px; margin: 12px 0 18px; }
 .row { margin: 14px 0; }
-.pickgrid { row-gap: 26px; margin-top: 18px; }
-.pick, .slotpick { padding-top: 8px; }
-.picktag { margin-top: 8px; }
-.summary { margin: 22px 0 18px; }
-.towerrow { margin: 10px 0 22px; row-gap: 22px; }
-.tname { margin-bottom: 8px; }
 h3 { margin: 18px 0 8px; }
 
 /* elixir bar drawn as real little cards */
@@ -276,9 +262,7 @@ h3 { margin: 18px 0 8px; }
 /* setup screens on phones */
 @media (max-width: 760px) {
   .page { padding: 10px 12px 40px; }
-  .pickgrid { grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); row-gap: 18px; }
   .cols { grid-template-columns: minmax(0, 1fr); }
-  .towerrow { gap: 16px; }
   h1 { font-size: 22px; }
 }
 
@@ -370,15 +354,10 @@ h3 { margin: 18px 0 8px; }
 
 /* setup pages */
 .topbar { gap: 12px; padding: 4px 0 10px; }
-.picktag { font-family: var(--display); letter-spacing: .05em; }
-.pick.indeck .picktag { color: var(--gold); }
 
-/* ---------- deck screen: short intro, details folded, start bar always in reach ---------- */
+/* a folded help box (the rules in the setup steps) */
 details.help > summary { cursor: pointer; font-family: var(--display); color: var(--gold); letter-spacing: .02em; }
 details.help[open] > summary { margin-bottom: 8px; }
-.draftbar { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; margin: 16px -20px 0; padding: 10px 20px calc(10px + env(safe-area-inset-bottom));
-  background: linear-gradient(to bottom, rgba(14, 24, 56, .85), var(--navy) 40%); border-top: 2px solid var(--edge); }
-.draftbar .summary { margin: 0; flex: 1 1 260px; }
 
 @keyframes stepin { from { opacity: 0; transform: translate(-50%, 10px); } }
 /* .pbtn.red means a red suit, not the red "leave" button */
@@ -525,25 +504,6 @@ details.help[open] > summary { margin-bottom: 8px; }
 .coach .big { padding: 7px 22px; font-size: 18px; }
 button.linkish { background: none; border: none; box-shadow: none; text-shadow: none; color: #6e4300; font-family: 'Baloo 2 Variable', system-ui, sans-serif; font-weight: 700; text-decoration: underline; padding: 4px; font-size: 16px; }
 button.linkish:active { transform: none; }
-
-/* ---------- deck screen: 8 slots + average cost, the rest below ---------- */
-.deckbox { margin: 14px 0 6px; padding: 10px 12px 14px; background: var(--panel); border: 2px solid var(--gold-d); border-radius: 16px; box-shadow: inset 0 2px 0 rgba(255,255,255,.08), 0 6px 18px rgba(0,0,0,.35); }
-.deckhead { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 10px; }
-.deckhead b { font-family: var(--display); font-weight: 400; font-size: 19px; color: var(--gold); }
-.deckhead .muted { font-size: 13px; }
-.avgcost { margin-left: auto; display: flex; align-items: center; gap: 6px; }
-.avgcost .edrop { width: 32px; height: 34px; font-size: 13px; }
-.avgbar { position: relative; width: 90px; height: 10px; border-radius: 6px; background: #1d1238; border: 2px solid #0b0720; overflow: hidden; }
-.avgbar i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(#ec9cff, #b445e8); width: 100%; transition: transform .25s var(--ease-out); }
-.avglbl { font-family: var(--display); font-size: 13px; color: #e7c9ff; min-width: 62px; text-transform: uppercase; }
-.deckslots { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; justify-items: center; padding-top: 6px; }
-.dslot.empty { width: 62px; height: 88px; border: 2px dashed rgba(255,255,255,.3); border-radius: 8px; background: rgba(0,0,0,.15); box-sizing: border-box; }
-.towerhead { margin: 18px 0 4px; }
-.towerhead small { display: block; font-family: 'Baloo 2 Variable', system-ui, sans-serif; font-size: 13px; opacity: .8; margin-top: 2px; }
-@media (max-width: 640px) {
-  .deckslots, .pickgrid { grid-template-columns: repeat(4, 1fr); }
-  .avgcost { margin-left: 0; width: 100%; }
-}
 
 /* ---------- setup steppers (real cards): one step per screen with a picture ---------- */
 .stepper { max-width: 680px; margin: 10px auto 0; padding: 14px 18px 18px; background: var(--panel); border: 2px solid var(--edge); border-radius: 18px; box-shadow: inset 0 2px 0 rgba(255,255,255,.08), 0 6px 18px rgba(0,0,0,.35); }
@@ -750,3 +710,8 @@ button.fkey:disabled { opacity: .25; filter: none; }
   .tpile.flipme .tcard .cf, .tfan.flipme .fc:first-child .cf { animation: none; box-shadow: 0 0 0 3px var(--gold); }
   .bc, .fancards .fc { transition: none; }
 }
+
+/* installed as an app on a phone the page runs under the status bar and the home indicator: keep clear of both */
+.title { padding-top: max(24px, env(safe-area-inset-top)); }
+.page { padding-top: max(10px, env(safe-area-inset-top)); }
+.arena { padding-top: calc(4px + env(safe-area-inset-top)); padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }

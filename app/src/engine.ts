@@ -74,6 +74,20 @@ export function suggestDeck(cards: Card[]): Card[] {
   return [...s.slice(0, 3), ...s.slice(-5)]
 }
 
+// a random split of 16 cards, as dealt: the player builds the deck from here (the suggestion is only on request)
+export function randomSetup(cards: Card[], rnd: () => number = Math.random): { deckIds: string[]; slotIds: string[] } {
+  const ids = shuffle(cards, rnd).map(c => c.id)
+  return { deckIds: ids.slice(0, 8), slotIds: ids.slice(8) }
+}
+
+// the suggested split of 16 cards: the suggested deck, and the other 8 laid out as towers (ids, in tower-slot order)
+// (sorted first, so equal ranks split the same way whatever order the cards come in)
+export function suggestSetup(cards: Card[]): { deckIds: string[]; slotIds: string[] } {
+  const all = [...cards].sort((a, b) => b.rank - a.rank || a.suit - b.suit)
+  const deck = suggestDeck(all)
+  return { deckIds: deck.map(c => c.id), slotIds: autoTowers(all.filter(c => !deck.includes(c))).map(c => c.id) }
+}
+
 export function newGame(
   deck: Card[],
   towerSlots: Card[],

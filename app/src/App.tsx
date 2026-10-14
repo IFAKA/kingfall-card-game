@@ -1,8 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import { motion } from 'framer-motion'
 import confetti from 'canvas-confetti'
-import { DEFAULT_RULES, RANKS, SUITS, autoTowers, cost, deal, freshDeck, isRed, label, shuffle, suggestDeck } from './engine'
+import { DEFAULT_RULES, RANKS, SUITS, cost, deal, freshDeck, isRed, label, randomSetup, shuffle } from './engine'
 import type { Card, Unit } from './engine'
 import {
   advise, adviseLastStand, autoReveal, canPlay, describe, endMyTurn, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary,
@@ -14,7 +13,10 @@ import { isMuted, setMuted, sfx } from './sfx'
 import { Lightbulb, Redo2, Undo2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { CardText, Choice, GameMenu, RulesSheet } from './Menu'
+import { CardText, Choice, GameMenu, InstallLink, RulesSheet } from './Menu'
+import { CastleArt, TCard } from './Pieces'
+import { useViewport } from '@/hooks/use-viewport'
+import DeckBuilder from './DeckBuilder'
 
 type Help = 'off' | 'explain' | 'suggest'
 type Screen = 'title' | 'deal' | 'enter' | 'draft' | 'table' | 'play'
@@ -42,9 +44,6 @@ function CardView({ card, down, showCost, selected, dim, small, onClick }: {
   )
 }
 
-// A card on the board: it has a stable id (tid), so when it changes place it SLIDES there instead of jumping.
-// A card that is revealed (face-down -> face-up) FLIPS while it moves.
-const faceMemory = new Map<string, boolean>()
 // the 3D flip makes browsers snapshot the card's back, so drag a flat copy of the face instead
 function makeGhost(el: HTMLElement, x: number, y: number) {
   const card = el.querySelector('.tcard') as HTMLElement | null
@@ -98,37 +97,6 @@ function WinConfetti() {
   return null
 }
 
-function TCard({ tid, card, down, selected, dim, showCost, onClick }: {
-  tid: string; card: Card | null; down: boolean; selected?: boolean; dim?: boolean; showCost?: boolean; onClick?: () => void
-}) {
-  const [shown, setShown] = useState<boolean>(faceMemory.get(tid) ?? down)
-  useEffect(() => {
-    faceMemory.set(tid, down)
-    // flip on the next frame, so a card that just moved here starts from the face it had before
-    const f = requestAnimationFrame(() => setShown(down))
-    return () => cancelAnimationFrame(f)
-  }, [tid, down])
-  return (
-    <motion.div
-      layoutId={tid} layout
-      transition={{ layout: { duration: 0.5, ease: [0.77, 0, 0.175, 1] } }}
-      className={`tcard ${selected ? 'selected' : ''} ${dim ? 'dim' : ''} ${onClick ? 'clickable' : ''}`}
-      style={{ zIndex: 5 }} onClick={onClick} data-tid={tid}
-    >
-      <div className={`flip ${shown ? 'down' : ''}`}>
-        <div className={`cf front ${card && isRed(card) ? 'red' : 'black'}`}>
-          {card && <>
-            <div className="corner">{RANKS[card.rank]}<br />{SUITS[card.suit]}</div>
-            <div className="pip">{SUITS[card.suit]}</div>
-            {showCost && <div className="cost" title="elixir cost">{cost(card.rank)}</div>}
-          </>}
-        </div>
-        <div className="cf backside" />
-      </div>
-    </motion.div>
-  )
-}
-
 // Pop-ups from the latest step (see fx.ts), drawn over the board.
 function FxLayer({ pops }: { pops: Pop[] }) {
   return (
@@ -152,13 +120,7 @@ function Castle({ k, items, own, cracked }: { k: 'L' | 'R' | 'K'; items: ESlot[]
   return (
     <div className={`castle ${own ? 'mine' : 'theirs'} ${k === 'K' ? 'king' : ''} ${items.length ? '' : 'fallen'}`} data-anchor={`tower-${own ? 'P' : 'E'}-${k}`}
       title={`${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower: ${items.length} card${items.length === 1 ? '' : 's'} of armor${known ? `; a soldier needs rank ${RANKS[known.rank]} or more to break the top one` : ''}`}>
-      <svg className="cart" viewBox={k === 'K' ? '0 0 64 56' : '0 16 64 40'} aria-hidden>
-        {k === 'K'
-          ? <path d="M6 54V22h8v6h8V14h8v6h4v-6h8v14h8v-6h8v32z" />
-          : <path d="M12 54V18h8v6h6v-6h12v6h6v-6h8v36z" />}
-        {k === 'K' && <path className="crown" d="M21 10l1-8 5 5 5-6 5 6 5-5 1 8z" />}
-        <path className="door" d="M27 54V42a5 5 0 0 1 10 0v12z" />
-      </svg>
+      <CastleArt king={k === 'K'} />
       <div className="armor">{items.map(it => <i key={it.tid} className={cracked.includes(it.tid) ? 'crk' : ''} />)}</div>
       <div className="tslot">{known
         ? <div className={`topcard ${isRed(known) ? 'red' : ''}`}>{RANKS[known.rank]}{SUITS[known.suit]}</div>
@@ -280,18 +242,6 @@ function spendRange(n: number, spend: number): [number, number] {
   return [from, Math.min(10, from + spend)]
 }
 
-// The window size: the arena sizes its cards from it.
-function useViewport() {
-  const read = () => ({ sw: innerWidth, sh: innerHeight })
-  const [v, setV] = useState(read)
-  useEffect(() => {
-    const f = () => setV(read())
-    addEventListener('resize', f); addEventListener('orientationchange', f)
-    return () => { removeEventListener('resize', f); removeEventListener('orientationchange', f) }
-  }, [])
-  return v
-}
-
 // The table instructions shout their key words (BOTTOM, FACE-UP, LEFT); on the panel they read as bold words in a normal sentence, card names as little cards.
 function Said({ text }: { text: string }) {
   let before = ''
@@ -407,7 +357,6 @@ export default function App() {
   const [mode, setMode] = useState<'guide' | 'play'>(saved?.mode ?? 'guide')
   const [secret, setSecret] = useState<Record<string, Card>>(saved?.secret ?? {})
   const [bad, setBad] = useState<number | null>(null) // a card tapped that costs more than you have
-  const [swapFrom, setSwapFrom] = useState<number | null>(null)
   const [explainOn, setExplainOn] = useState(saved ? saved.help === 'explain' : false)
   const [suggestOn, setSuggestOn] = useState(saved ? saved.help === 'suggest' : false)
   const help: Help = suggestOn ? 'suggest' : explainOn ? 'explain' : 'off'
@@ -508,31 +457,14 @@ export default function App() {
   const undo = () => { if (!history.length || !game) return; browsing.current = true; setFuture(f => [...f, game]); setGame(history[history.length - 1]); setHistory(h => h.slice(0, -1)); setSel(null); setBad(null) }
   const redo = () => { if (!future.length || !game) return; browsing.current = true; setHistory(h => [...h, game]); setGame(future[future.length - 1]); setFuture(f => f.slice(0, -1)); setSel(null); setBad(null) }
 
-  const pickDeck = (ids: string[]) => {
-    setDeckIds(ids)
-    const r = mine.filter(c => !ids.includes(c.id))
-    setSlotIds(ids.length === 8 ? autoTowers(r).map(c => c.id) : [])
-    setSwapFrom(null)
-  }
-  const toggleDeck = (c: Card) => {
-    const has = deckIds.includes(c.id)
-    sfx(has ? 'unpick' : deckIds.length < 8 ? 'pick' : 'deny')
-    pickDeck(has ? deckIds.filter(x => x !== c.id) : deckIds.length < 8 ? [...deckIds, c.id] : deckIds)
-  }
-  const swapClick = (i: number) => {
-    if (swapFrom === null) { sfx('pick'); return setSwapFrom(i) }
-    if (swapFrom !== i) { sfx('place', 0, { mood: 'good' }); setSlotIds(s => { const x = [...s];[x[swapFrom], x[i]] = [x[i], x[swapFrom]]; return x }) }
-    else sfx('unpick')
-    setSwapFrom(null)
-  }
+  const setSplit = ({ deckIds, slotIds }: { deckIds: string[]; slotIds: string[] }) => { setDeckIds(deckIds); setSlotIds(slotIds) }
   // on-screen play: deal both hands at random; the enemy's cards stay hidden inside the app (tid ep0-7 = pile, et0-7 = towers)
   const startOnScreen = () => {
     const d = deal()
     const enemy = shuffle(d.theirs)
     setSecret(Object.fromEntries(enemy.map((c, i) => [i < 8 ? `ep${i}` : `et${i - 8}`, c])))
     // start from the suggested deck so "Start the game" is one tap; the player can still change it
-    const deck = suggestDeck(d.mine)
-    setMode('play'); setMy16(d.mine.map(c => c.id)); setDeckIds(deck.map(c => c.id)); setSlotIds(autoTowers(d.mine.filter(c => !deck.includes(c))).map(c => c.id)); setScreen('draft')
+    setMode('play'); setMy16(d.mine.map(c => c.id)); setSplit(randomSetup(d.mine)); setScreen('draft')
   }
   // straight into the next game of the same kind, skipping the title screen
   const playAgain = () => {
@@ -544,10 +476,11 @@ export default function App() {
   const reshuffle = () => setPre(makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES))
 
   // the setup pages' top bar: where you are and one menu for everything else (in a game, the field's corners hold these)
-  const bar = () => (
+  const bar = (mid?: ReactNode) => (
     <div className="topbar">
       <Logo small />
       <span className="modechip">{mode === 'play' ? 'On screen' : 'Real cards'}</span>
+      {mid}
       <span className="spacer" />
       <GameMenu rules={RULES_60} muted={muted} toggleMute={toggleMute} onLeave={reset} />
     </div>
@@ -565,6 +498,7 @@ export default function App() {
           <button className="big xl" onClick={startOnScreen}>Play<small>the app deals and plays the enemy</small></button>
           <button className="xl" onClick={() => { setMode('guide'); setScreen('deal') }}>Play with real cards<small>you play at the table, the app guides you</small></button>
           <RulesSheet rules={RULES_60}><Button variant="success" size="xl">How to play</Button></RulesSheet>
+          <InstallLink />
         </div>
       </div>
     )
@@ -602,7 +536,7 @@ export default function App() {
         <p className="help">Tap each card you were dealt. <b>{my16.length}/16</b> selected. Tap again to deselect.</p>
         <CardPicker disabled={new Set()} selected={set} onPick={c => setMy16(a => a.includes(c.id) ? a.filter(x => x !== c.id) : a.length < 16 ? [...a, c.id] : a)} />
         <div className="row">
-          <button className="big" disabled={my16.length !== 16} onClick={() => { pickDeck(suggestDeck(mine).map(c => c.id)); setScreen('draft') }}>Next: build my deck</button>
+          <button className="big" disabled={my16.length !== 16} onClick={() => { setSplit(randomSetup(mine)); setScreen('draft') }}>Next: build my deck</button>
           <button onClick={() => setMy16([])}>Clear</button>
         </div>
       </div>
@@ -610,79 +544,11 @@ export default function App() {
   }
 
   if (screen === 'draft') {
-    const avg = deck.length ? (deck.reduce((a, c) => a + cost(c.rank), 0) / deck.length).toFixed(1) : '–'
-    const heavy = deck.filter(c => cost(c.rank) >= 7).length
-    const cheap = deck.filter(c => cost(c.rank) <= 3).length
-    const slotName = ['Left (top)', 'Left 2', 'Left 3', 'Right (top)', 'Right 2', 'Right 3', 'King (top)', 'King 2']
-    return (
-      <div className="page">{bar()}
-        <h1>{mode === 'play' ? 'Your 16 cards: build your deck' : '3. Build your deck'}</h1>
-        <p className="help">Pick <b>8 cards to play with</b>; the other 8 become your <b>towers</b>. A good deck is already picked for you: start now, or tap cards to change it.</p>
-        <details className="help">
-          <summary>How to build a good deck</summary>
-          <b>First: what a card is.</b> Cards have <u>no special abilities</u>. A card is just a soldier with one number, its <b>rank</b> (2 … 10, J=11, Q=12, K=13, A=1). Higher rank wins fights. The only extra rules:
-          <ul>
-            <li><b>Cost:</b> stronger cards cost more elixir to play (the purple number: 2→2, 6→5, 10→8, K→10).</li>
-            <li><b>Suit wheel:</b> ♠ beats ♥, ♥ beats ♦, ♦ beats ♣, ♣ beats ♠ — a card of the winning suit counts double in that fight (a 6♠ fights a J♥ as 12).</li>
-            <li><b>Aces beat picture cards:</b> an ace wins any fight against a J, Q or K, whatever the suits. Only in fights, not against towers.</li>
-            <li><b>Towers:</b> a card in a tower is armor; a soldier must have rank ≥ the tower's top card to break it; a failed hit cracks the top card (turn it sideways, move it to the bottom of that tower), and any later hit breaks a cracked card.</li>
-          </ul>
-          <b>How to build your deck, step by step:</b>
-          <ol>
-            <li>You have 16 cards. Choose <b>8 as your deck</b> (soldiers you play). The other 8 automatically become your towers.</li>
-            <li>It's a trade-off: <b>strong cards are great soldiers but cost a lot</b>. Your elixir is only 3 per round, so a deck of all kings can barely play anything.</li>
-            <li>Good recipe (from thousands of simulated games): <b>a mix</b>, for example 2–5 heavy cards (cost 7+) to win fights and break towers plus <b>cheap cards</b> (cost 1–3). All-cheap and all-heavy decks are only a little behind: aces kill picture cards for 1 elixir, and the wheel lets a mid card beat a big one. Watch out: an enemy ace can kill your king. Try "Suggest a deck" for an example, then change it.</li>
-            <li>Don't put <i>all</i> your best cards in the deck — the cards you leave out are your tower armor. Also try to have a mix of suits so the wheel helps you.</li>
-          </ol>
-        </details>
-        <div className="row">
-          <button onClick={() => pickDeck(suggestDeck(mine).map(c => c.id))}>Suggest a deck</button>
-          <button onClick={() => pickDeck([])}>Clear</button>
-        </div>
-        {/* the deck as 8 slots on top, the other cards below: tapping moves a card between them */}
-        <div className="deckbox">
-          <div className="deckhead"><b>Your deck</b> <span className="muted">{deck.length}/8 · tap a card to take it out</span>
-            <div className="avgcost" title="Average elixir cost of your deck"><span className="edrop">{avg}</span><span className="avgbar"><i style={{ transform: `translateX(${deck.length ? Number(avg) * 10 - 100 : -100}%)` }} /></span><span className="avglbl">{!deck.length ? '' : Number(avg) < 3.5 ? 'fast' : Number(avg) <= 5.5 ? 'balanced' : 'heavy'}</span></div>
-          </div>
-          <div className="deckslots">
-            {Array.from({ length: 8 }, (_, i) => deck[i]
-              ? <motion.div key={deck[i].id} layoutId={`pick-${deck[i].id}`} className="dslot"><CardView card={deck[i]} showCost onClick={() => toggleDeck(deck[i])} /></motion.div>
-              : <div key={`empty${i}`} className="dslot empty" />)}
-          </div>
-        </div>
-        {deck.length === 8 && slotIds.length === 8
-          ? <>
-            <h3 className="towerhead">Your towers <small>the other 8 cards are their armor · tap two to swap them; the top card is hit first</small></h3>
-            <div className="towerrow">
-              {[[0, 1, 2], [3, 4, 5], [6, 7]].map((idxs, gi) => (
-                <div key={gi} className="tgroup"><div className="tname">{['Left tower', 'Right tower', 'King tower'][gi]}</div>
-                  <div className="row">{idxs.map(i => <motion.div key={slotIds[i]} layoutId={`pick-${slotIds[i]}`} className="slotpick"><CardView card={byId(slotIds[i])} selected={swapFrom === i} onClick={() => swapClick(i)} /><div className="picktag">{slotName[i]}</div></motion.div>)}</div>
-                </div>
-              ))}
-            </div>
-          </>
-          : <>
-            <h3 className="towerhead">Other cards <small>tap one to put it in your deck; the ones left out become your towers</small></h3>
-            <div className="pickgrid">
-              {mine.filter(c => !deckIds.includes(c.id)).map(c => (
-                <motion.div key={c.id} layoutId={`pick-${c.id}`} className="pick"><CardView card={c} showCost onClick={() => toggleDeck(c)} /></motion.div>
-              ))}
-            </div>
-          </>}
-        {/* stays at the bottom of the window while scrolling, so starting never needs a scroll */}
-        <div className="draftbar">
-          <div className="summary">
-            Deck {deck.length}/8 · average cost <b>{avg}</b> · heavy (7+): <b>{heavy}</b> · cheap (1–3): <b>{cheap}</b>
-            {deck.length === 8 && heavy === 0 && <span className="warn"> — all-cheap decks work (aces beat picture cards, and the wheel doubles your cards), but tests won a bit more with 2–5 heavy cards.</span>}
-          </div>
-          {deck.length !== 8 || slotIds.length !== 8
-            ? <button className="big" disabled>Pick {8 - deck.length} more card{8 - deck.length === 1 ? '' : 's'}</button>
-            : mode === 'play'
-              ? <button className="big" onClick={() => { advance(settle(startRound(makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES)))); setHistory([]); setScreen('play') }}>Start the game</button>
-              : <button className="big" onClick={() => { reshuffle(); setScreen('table') }}>Next: set up the table</button>}
-        </div>
-      </div>
-    )
+    const go = mode === 'play'
+      ? <button className="big" onClick={() => { advance(settle(startRound(makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES)))); setHistory([]); setScreen('play') }}>Start the game</button>
+      : <button className="big" onClick={() => { reshuffle(); setScreen('table') }}>Next: set up the table</button>
+    return <DeckBuilder mine={mine} deckIds={deckIds} slotIds={slotIds} onChange={(d, t) => { setDeckIds(d); setSlotIds(t) }} onRedeal={mode === 'play' ? startOnScreen : undefined}
+      title={mode === 'play' ? 'Build your deck' : '3. Build your deck'} bar={bar} start={go} />
   }
 
   if (screen === 'table') {

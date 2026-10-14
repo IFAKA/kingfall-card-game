@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import type { ComponentProps, ReactElement, ReactNode } from 'react'
-import { BookOpen, Castle, ChevronRight, Hand, Lightbulb, LogOut, Menu as MenuIcon, ScrollText, Shield, Swords, Volume2, VolumeX } from 'lucide-react'
+import { BookOpen, Castle, ChevronRight, Download, Hand, Lightbulb, LogOut, Menu as MenuIcon, ScrollText, Share, Shield, SquarePlus, Swords, Volume2, VolumeX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from '@/components/ui/item'
 import { Switch } from '@/components/ui/switch'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useInstall } from './pwa'
 
 // every drawer of the menu: up from the bottom on phones, in from the right on wide screens
 function Sheet(props: ComponentProps<typeof Drawer>) {
@@ -94,14 +95,42 @@ function LogView({ log }: { log: string[] }) {
 
 const Rules = ({ rules }: { rules: ReactNode }) => <div className="leading-relaxed [&_li]:my-2 [&_ul]:list-disc [&_ul]:pl-5">{rules}</div>
 
-// the title screen's "How to play": the rules page on its own
-export function RulesSheet({ rules, children }: { rules: ReactNode; children: ReactElement }) {
+// one page of reading on its own, opened by any button: the title screen's "How to play", the deck screen's guide
+export function RulesSheet({ title = 'How to play', rules, children }: { title?: string; rules: ReactNode; children: ReactElement }) {
   return (
     <Sheet>
       <DrawerTrigger render={children} />
-      <Panel title="How to play" footer={<DrawerClose render={<Button variant="secondary" size="xl" />}>Close</DrawerClose>}><Rules rules={rules} /></Panel>
+      <Panel title={title} footer={<DrawerClose render={<Button variant="secondary" size="xl" />}>Close</DrawerClose>}><Rules rules={rules} /></Panel>
     </Sheet>
   )
+}
+
+// installing the game as an app: one tap where the browser can do it, the Share-menu steps on iPhone and iPad
+const iosSteps = (
+  <ol className="m-0 flex list-none flex-col gap-3 p-0 text-base leading-snug">
+    <li className="flex items-center gap-3"><Share className="size-6 shrink-0 text-primary" /><span>Tap <b>Share</b> in Safari's toolbar.</span></li>
+    <li className="flex items-center gap-3"><SquarePlus className="size-6 shrink-0 text-primary" /><span>Choose <b>Add to Home Screen</b>, then <b>Add</b>.</span></li>
+    <li className="flex items-center gap-3"><Castle className="size-6 shrink-0 text-primary" /><span>Open Kingfall from its icon: full screen, and it plays without a connection.</span></li>
+  </ol>
+)
+function InstallRow() {
+  const { how, install } = useInstall()
+  if (how === 'prompt') return (
+    <Item variant="outline" className={row} render={<button onClick={install} />}>
+      <ItemMedia variant="icon" className="h-7 translate-y-px! text-primary [&_svg]:size-5!"><Download /></ItemMedia>
+      <ItemContent><ItemTitle className={rowTitle}>Install the app</ItemTitle><ItemDescription>On your home screen, plays offline</ItemDescription></ItemContent>
+    </Item>
+  )
+  if (how === 'ios') return <PageRow icon={<Download />} title="Install the app" description="On your home screen, plays offline">{iosSteps}</PageRow>
+  return null
+}
+// the title screen's quiet offer under the big buttons
+export function InstallLink() {
+  const { how, install } = useInstall()
+  const link = (onClick?: () => void) => <Button variant="link" size="lg" className="self-center text-base text-muted-foreground" onClick={onClick}><Download /> Install the app</Button>
+  if (how === 'prompt') return link(install)
+  if (how === 'ios') return <RulesSheet title="Install the app" rules={iosSteps}>{link()}</RulesSheet>
+  return null
 }
 
 // One menu for every screen, behind the ☰ button: rules, the log and hints while playing, sound, and leaving the game.
@@ -131,6 +160,7 @@ export function GameMenu({ rules, log, hints, muted, toggleMute, onLeave }: {
             </PageRow>}
             {hints && <PageRow icon={<Lightbulb />} title="Hints" description="Explain options, suggest moves, tips">{hints(close)}</PageRow>}
           </ItemGroup>
+          <InstallRow />
           <Choice id="sound" icon={muted ? <VolumeX /> : <Volume2 />} title="Sound" description="Plays, fights and falling towers" checked={!muted} onChange={toggleMute} />
         </Panel>
       </Sheet>
