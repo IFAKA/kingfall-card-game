@@ -406,7 +406,7 @@ export default function App() {
   const [secret, setSecret] = useState<Record<string, Card>>(saved?.secret ?? {})
   const [epile, setEpile] = useState(false)
   const [qpile, setQpile] = useState(false)
-  const [note, setNote] = useState<string | null>(null)
+  const [bad, setBad] = useState<number | null>(null) // a card tapped that costs more than you have
   const [swapFrom, setSwapFrom] = useState<number | null>(null)
   const [explainOn, setExplainOn] = useState(saved ? saved.help === 'explain' : false)
   const [suggestOn, setSuggestOn] = useState(saved ? saved.help === 'suggest' : false)
@@ -438,6 +438,12 @@ export default function App() {
     return () => document.removeEventListener('click', click, true)
   }, [])
   // the state the latest step produced: only it gets effects (not undo, redo or a reloaded game)
+  // tapping anywhere that isn't a card, a lane or a button lets go of the picked card
+  useEffect(() => {
+    const away = (e: PointerEvent) => { if (!(e.target as Element | null)?.closest?.('.hdrag, .lanecell, button')) { if (sel !== null || bad !== null) sfx('unpick'); setSel(null); setBad(null) } }
+    document.addEventListener('pointerdown', away)
+    return () => document.removeEventListener('pointerdown', away)
+  }, [sel, bad])
   const fresh = useRef<GuideState | null>(null)
   const advance = (g: GuideState) => { fresh.current = g; setGame(g) }
   const playRef = useRef<HTMLDivElement>(null)
@@ -496,9 +502,9 @@ export default function App() {
     setScreen('title'); setMy16([]); setDeckIds([]); setSlotIds([]); setPre(null); setGame(null); setHistory([]); setFuture([]); setSel(null); setMode('guide'); setSecret({})
   }
   const settle = (g: GuideState) => (mode === 'play' ? autoReveal(g, secret) : g)
-  const commit = (g: GuideState) => { setHistory(h => [...h, game!]); setFuture([]); advance(settle(g)); setSel(null); setNote(null) }
-  const undo = () => { if (!history.length || !game) return; setFuture(f => [...f, game]); setGame(history[history.length - 1]); setHistory(h => h.slice(0, -1)); setSel(null) }
-  const redo = () => { if (!future.length || !game) return; setHistory(h => [...h, game]); setGame(future[future.length - 1]); setFuture(f => f.slice(0, -1)); setSel(null) }
+  const commit = (g: GuideState) => { setHistory(h => [...h, game!]); setFuture([]); advance(settle(g)); setSel(null); setBad(null) }
+  const undo = () => { if (!history.length || !game) return; setFuture(f => [...f, game]); setGame(history[history.length - 1]); setHistory(h => h.slice(0, -1)); setSel(null); setBad(null) }
+  const redo = () => { if (!future.length || !game) return; setHistory(h => [...h, game]); setGame(future[future.length - 1]); setFuture(f => f.slice(0, -1)); setSel(null); setBad(null) }
 
   const pickDeck = (ids: string[]) => {
     setDeckIds(ids)
@@ -720,7 +726,9 @@ export default function App() {
   const hitEnemy = stage === 'tower_enter'
   const picker = stage === 'enemy_enter' || stage === 'last_stand_enter' || hitEnemy
   const standing = stage === 'my_last_stand'
-  const previewCard = standing ? undefined : g.P.hand[drag ?? sel ?? hov ?? -1]
+  const previewCard = standing ? undefined : g.P.hand[drag ?? sel ?? bad ?? hov ?? -1]
+  const badCard = bad !== null ? g.P.hand[bad] : undefined
+  const note = badCard && !standing ? `${label(badCard)} costs ${cost(badCard.rank)} elixir but you only have ${g.P.elixir}. Pick a card whose purple number is ${g.P.elixir} or less.` : null
   const spend = previewCard ? cost(previewCard.rank) : 0
   const side = stage === 'my_play' || standing ? 'me' : stage.startsWith('enemy_') || stage === 'last_stand_enter' ? 'enemy' : null
   const inform = mode === 'guide' && ['round_start', 'enemy_play', 'enemy_stop', 'move', 'fight', 'tower_result'].includes(stage)
@@ -741,7 +749,7 @@ export default function App() {
     const move = (ev: PointerEvent) => {
       if (!ghost) {
         if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 8) return
-        ghost = makeGhost(el, x0, y0, stage_.rot, stage_.sw); setNote(null); setSel(null); setDrag(i); sfx('pick')
+        ghost = makeGhost(el, x0, y0, stage_.rot, stage_.sw); setBad(null); setSel(null); setDrag(i); sfx('pick')
       }
       ev.preventDefault()
       ghost?.move(ev.clientX, ev.clientY)
@@ -762,11 +770,12 @@ export default function App() {
   }
 
   const tapHand = (i: number) => {
-    const c = g.P.hand[i]
     if (justDragged.current) return
     if (standing) return commit(lastStandPlay(g, i))
-    if (canPlay(g, i)) { sfx(sel === i ? 'unpick' : 'pick'); setNote(null); setSel(sel === i ? null : i); return }
-    sfx('deny'); setSel(null); setNote(`${label(c)} costs ${cost(c.rank)} elixir but you only have ${g.P.elixir}. Pick a card whose purple number is ${g.P.elixir} or less.`)
+    const off = sel === i || bad === i
+    sfx(off ? 'unpick' : canPlay(g, i) ? 'pick' : 'deny')
+    if (off) setHov(null)
+    setSel(!off && canPlay(g, i) ? i : null); setBad(!off && !canPlay(g, i) ? i : null)
   }
   // on screen, the suggestion is shown on the board itself: the card and its lane glow, or the ✓ button does
   const suggested = mode === 'play' && advice?.kind === 'play' ? advice : null
