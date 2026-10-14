@@ -420,6 +420,12 @@ export default function App() {
   useEffect(() => { setSetupStep(0) }, [screen])
   const [muted, setMutedState] = useState(isMuted)
   const toggleMute = () => { setMuted(!muted); setMutedState(!muted); if (muted) sfx('tap') }
+  // every button answers with a soft click
+  useEffect(() => {
+    const click = (e: MouseEvent) => { if ((e.target as Element | null)?.closest?.('button:not(:disabled)')) sfx('tap') }
+    document.addEventListener('click', click, true)
+    return () => document.removeEventListener('click', click, true)
+  }, [])
   // the state the latest step produced: only it gets effects (not undo, redo or a reloaded game)
   const fresh = useRef<GuideState | null>(null)
   const advance = (g: GuideState) => { fresh.current = g; setGame(g) }
@@ -495,11 +501,14 @@ export default function App() {
     setSwapFrom(null)
   }
   const toggleDeck = (c: Card) => {
-    pickDeck(deckIds.includes(c.id) ? deckIds.filter(x => x !== c.id) : deckIds.length < 8 ? [...deckIds, c.id] : deckIds)
+    const has = deckIds.includes(c.id)
+    sfx(has ? 'unpick' : deckIds.length < 8 ? 'pick' : 'deny')
+    pickDeck(has ? deckIds.filter(x => x !== c.id) : deckIds.length < 8 ? [...deckIds, c.id] : deckIds)
   }
   const swapClick = (i: number) => {
-    if (swapFrom === null) return setSwapFrom(i)
-    if (swapFrom !== i) setSlotIds(s => { const x = [...s];[x[swapFrom], x[i]] = [x[i], x[swapFrom]]; return x })
+    if (swapFrom === null) { sfx('pick'); return setSwapFrom(i) }
+    if (swapFrom !== i) { sfx('place', 0, { mood: 'good' }); setSlotIds(s => { const x = [...s];[x[swapFrom], x[i]] = [x[i], x[swapFrom]]; return x }) }
+    else sfx('unpick')
     setSwapFrom(null)
   }
   // on-screen play: deal both hands at random; the enemy's cards stay hidden inside the app (tid ep0-7 = pile, et0-7 = towers)
@@ -729,12 +738,12 @@ export default function App() {
     const move = (ev: PointerEvent) => {
       if (!ghost) {
         if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 8) return
-        ghost = makeGhost(el, x0, y0, stage_.rot, stage_.sw); setNote(null); setSel(null); setDrag(i)
+        ghost = makeGhost(el, x0, y0, stage_.rot, stage_.sw); setNote(null); setSel(null); setDrag(i); sfx('pick')
       }
       ev.preventDefault()
       ghost?.move(ev.clientX, ev.clientY)
       const l = laneAt(ev.clientX, ev.clientY)
-      if (l !== lane) { lane = l; setOverLane(l) }
+      if (l !== lane) { lane = l; setOverLane(l); if (l !== null) sfx('hover') }
     }
     const end = (ev: PointerEvent) => {
       window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', end); window.removeEventListener('pointercancel', end)
@@ -742,7 +751,7 @@ export default function App() {
       setOverLane(null)
       justDragged.current = true; setTimeout(() => { justDragged.current = false }, 0)
       const l = ev.type === 'pointerup' ? laneAt(ev.clientX, ev.clientY) : null
-      if (l === null) { ghost.glideBack(() => setDrag(null)); return }
+      if (l === null) { sfx('unpick'); ghost.glideBack(() => setDrag(null)); return }
       ghost.remove(); setDrag(null)
       commit(standing ? lastStandPlay(g, i) : playCard(g, i, l))
     }
@@ -753,8 +762,8 @@ export default function App() {
     const c = g.P.hand[i]
     if (justDragged.current) return
     if (standing) return commit(lastStandPlay(g, i))
-    if (canPlay(g, i)) { setNote(null); setSel(sel === i ? null : i); return }
-    setSel(null); setNote(`${label(c)} costs ${cost(c.rank)} elixir but you only have ${g.P.elixir}. Pick a card whose purple number is ${g.P.elixir} or less.`)
+    if (canPlay(g, i)) { sfx(sel === i ? 'unpick' : 'pick'); setNote(null); setSel(sel === i ? null : i); return }
+    sfx('deny'); setSel(null); setNote(`${label(c)} costs ${cost(c.rank)} elixir but you only have ${g.P.elixir}. Pick a card whose purple number is ${g.P.elixir} or less.`)
   }
   const handCards = g.P.hand.map((c, i) => (
     <div key={c.id} data-i={i} className={`hdrag ${drag === i ? 'lifted' : ''} ${!standing && !canPlay(g, i) ? 'off' : ''}`} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} onPointerDown={e => startDrag(e, i)}>
