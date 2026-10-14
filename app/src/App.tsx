@@ -799,7 +799,7 @@ export default function App() {
       {explainOn && stage === 'my_play' && (
         <ul className="m-0 list-none rounded-xl border bg-black/25 px-3 py-1">
           {options(g).map((o, i) => { const [card, ...rest] = o.split(': '); return (
-            <li key={i} className="flex items-start gap-2.5 border-t border-white/10 py-2 leading-snug first:border-t-0"><CardText text={card} /><span>{rest.join(': ')}</span></li>
+            <li key={i} className={`flex items-start gap-2.5 border-t border-white/10 py-2 leading-snug first:border-t-0 ${o.includes("can't afford") ? 'opacity-50' : ''}`}><span className="w-11 shrink-0"><CardText text={card} /></span><span>{rest.join(': ')}</span></li>
           ) })}
         </ul>
       )}
