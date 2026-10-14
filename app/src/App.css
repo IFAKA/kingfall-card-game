@@ -347,46 +347,6 @@ h3 { margin: 18px 0 8px; }
 .gameover .todo { text-align: left; }
 .gameover .row { justify-content: center; }
 
-:root { --vw: 1vw; --vh: 1vh; }
-html:has(.play), html:has(.play) body { overflow: hidden; overscroll-behavior: none; }
-.play { position: relative; }
-/* upright phone: turn the table a quarter turn about its top-left corner so it fills the screen */
-.play.rot { position: fixed; top: 0; transform-origin: 0 0; transform: rotate(90deg); }
-/* the game-over box sits outside the turned table, so turn it the same way */
-html.rot .gameover { transform: rotate(90deg); width: min(640px, 92dvh); max-height: 85dvw; }
-
-/* short screens (phones on their side): trim the chrome so the cards get the room */
-.play.compact { gap: 2px; padding: 2px 10px 4px; --cw: min(calc(((100 * var(--vw)) - 90px) / 18.5), calc(((100 * var(--vh)) - 150px) / 5 * .714)); }
-.play.compact .top { flex-wrap: nowrap; gap: 6px; }
-.play.compact .top .muted { display: none; }
-.play.compact .top b { white-space: nowrap; font-size: 13px; }
-.play.compact button { padding: 3px 8px; font-size: 12px; }
-.play.compact .clabel { font-size: 9px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-.play.compact .cell { padding-top: 12px; }
-
-/* phone (rotated table): keep the suit wheel in the hand row's flow and compact so it never overlaps the cards */
-.play.rot .hand, .play.compact .hand { gap: 4px; justify-content: flex-start; }
-.play.rot .hand .wheel, .play.compact .hand .wheel { position: static; margin-left: auto; margin-right: 6px; align-self: stretch; justify-content: center; padding: 4px 6px; gap: 1px; border-width: 1px; border-radius: 8px; flex: none; }
-.play.rot .hand .wheel b, .play.compact .hand .wheel b { font-size: 11px; margin-right: 2px; }
-.play.rot .hand .wheel .chip, .play.compact .hand .wheel .chip { width: calc(var(--cw) * .85); height: calc(var(--cw) * .85); font-size: calc(var(--cw) * .65); }
-.play.rot .hand .wheel em, .play.compact .hand .wheel em { font-size: calc(var(--cw) * .6); }
-.play.rot .hand .wheel.aces, .play.compact .hand .wheel.aces { margin-left: auto; gap: 4px; }
-.play.rot .hand .aces + .wheel, .play.compact .hand .aces + .wheel { margin-left: 0; }
-.play.rot .hand .aces .ud, .play.compact .hand .aces .ud { gap: 1px; font-size: calc(var(--cw) * .5); }
-
-.top .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: auto; }
-.top .actions .warn { font-size: 12px; max-width: 260px; }
-.top .actions .done { background: #c8892b; border-color: #e6a84a; }
-.top .actions .suggest { background: #3a3414; border-color: #c8a21b; }
-.play.compact .top .actions { flex-wrap: nowrap; gap: 4px; }
-.play.compact .top .actions .warn { display: none; }
-
-.top { flex-wrap: nowrap; gap: 8px; white-space: nowrap; }
-.top button:where(:not([data-slot])) { padding: 5px 10px; font-size: 13px; }
-.top .muted { display: none; }
-.top .actions { flex-wrap: nowrap; gap: 6px; font-size: 13px; }
-.top .actions .big { padding: 5px 12px; font-size: 13px; }
-.top .spacer { margin-left: auto; }
 
 /* ===== game look on the table: grass arena, darker lanes, display-font labels, blue panels ===== */
 .play { background:
@@ -396,10 +356,6 @@ html.rot .gameover { transform: rotate(90deg); width: min(640px, 92dvh); max-hei
 .lanecell { background: rgba(40, 24, 8, .38); border: 2px dashed rgba(255, 255, 255, .18); border-radius: 10px; }
 .lanecell.attack { background: rgba(90, 10, 20, .35); }
 .clabel { font-family: var(--display); letter-spacing: .03em; text-transform: uppercase; text-shadow: 0 1px 0 rgba(0,0,0,.6); opacity: .92; }
-.top .actions .done { background: linear-gradient(var(--gold), var(--gold-d)); border-color: var(--gold-ink); }
-.top .actions .suggest { border-color: var(--green-ink); background: linear-gradient(var(--green), var(--green-d)); box-shadow: inset 0 2px 0 rgba(255,255,255,.45), 0 4px 0 var(--green-ink); }
-.top .actions .warn { font-family: 'Baloo 2 Variable', system-ui, sans-serif; }
-.top button:where(:not([data-slot])) { box-shadow: inset 0 2px 0 rgba(255,255,255,.4), 0 3px 0 rgba(0,0,0,.45); }
 
 /* card picker keys stay card-like */
 .pbtn { font-family: 'Baloo 2 Variable', system-ui, sans-serif; font-weight: 800; text-shadow: none; background: #f4f4ee; border: 2px solid #8b8b84; box-shadow: 0 3px 0 #6d6d66; }
@@ -424,27 +380,9 @@ details.help[open] > summary { margin-bottom: 8px; }
   background: linear-gradient(to bottom, rgba(14, 24, 56, .85), var(--navy) 40%); border-top: 2px solid var(--edge); }
 .draftbar .summary { margin: 0; flex: 1 1 260px; }
 
-/* ---------- step panel: what to do now, docked on the table (over the hand, which is idle on those steps) ---------- */
-.stepbar { position: absolute; z-index: 40; left: 50%; bottom: 8px; transform: translateX(-50%); width: min(820px, calc(100% - 24px)); max-height: 58%; overflow: auto; box-sizing: border-box;
-  padding: 10px 16px 12px; background: linear-gradient(#24408c, #172a5e); border: 3px solid var(--gold-d); border-radius: 16px; box-shadow: 0 0 0 3px #0b1430, 0 14px 30px rgba(0,0,0,.55);
-  animation: stepin .18s var(--ease-out); }
-.stepbar .todo { margin: 2px 0 6px; }
-.stepbar .row { margin: 6px 0 0; }
-.stepbar .picker { margin: 4px 0; }
-.stepbar .muted { font-size: 13px; }
-/* after a play at the table: placing and paying instructions, shown under the top bar so the hand stays free */
-.stepbar.donow-top { bottom: auto; top: 52px; display: flex; align-items: center; gap: 14px; width: min(760px, calc(100% - 24px)); padding: 6px 12px 6px 6px; }
-.stepbar.donow-top .todo { flex: 1; margin: 0; }
 @keyframes stepin { from { opacity: 0; transform: translate(-50%, 10px); } }
-.play.compact .stepbar { padding: 6px 10px 8px; font-size: 13px; }
-.play.compact .stepbar .dntitle { font-size: 16px; }
-.play.compact .stepbar .pbtn { min-width: 34px; padding: 4px 2px; }
-.play.compact .stepbar.donow-top { top: 36px; }
-@media (prefers-reduced-motion: reduce) { .stepbar { animation: none; } }
 /* .pbtn.red means a red suit, not the red "leave" button */
 .pbtn.red { color: #c0262d; background: #f4f4ee; border-color: #8b8b84; box-shadow: 0 3px 0 #6d6d66; text-shadow: none; }
-.stepbar.over { width: auto; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.stepbar.over .row { margin: 0; flex-wrap: nowrap; }
 
 /* ---------- game feel: pop-ups over the board and the board shake (driven by the step's events, see fx.tsx) ---------- */
 .fxlayer { position: absolute; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
@@ -576,8 +514,6 @@ details.help[open] > summary { margin-bottom: 8px; }
 /* same size as your own Next card in the hand row */
 .lanes .mid .nextcard .tcard { --nh: calc(var(--ch) - max(11px, calc(var(--ch) * .17)) - 2px); width: calc(var(--nh) * .714); height: var(--nh); font-size: calc(var(--nh) * .2); }
 .arena .tcard .cost { right: 3px; top: 3px; width: 1.5em; height: 1.5em; font-size: .85em; border-width: 1px; }
-.arena .stepbar { bottom: calc(var(--ch) + 60px); }
-.arena .stepbar.over { bottom: 8px; }
 
 /* ---------- teaching by playing: one tip at a time over the field, the enemy waits while it is open ---------- */
 .coach { position: absolute; z-index: 45; left: 50%; transform: translateX(-50%); bottom: calc(var(--ch) + 112px); width: min(540px, calc(100% - 24px)); box-sizing: border-box;
@@ -637,13 +573,14 @@ button.linkish:active { transform: none; }
 .mcols > div, .mtower { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .mbars { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .mlbl { font-family: var(--display); font-size: 13px; color: #fff; text-shadow: 0 1px 0 rgba(0,0,0,.6); text-transform: uppercase; letter-spacing: .03em; }
-.mtable { display: grid; grid-template-columns: repeat(7, minmax(0, auto)); gap: 4px; font-size: 11px; font-weight: 700; text-align: center; }
+/* the table seen from your seat: the enemy across, you in front, the two lanes between the tower rows */
+.mtable { display: grid; grid-template-columns: repeat(5, minmax(0, auto)); gap: 4px; font-size: 11px; font-weight: 700; text-align: center; }
 .mtable > span { padding: 6px 6px; border-radius: 6px; background: rgba(0,0,0,.25); color: #fff; }
 .mtable .mt-bar { grid-column: 1 / -1; background: rgba(122, 63, 209, .55); }
-.mtable .mt-k { grid-row: span 2; display: flex; align-items: center; background: rgba(61, 120, 240, .5); }
-.mtable .mt-k.them, .mtable .mt-them { background: rgba(226, 74, 74, .5); }
+.mtable .mt-them { background: rgba(226, 74, 74, .5); }
 .mtable .mt-me { background: rgba(61, 120, 240, .5); }
-.mtable .mt-lane { background: rgba(255,255,255,.12); border: 1px dashed rgba(255,255,255,.5); min-width: 110px; }
+.mtable .mt-lane { min-height: 56px; display: grid; place-items: center; background: rgba(255,255,255,.12); border: 1px dashed rgba(255,255,255,.5); }
+.mtable .mt-lane.l { grid-column: 2; } .mtable .mt-lane.r { grid-column: 4; }
 @media (max-width: 440px) { .page .topbar .modechip { display: none; } .page .topbar { flex-wrap: nowrap; } }
 @media (min-width: 700px) { .mc { width: 32px; height: 45px; font-size: 13px; } .mstack { width: 52px; height: 62px; } }
 .gameover { box-sizing: border-box; }
@@ -702,3 +639,114 @@ button.linkish:active { transform: none; }
 .overbtns { position: static; transform: none; flex: none; min-height: 2.5em; display: flex; justify-content: center; align-items: center; gap: 12px; padding: 3px 0; }
 /* primary and secondary buttons share one size */
 .overbtns button, .gameover .row button { font-size: 17px; padding: 10px 24px; }
+
+/* ---------- real cards: the screen is the table as you sit at it, every card where it lies and all the same size ---------- */
+.arena.guide { gap: 5px; }
+.tbar { flex: none; display: flex; align-items: center; gap: 6px; }
+.tbar .modechip { margin-right: auto; }
+/* five card columns (pile, left, king, right, discard); rows: enemy elixir, enemy side, the lanes, your side, your elixir */
+/* (not ".table": Tailwind's utility of that name, display: table, would win over this layer) */
+.cardtable { flex: 1; min-height: 0; position: relative; display: grid; align-content: space-between; justify-content: center; row-gap: 4px; column-gap: 4px; padding: 6px; border-radius: 18px;
+  grid-template-columns: calc(var(--cw) + 10px) calc(var(--cw) * 1.9) minmax(calc(var(--cw) * 1.6), 1fr) calc(var(--cw) * 1.9) calc(var(--cw) + 10px);
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  background: radial-gradient(ellipse at 50% 50%, #5cbf4a, #3f9a37 60%, #2f7d2b);
+  border: 3px solid #0b1430; box-shadow: inset 0 0 0 2px rgba(255,255,255,.12), inset 0 0 40px rgba(0,0,0,.25), 0 8px 20px rgba(0,0,0,.4); }
+.cardtable > .cbar, .cardtable > .trow, .cardtable > .lanes { grid-column: 1 / -1; }
+.trow { display: grid; grid-template-columns: subgrid; align-items: start; justify-items: center; }
+.cardtable > .lanes { grid-template-columns: subgrid; }
+.trow.theirs > * { flex-direction: column-reverse; }
+.tfan .cname, .tpile .cname { font-family: var(--display); font-size: max(11px, calc(var(--cw) * .2)); line-height: 1; color: rgba(255,255,255,.85); text-shadow: 0 1px 0 rgba(0,0,0,.6); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+
+/* a tower is a fan of its cards, the top card (hit first) in front; the enemy's stay face-down until flipped */
+.tfan { --toff: calc(var(--cw) * .45); display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.fancards { position: relative; height: var(--ch); }
+.fancards .fc { position: absolute; top: 0; transition: transform .3s var(--ease-out); }
+.tfan .fc.cracked { transform: rotate(10deg) translateY(2px); }
+.tfan .fc.cracked .cf { box-shadow: 0 0 0 2px #b06bff, 0 0 8px #b06bff; }
+.tfan.fallen .fancards, .pcards:not(:has(.tcard)) { box-sizing: border-box; border: 2px dashed rgba(255,255,255,.3); border-radius: 8px; background: rgba(0,0,0,.1); }
+
+/* piles squared up: a few cards peek out under the top one */
+.tpile { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.pcards { position: relative; width: var(--cw); height: var(--ch); }
+.pcards .pback { position: absolute; inset: 0; box-sizing: border-box; border-radius: 6px; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,.45);
+  background: repeating-linear-gradient(45deg, #263a8c, #263a8c 5px, #3150b8 5px, #3150b8 10px); }
+.pcards .pback.face { background: #fbfbf6; border: 1px solid #999; }
+.pcount { position: absolute; z-index: 6; right: -6px; bottom: -6px; min-width: 20px; height: 20px; padding: 0 4px; box-sizing: border-box; border-radius: 10px; display: grid; place-items: center;
+  background: #0b1430; border: 2px solid rgba(255,255,255,.7); color: #fff; font-family: var(--display); font-size: 12px; line-height: 1; }
+
+/* the menu button keeps to the right of the bar, also when the mode label is hidden on narrow screens */
+.tbar .tmenu { margin-left: auto; }
+/* the count sits on the corner away from the pile's name; pile names are short enough for a one-card column */
+.trow.mine .pcount { bottom: auto; top: -6px; }
+.tpile .cname { font-size: 10px; letter-spacing: 0; }
+/* narrow screens: a fixed space under the table for the instructions (or the hand), so the panel never covers your cards */
+.arena.guide:not(.wide) .tray { min-height: max(200px, calc(var(--ch) + 70px)); justify-content: space-between; }
+.arena.guide .tslist li { font-size: 15px; }
+/* wide screens: the table on the left at full height, the instructions and your hand in a column on the right */
+.arena.guide.wide { max-width: 1180px; display: grid; grid-template-columns: minmax(0, 1fr) 380px; grid-template-rows: auto minmax(0, 1fr); column-gap: 12px; }
+.arena.guide.wide > .tbar { grid-column: 1 / -1; }
+.arena.guide.wide > .cardtable { grid-column: 1; grid-row: 2; justify-self: center; width: min(100%, calc(var(--cw) * 13)); box-sizing: border-box; }
+.arena.guide.wide > .tray { grid-column: 2; grid-row: 2; justify-content: space-between; }
+.arena.guide.wide .tsbody { max-height: none; }
+/* a tip sits over the table's corner beside the column, never over the instructions */
+.arena.guide.wide .tray .coach { left: auto; right: calc(100% + 16px); bottom: 16px; transform: none; width: min(340px, 60vw); animation-name: fadein; }
+.arena.guide.wide .tray .coach::after { display: none; }
+
+/* an elixir bar: 10 face-down cards overlapping so each number shows, the marker turned sideways; a picked card colours the cards it would spend */
+.cbar { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.cbar .drop { display: grid; place-items: center; flex: none; width: 28px; height: 30px; border-radius: 50% 50% 50% 50% / 60% 60% 42% 42%; background: radial-gradient(circle at 35% 30%, #f3b6ff, #b445e8 45%, #6d17b0);
+  border: 2px solid #2a0f4d; color: #fff; font-family: var(--display); font-size: 16px; text-shadow: 0 1px 0 #2a0f4d; }
+.cslots { flex: 1; min-width: 0; height: var(--ch); display: flex; align-items: center; justify-content: center;
+  --step: min(calc(var(--cw) + 4px), calc((100% - var(--ch) - var(--cw) - 8px) / 8)); --m: calc((var(--ch) - var(--cw)) / 2); }
+.bc { flex: none; position: relative; width: var(--cw); height: var(--ch); box-sizing: border-box; border-radius: 6px; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,.45);
+  background: repeating-linear-gradient(45deg, #263a8c, #263a8c 5px, #3150b8 5px, #3150b8 10px); margin-left: calc(var(--step) - var(--cw));
+  transition: transform .35s var(--ease-in-out), margin .35s var(--ease-in-out), box-shadow .35s var(--ease-out); }
+.bc:first-child { margin-left: 0; }
+.bc:nth-child(6) { margin-left: calc(var(--step) - var(--cw) + 8px); }
+.bc span { position: absolute; top: 3px; left: 4px; font-size: max(11px, calc(var(--cw) * .26)); font-weight: 800; line-height: 1; color: rgba(255,255,255,.85); text-shadow: 0 1px 0 rgba(0,0,0,.7); }
+.bc.mark { z-index: 2; transform: rotate(90deg); margin-left: calc(var(--step) - var(--cw) + var(--m)); margin-right: var(--m); box-shadow: 0 0 0 2px #b06bff, 0 0 12px #c35cff; }
+.bc.mark:first-child { margin-left: var(--m); }
+.bc.mark:nth-child(6) { margin-left: calc(var(--step) - var(--cw) + var(--m) + 8px); }
+.bc.mark + .bc { margin-left: 2px; }
+.bc.spend { border-color: var(--gold); background: repeating-linear-gradient(45deg, #8a6a10, #8a6a10 5px, #c79a1c 5px, #c79a1c 10px); }
+.bc.short { border-color: #ff6b6b; background: repeating-linear-gradient(45deg, #6b1a1a, #6b1a1a 5px, #a83232 5px, #a83232 10px); }
+
+/* the card to turn face-up now glows: the top of the enemy pile, or the front card of the tower being hit */
+.tpile.flipme .tcard .cf, .tfan.flipme .fc:first-child .cf { animation: flipglow 1.1s ease-in-out infinite; }
+@keyframes flipglow { 0%, 100% { box-shadow: 0 0 0 2px rgba(255,207,58,.45); } 50% { box-shadow: 0 0 0 3px var(--gold), 0 0 16px var(--gold); } }
+
+/* what to move on the table now: a panel over the tray (the hand is idle on these steps), so the field stays in view */
+.tray { position: relative; }
+.tray .coach { bottom: calc(100% + 14px); }
+.tablestep { position: absolute; z-index: 40; left: 0; right: 0; bottom: 0; min-height: 100%; display: flex; flex-direction: column; justify-content: flex-end; }
+.tsbody { flex: 1; display: flex; flex-direction: column; gap: 6px; max-height: 60dvh; overflow-y: auto; overscroll-behavior: contain; box-sizing: border-box; padding: 10px 14px 12px;
+  background: linear-gradient(#24408c, #172a5e); border: 3px solid var(--gold-d); border-radius: 16px; box-shadow: 0 0 0 3px #0b1430, 0 -6px 24px rgba(0,0,0,.45); animation: tsin .2s var(--ease-out); }
+@keyframes tsin { from { opacity: 0; transform: translateY(8px); } }
+.tsbody h3 { margin: 0; font-size: 21px; color: var(--gold); text-shadow: 0 2px 0 rgba(0,0,0,.5); }
+.tslist { margin: 0; padding: 0; list-style: none; counter-reset: ts; display: flex; flex-direction: column; gap: 5px; }
+.tslist li { counter-increment: ts; position: relative; padding-left: 30px; font-size: 16px; line-height: 1.35; }
+.tslist li::before { content: counter(ts); position: absolute; left: 0; top: 1px; width: 21px; height: 21px; border-radius: 50%; display: grid; place-items: center; background: var(--gold); color: var(--gold-ink); font-family: var(--display); font-size: 13px; }
+.tslist li:only-child { padding-left: 0; } .tslist li:only-child::before { display: none; }
+.tslist b { color: #fff3c4; }
+.tswhy { margin: 0; font-size: 14px; line-height: 1.35; color: rgba(255,255,255,.72); }
+.tswhy b { color: #fff; }
+.tshead { display: flex; align-items: center; gap: 10px; }
+.tshead h3 { flex: 1; }
+.tshead .big { flex: none; display: inline-flex; align-items: center; gap: 8px; font-size: 18px; padding: 8px 22px; }
+
+/* telling the app a flipped card: rank keys, then suit keys, drawn like cards */
+.flippick { margin-top: auto; display: flex; flex-direction: column; gap: 6px; }
+.franks { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.fsuits { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+button.fkey { min-height: 40px; padding: 4px 0; font-family: var(--display); font-size: 20px; color: #1b1b1b; text-shadow: none; background: #fbfbf6; border: 2px solid #8b8b84; border-radius: 8px; box-shadow: 0 3px 0 #6d6d66; }
+button.fkey.suit { min-height: 46px; font-size: 26px; }
+button.fkey.red { color: #c0262d; }
+button.fkey.sel { background: #ffe9a8; border-color: var(--gold-d); outline: 3px solid var(--gold); }
+button.fkey:active:not(:disabled) { box-shadow: 0 1px 0 #6d6d66; }
+button.fkey:disabled { opacity: .25; filter: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tsbody { animation: none; }
+  .tpile.flipme .tcard .cf, .tfan.flipme .fc:first-child .cf { animation: none; box-shadow: 0 0 0 3px var(--gold); }
+  .bc, .fancards .fc { transition: none; }
+}

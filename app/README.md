@@ -5,7 +5,7 @@ The web app for [Kingfall](../README.md), a one-player lane battle card game. Li
 It has two modes:
 
 - **On screen:** the app deals, runs the enemy and animates every fight in an upright arena. The first game teaches with one tip at a time.
-- **With real cards:** you play with a real 52-card deck. The app runs the enemy automaton and tells you, step by step, what to move on the table (a wide board, turned sideways on upright phones).
+- **With real cards:** you play with a real 52-card deck. The app runs the enemy automaton and draws your table as you sit at it, every card where it lies and all the same size (elixir bars as 10 cards with a sideways marker, piles, tower fans, discards), and a panel over the hand tells you, step by step, what to move.
 
 It saves the game in the browser and has undo and redo.
 
@@ -36,7 +36,7 @@ When the rules change in a way that makes old saved games invalid, bump `STORAGE
 
 - `src/engine.ts`: cards, costs, deal and a compact rules engine (used by the quick balance checks).
 - `src/guide.ts`: the guided rules engine the app runs: every step of a round, the instructions shown for the physical cards, the events each step reports for the screen to animate (`GameEvent`, with `describe` putting each one into words), and the suggestion lookahead.
-- `src/App.tsx`: title, setup screens, the real-cards table, the on-screen arena and the first-game tips; `src/ErrorBoundary.tsx` recovers from an unreadable saved game.
+- `src/App.tsx`: title, setup screens, the arena both modes play in (with the real-cards table panel and card picker) and the first-game tips; `src/ErrorBoundary.tsx` recovers from an unreadable saved game.
 - `src/fx.ts`: turns each step's events into pop-ups, board shake and sounds, placed on board elements marked `data-anchor`; `src/sfx.ts` synthesizes the sounds with Web Audio (no audio files) and keeps the mute setting.
 - `scripts/check.ts`: the automated rules and balance checks behind `npm test`.
 

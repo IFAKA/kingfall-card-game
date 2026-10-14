@@ -1,5 +1,5 @@
-import { createContext, useContext, useState } from 'react'
-import type { ComponentProps, CSSProperties, ReactElement, ReactNode } from 'react'
+import { useState } from 'react'
+import type { ComponentProps, ReactElement, ReactNode } from 'react'
 import { BookOpen, Castle, ChevronRight, Hand, Lightbulb, LogOut, Menu as MenuIcon, ScrollText, Shield, Swords, Volume2, VolumeX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
@@ -7,20 +7,16 @@ import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, 
 import { Switch } from '@/components/ui/switch'
 import { useIsMobile } from '@/hooks/use-mobile'
 
-// the style that turns the table a quarter turn (upright phone, real cards): the menu turns with it
-const Turned = createContext<CSSProperties | undefined>(undefined)
-
-// every drawer of the menu: up from the bottom on phones, in from the right on wide screens and on a turned table
+// every drawer of the menu: up from the bottom on phones, in from the right on wide screens
 function Sheet(props: ComponentProps<typeof Drawer>) {
-  const turned = useContext(Turned), mobile = useIsMobile()
-  return <Drawer swipeDirection={mobile || turned ? 'down' : 'right'} showSwipeHandle={mobile && !turned} {...props} />
+  const mobile = useIsMobile()
+  return <Drawer swipeDirection={mobile ? 'down' : 'right'} showSwipeHandle={mobile} {...props} />
 }
 
 // a blue panel with a gold rim, like the game's other boxes
 function Panel({ title, description, footer, children }: { title: ReactNode; description?: ReactNode; footer?: ReactNode; children?: ReactNode }) {
-  const turned = useContext(Turned)
   return (
-    <DrawerContent viewport={turned && { className: 'turned', style: turned }}
+    <DrawerContent
       className="border-(--gold-d) bg-linear-to-b from-[#24408c] to-[#172a5e] text-base [--drawer-bleed-background:#172a5e] data-[swipe-direction=down]:border-t-3 data-[swipe-direction=right]:border-l-3">
       <DrawerHeader>
         <DrawerTitle className="font-heading text-2xl font-normal tracking-wide text-primary [text-shadow:0_3px_0_rgb(0_0_0/45%)]">{title}</DrawerTitle>
@@ -109,14 +105,14 @@ export function RulesSheet({ rules, children }: { rules: ReactNode; children: Re
 }
 
 // One menu for every screen, behind the ☰ button: rules, the log and hints while playing, sound, and leaving the game.
-export function GameMenu({ turned, rules, log, hints, muted, toggleMute, onLeave }: {
-  turned?: CSSProperties; rules: ReactNode; log?: string[]; hints?: (close: () => void) => ReactNode; muted: boolean; toggleMute: () => void; onLeave?: () => void
+export function GameMenu({ rules, log, hints, muted, toggleMute, onLeave }: {
+  rules: ReactNode; log?: string[]; hints?: (close: () => void) => ReactNode; muted: boolean; toggleMute: () => void; onLeave?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [leaving, setLeaving] = useState(false) // leave only once the menu has slid away, so the screen doesn't change under it
   const close = () => setOpen(false)
   return (
-    <Turned.Provider value={turned}>
+    <>
       <Sheet open={open} onOpenChange={setOpen} onOpenChangeComplete={o => { if (!o && leaving) { setLeaving(false); onLeave?.() } }}>
         <DrawerTrigger render={<Button variant="secondary" size="icon-lg" aria-label="Menu" title="Menu" />}><MenuIcon /></DrawerTrigger>
         <Panel title="Menu" footer={onLeave && (
@@ -138,6 +134,6 @@ export function GameMenu({ turned, rules, log, hints, muted, toggleMute, onLeave
           <Choice id="sound" icon={muted ? <VolumeX /> : <Volume2 />} title="Sound" description="Plays, fights and falling towers" checked={!muted} onChange={toggleMute} />
         </Panel>
       </Sheet>
-    </Turned.Provider>
+    </>
   )
 }

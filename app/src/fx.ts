@@ -14,9 +14,8 @@ const STAGGER = 140 // ms between effects of the same step, so two fights read a
 
 /**
  * `fresh` is the state the latest step produced; effects play only for it, never for undo, redo or a reloaded game.
- * `rot`/`sw`: the board is drawn a quarter turn on upright phones, so screen points are mapped back into its own coordinates.
  */
-export function useFx(game: GuideState | null, fresh: GuideState | null, root: RefObject<HTMLElement | null>, rot = false, sw = 0) {
+export function useFx(game: GuideState | null, fresh: GuideState | null, root: RefObject<HTMLElement | null>) {
   const [pops, setPops] = useState<Pop[]>([])
   const [shake, setShake] = useState<Shake>('')
 
@@ -24,10 +23,10 @@ export function useFx(game: GuideState | null, fresh: GuideState | null, root: R
     const el = root.current
     if (!game || game !== fresh || !game.events?.length || !el) return
     const pr = el.getBoundingClientRect()
-    const width = rot ? pr.height : pr.width
+    const width = pr.width
     // keep pop-ups (and their reason line) inside the board instead of cut off at its edge
     const inside = (x: number) => Math.min(Math.max(x, Math.min(110, width / 2)), width - Math.min(110, width / 2))
-    const local = (cx: number, cy: number) => (rot ? { x: inside(cy), y: sw - cx } : { x: inside(cx - pr.left), y: cy - pr.top })
+    const local = (cx: number, cy: number) => ({ x: inside(cx - pr.left), y: cy - pr.top })
     const rects = (name: string) => [...el.querySelectorAll(`[data-anchor~="${name}"]`)].map(e => e.getBoundingClientRect())
     const at = (name: string) => {
       const rs = rects(name)
@@ -35,12 +34,12 @@ export function useFx(game: GuideState | null, fresh: GuideState | null, root: R
       const l = Math.min(...rs.map(r => r.left)), r = Math.max(...rs.map(r => r.right)), t = Math.min(...rs.map(r => r.top)), b = Math.max(...rs.map(r => r.bottom))
       return local((l + r) / 2, (t + b) / 2)
     }
-    // sounds sit gently left or right where they happen on screen (screen, not board, so turned phones work too)
+    // sounds sit gently left or right where they happen on screen
     const pan = (name: string) => {
       const rs = rects(name)
       return rs.length ? ((rs.reduce((x, r) => x + r.left + r.width / 2, 0) / rs.length / innerWidth) * 2 - 1) * 0.5 : 0
     }
-    const center = rot ? { x: pr.height / 2, y: pr.width / 2 } : { x: pr.width / 2, y: pr.height / 2 }
+    const center = { x: pr.width / 2, y: pr.height / 2 }
     const calm = matchMedia('(prefers-reduced-motion: reduce)').matches
     let biggest = 0
     // not cancelled when the next step arrives: a pop-up always finishes and removes itself
