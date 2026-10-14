@@ -174,7 +174,7 @@ function ElixirBar({ n, spend }: { n: number; spend: number }) {
 // One lane, top to bottom: your soldiers hitting the enemy tower, the enemy's slot, the river, your slot, enemy soldiers hitting your tower.
 function ArenaLane({ idx, units, laneLen, dragging, hint, over, onPlace }: { idx: 0 | 1; units: Unit[]; laneLen: number; dragging: boolean; hint: boolean; over: boolean; onPlace: () => void }) {
   const here = (pred: (u: Unit) => boolean) => units.filter(u => u.lane === idx && pred(u)).map(u => (
-    <div key={u.uid} className={`unit ${u.side}`}><TCard tid={u.tid!} card={u.card} down={false} showCost /></div>
+    <div key={u.uid} className={`unit ${u.side}`}><TCard tid={u.tid!} card={u.card} down={false} /></div>
   ))
   return (
     <div className="alane">
@@ -315,7 +315,7 @@ function LaneCells({ idx, units, laneLen, row, at, dragging, hint, over, onPlace
           <span className="clabel">{d.label}</span>
           <div className="cellbody">
             {units.filter(u => u.lane === idx && d.pred(u)).map(u => (
-              <div key={u.uid} className={`unit ${u.side}`}><TCard tid={u.tid!} card={u.card} down={false} showCost /></div>
+              <div key={u.uid} className={`unit ${u.side}`}><TCard tid={u.tid!} card={u.card} down={false} /></div>
             ))}
           </div>
         </div>
@@ -864,7 +864,7 @@ export default function App() {
             <div className="mid">
               <div className="sidechip enemy" title="Enemy elixir and the next card of its pile (face-down until you have seen it)">
                 <span className="edrop">{g.E.elixir}</span>
-                {eNext && <div className="nextcard"><TCard key={eNext.tid} tid={eNext.tid} card={eNext.card} down={!eNext.card} /></div>}
+                {eNext && <div className="nextcard"><TCard key={eNext.tid} tid={eNext.tid} card={eNext.card} down={!eNext.card} showCost /></div>}
               </div>
               <div className="round">Round {g.round}</div>
               <div className="rule" title="Aces beat picture cards in a fight, whatever the suits"><b>A</b> beats <b>J Q K</b></div>

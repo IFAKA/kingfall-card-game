@@ -7,7 +7,7 @@
 Free, no sign-up, works on phones and desktops.
 
 <p align="center">
-  <img src="docs/screenshots/arena.png" alt="Kingfall on a phone: red enemy castles at the top, blue castles at the bottom, two lanes with a river, a ×2 suit bonus pop-up and the hand of cards below" width="300" />
+  <img src="docs/screenshots/arena.png" alt="Kingfall on a phone: red enemy castles at the top, blue castles at the bottom, two lanes with a river, a ×2 suit bonus pop-up, the enemy's next card with its elixir cost in the middle and the hand of cards below" width="300" />
   &nbsp;
   <img src="docs/screenshots/title.png" alt="Kingfall title screen with a gold crown logo and the Play, Play with real cards and How to play buttons" width="520" />
 </p>
@@ -32,7 +32,7 @@ Full rules: [RULEBOOK.md](RULEBOOK.md) · Printable rulebook (2 pages, A4): [pri
 ## Features
 
 - **Game feel:** "×2!", "ACE!", "CRACK" and "TOWER DOWN!" pop-ups, board shake and sound effects. Every fight also says in plain words why it was won.
-- **Arena view** on screen: castles with armor pips, two lanes with a river, an elixir bar and your hand with the next card.
+- **Arena view** on screen: castles with armor pips, two lanes with a river, an elixir bar and your hand with the next card. The purple elixir cost shows only where you need it: your hand, your next card and the enemy's next card. Cards already in the lanes stay clean.
 - **Deck building:** pick 8 of your 16 cards with an average-cost meter. A good deck is picked for you, so you can start in one tap.
 - **Real-cards setup in pictures:** one step per screen, from shuffling to laying out the table.
 - **Undo and redo**, game saved in the browser, an optional suggested move, and a log of everything that happened.
