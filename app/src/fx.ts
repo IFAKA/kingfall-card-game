@@ -28,11 +28,17 @@ export function useFx(game: GuideState | null, fresh: GuideState | null, root: R
     // keep pop-ups (and their reason line) inside the board instead of cut off at its edge
     const inside = (x: number) => Math.min(Math.max(x, Math.min(110, width / 2)), width - Math.min(110, width / 2))
     const local = (cx: number, cy: number) => (rot ? { x: inside(cy), y: sw - cx } : { x: inside(cx - pr.left), y: cy - pr.top })
+    const rects = (name: string) => [...el.querySelectorAll(`[data-anchor~="${name}"]`)].map(e => e.getBoundingClientRect())
     const at = (name: string) => {
-      const rs = [...el.querySelectorAll(`[data-anchor~="${name}"]`)].map(e => e.getBoundingClientRect())
+      const rs = rects(name)
       if (!rs.length) return null
       const l = Math.min(...rs.map(r => r.left)), r = Math.max(...rs.map(r => r.right)), t = Math.min(...rs.map(r => r.top)), b = Math.max(...rs.map(r => r.bottom))
       return local((l + r) / 2, (t + b) / 2)
+    }
+    // sounds sit gently left or right where they happen on screen (screen, not board, so turned phones work too)
+    const pan = (name: string) => {
+      const rs = rects(name)
+      return rs.length ? ((rs.reduce((x, r) => x + r.left + r.width / 2, 0) / rs.length / innerWidth) * 2 - 1) * 0.5 : 0
     }
     const center = rot ? { x: pr.height / 2, y: pr.width / 2 } : { x: pr.width / 2, y: pr.height / 2 }
     const calm = matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -52,17 +58,20 @@ export function useFx(game: GuideState | null, fresh: GuideState | null, root: R
       const ms = n * STAGGER
       switch (e.type) {
         case 'round': pop(ms, { ...center, text: `Round ${e.round}`, kind: 'round' }); sfx('round', ms); break
-        case 'play': sfx('place', ms); n++; break
+        case 'play': sfx('place', ms, { mood: e.side === 'P' ? 'good' : 'bad', pan: pan(`lane-${e.lane}`) }); n++; break
         case 'fight': {
           const p = at(`lane-${e.lane}`)
           const good = e.winner === 'P' ? 'good' : e.winner === 'E' ? 'bad' : 'tie'
+          const sound = { mood: good, pan: pan(`lane-${e.lane}`) } as const
+          // your value first, the sign pointing at the winner: "13 > 3"
+          const vs = `${e.mine.value} ${e.winner === 'P' ? '>' : e.winner === 'E' ? '<' : '='} ${e.theirs.value}`
           if (e.ace) {
-            pop(ms, p && { ...p, text: 'ACE!', sub: 'beats picture cards', kind: `ace ${good}` }); sfx('big', ms); hit(2)
+            pop(ms, p && { ...p, text: 'ACE!', sub: 'beats picture cards', kind: `ace ${good}` }); sfx('big', ms, sound); hit(2)
           } else if (e.double) {
             const [d, o] = e.double === 'P' ? [e.mine, e.theirs] : [e.theirs, e.mine]
-            pop(ms, p && { ...p, text: '×2!', sub: `${SUITS[d.card.suit]} beats ${SUITS[o.card.suit]} · ${d.value} vs ${o.value}`, kind: `x2 ${isRed(d.card) ? 'red' : 'black'} ${good}` }); sfx('big', ms); hit(2)
+            pop(ms, p && { ...p, text: '×2!', sub: `${SUITS[d.card.suit]} beats ${SUITS[o.card.suit]} · ${vs}`, kind: `x2 ${isRed(d.card) ? 'red' : 'black'} ${good}` }); sfx('big', ms, sound); hit(2)
           } else {
-            pop(ms, p && { ...p, text: `${e.mine.value} : ${e.theirs.value}`, sub: e.winner === 'tie' ? 'tie' : undefined, kind: `fight ${good}` }); sfx('clash', ms); hit(1)
+            pop(ms, p && { ...p, text: vs, sub: e.winner === 'tie' ? 'tie' : undefined, kind: `fight ${good}` }); sfx('clash', ms, sound); hit(1)
           }
           n++
           break
@@ -70,9 +79,10 @@ export function useFx(game: GuideState | null, fresh: GuideState | null, root: R
         case 'tower': {
           const p = at(`tower-${e.side === 'P' ? 'E' : 'P'}-${e.stack}`)
           const good = e.side === 'P' ? 'good' : 'bad'
-          if (e.result === 'crack') { pop(ms, p && { ...p, text: 'CRACK', kind: `crack ${good}` }); sfx('crack', ms); hit(1) }
-          else if (!e.destroyed) { pop(ms, p && { ...p, text: 'BREAK!', kind: `break ${good}` }); sfx('break', ms); hit(2) }
-          else { pop(ms, p && { ...p, text: e.stack === 'K' ? 'KING DOWN!' : 'TOWER DOWN!', kind: `down ${good}` }); sfx('boom', ms); hit(3) }
+          const sound = { mood: good, pan: pan(`tower-${e.side === 'P' ? 'E' : 'P'}-${e.stack}`) } as const
+          if (e.result === 'crack') { pop(ms, p && { ...p, text: 'CRACK', kind: `crack ${good}` }); sfx('crack', ms, sound); hit(1) }
+          else if (!e.destroyed) { pop(ms, p && { ...p, text: 'BREAK!', kind: `break ${good}` }); sfx('break', ms, sound); hit(2) }
+          else { pop(ms, p && { ...p, text: e.stack === 'K' ? 'KING DOWN!' : 'TOWER DOWN!', kind: `down ${good}` }); sfx('boom', ms, sound); hit(3) }
           n++
           break
         }
