@@ -432,14 +432,16 @@ const RULES_60 = (
 // First games teach by playing: one tip at a time, each shown the first time its situation comes up (on screen, the enemy waits while it is open).
 type TipId = 'drag' | 'elixir' | 'enemy' | 'fight' | 'tower'
 const TIPS: Record<TipId, string> = {
-  drag: 'Drag a card from your hand onto one of your lane slots, the bottom half of the field. The purple number is its elixir cost.',
+  drag: 'Drag a card from your hand onto one of your lane slots, the bottom half of the field. The purple number is its elixir cost. The card marked Next, between your lanes, comes into your hand when you play one.',
   elixir: 'Elixir pays for cards. You get 3 more every round, up to 10. Play another card, or press the ✓ button next to your hand to end your turn and let the enemy move. Changed your mind? Until you press ✓, drag a card you placed back to your hand, or tap it and then tap another card to switch them.',
-  enemy: 'The enemy defends: it plays into the lane where you have more cards.',
+  enemy: "The enemy defends: it plays into the lane where you have more cards. The card marked Next, between its lanes, is the one it plays next round.",
   fight: 'When two cards meet, the higher rank wins. A card of the suit that beats the other counts double (♠ › ♥ › ♦ › ♣ › ♠), and aces beat J, Q and K.',
   tower: "The crowned castle in the middle is the king; the two beside it guard the left and right lanes. A card that reaches a tower fights its top card (shown under your castles): win or tie and it breaks, and your card stays wounded for one more hit. Lose and the tower card cracks, and any later hit breaks it. Break both king cards to win.",
 }
 // with real cards the towers are the fanned cards on the table, not castles
 const TABLE_TIPS: Partial<Record<TipId, string>> = {
+  drag: 'Drag a card from your hand onto one of your lane slots, the bottom half of the field. The purple number is its elixir cost.',
+  enemy: 'The enemy defends: it plays into the lane where you have more cards.',
   elixir: 'Elixir pays for cards. You get 3 more every round, up to 10. Play another card, or press the ✓ button next to your hand to end your turn and let the enemy move.',
   tower: "The fan in the middle is your king; the two beside it guard the left and right lanes. A card that reaches a tower fights its front card: win or tie and it breaks, and your card stays, turned sideways (wounded), for one more hit. Lose and the tower card cracks (turn it sideways at the table), and any later hit breaks it. Break both enemy king cards to win.",
 }
@@ -963,9 +965,12 @@ export default function App() {
           <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} />
           <div className="mid rows">
             <div className="sidechip enemy" title="The next card of the enemy pile (face-down until you have seen it). The enemy plays one card per round.">
-              {eNext && <div className="nextcard"><TCard key={eNext.tid} tid={eNext.tid} card={eNext.card} down={!eNext.card} side="E" /></div>}
+              {eNext && <div className="nextcard"><TCard key={eNext.tid} tid={eNext.tid} card={eNext.card} down={!eNext.card} side="E" /><span>Next</span></div>}
             </div>
             {round}
+            <div className="sidechip mine" title="Your next card: it comes into your hand when you play one">
+              {g.P.queue[0] && <div className="nextcard"><span>Next</span><TCard key={g.P.queue[0].id} tid={g.P.queue[0].id} card={g.P.queue[0]} down={false} side="P" showCost /></div>}
+            </div>
           </div>
           <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} />
         </div>
@@ -985,11 +990,8 @@ export default function App() {
             </div>}
           <div className="handwrap">
             <div className="handrow">
-              {mode === 'play' && <div className="nextcard mine" title="Your next card: it comes into your hand when you play one"><span>Next</span>{g.P.queue[0] && <TCard key={g.P.queue[0].id} tid={g.P.queue[0].id} card={g.P.queue[0]} down={false} side="P" showCost />}</div>}
               {handCards}
-              <div className="nextcard mine endwrap"><span>Done</span>
-                <button className={`big done endturn ${advice?.kind === 'wait' ? 'suggested' : ''}`} title={advice?.kind === 'wait' ? advice.reason : 'End turn'} disabled={stage !== 'my_play'} aria-label="End turn" onClick={() => commit(endMyTurn(g))}><svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg></button>
-              </div>
+              <button className={`big done endturn ${advice?.kind === 'wait' ? 'suggested' : ''}`} title={advice?.kind === 'wait' ? advice.reason : 'End turn'} disabled={stage !== 'my_play'} aria-label="End turn" onClick={() => commit(endMyTurn(g))}><svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg></button>
             </div>
             {mode === 'play' && <div className="elixrow"><ElixirBar n={g.P.elixir} spend={spend} /></div>}
           </div>

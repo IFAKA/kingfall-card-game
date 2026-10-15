@@ -463,8 +463,8 @@ details.help[open] > summary { margin-bottom: 8px; }
 .spot.slot.suggested .droptag { padding: 1px 6px; border-radius: 8px; background: var(--green-d); color: #fff; }
 .hdrag.suggested { animation: suggestglow 1.1s ease-in-out infinite; }
 @keyframes suggestglow { 0%, 100% { filter: drop-shadow(0 0 2px rgba(76,194,99,.6)); } 50% { filter: drop-shadow(0 0 9px var(--green)) drop-shadow(0 0 3px var(--green)); } }
-.nextcard.mine.endwrap { margin: 0 0 0 6px; }
-.handrow .endturn { display: grid; place-items: center; --nh: calc(var(--ch) - max(11px, calc(var(--ch) * .17)) - 2px); flex: none; width: calc(var(--nh) * .714); height: var(--nh); padding: 2px; border-radius: 8px; font-size: calc(var(--nh) * .2); line-height: 1.05; }
+/* the end-turn button is shaped like a hand card, the last card of the row */
+.handrow .endturn { display: grid; place-items: center; box-sizing: border-box; flex: none; align-self: flex-end; width: var(--cw); height: var(--ch); padding: 2px; border-radius: 8px; font-size: calc(var(--ch) * .2); line-height: 1.05; }
 .elixrow .done.suggested:not(:disabled), .handrow .done.suggested:not(:disabled) { animation: suggestring 1.1s ease-in-out infinite; outline: 3px solid var(--green); outline-offset: 2px; }
 @keyframes suggestring { 0%, 100% { outline-color: rgba(76,194,99,.25); } 50% { outline-color: var(--green); } }
 .lanes .mid { --mfont: max(14px, min(calc(var(--cw) * .36), 15cqi)); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; z-index: 2; container-type: inline-size; }
@@ -489,7 +489,7 @@ details.help[open] > summary { margin-bottom: 8px; }
 .ebar .spend { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(45deg, rgba(255,255,255,.75) 0 4px, rgba(255,255,255,.15) 4px 8px); }
 .ebar .spend.short { background: repeating-linear-gradient(45deg, rgba(255,80,80,.9) 0 4px, rgba(255,80,80,.3) 4px 8px); }
 .ebar .segs i { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(0,0,0,.4); }
-/* the hand and your elixir bar share one width: the bar runs from Next to Done */
+/* the hand and your elixir bar share one width: the bar runs from the first hand card to Done */
 .handwrap { align-self: center; display: flex; flex-direction: column; gap: 5px; max-width: 100%; }
 .handrow { display: flex; align-items: flex-end; justify-content: center; gap: 14px; padding-top: 8px; min-height: var(--ch); }
 .handrow .hdrag { flex: none; }
@@ -499,8 +499,10 @@ details.help[open] > summary { margin-bottom: 8px; }
 .nextcard.mine { --nl: max(11px, calc(var(--ch) * .17)); --nh: calc(var(--ch) - var(--nl) - 2px); height: var(--ch); margin-right: 6px; align-self: flex-end; }
 .nextcard.mine span { font-family: var(--display); font-size: var(--nl); line-height: 1; color: rgba(255,255,255,.8); text-transform: uppercase; }
 .nextcard.mine .tcard { width: calc(var(--nh) * .714); height: var(--nh); font-size: calc(var(--nh) * .2); }
-/* same size as your own Next card in the hand row */
-.lanes .mid .nextcard .tcard { --nh: calc(var(--ch) - max(11px, calc(var(--ch) * .17)) - 2px); width: calc(var(--nh) * .714); height: var(--nh); font-size: calc(var(--nh) * .2); }
+/* each side's next card sits between its lanes, labelled Next on the side facing the bridge; the card leaves room for the label */
+.lanes .mid .nextcard span { font-family: var(--display); font-size: max(11px, calc(var(--ch) * .17)); line-height: 1; color: rgba(255,255,255,.8); text-transform: uppercase; }
+.lanes .mid .nextcard { gap: 8px; } /* clears the card's colored ring */
+.lanes .mid .nextcard .tcard { --nh: calc(var(--ch) - max(11px, calc(var(--ch) * .17)) - 8px); width: calc(var(--nh) * .714); height: var(--nh); font-size: calc(var(--nh) * .2); }
 .arena .tcard .cost { right: 3px; top: 3px; width: 1.5em; height: 1.5em; font-size: .85em; border-width: 1px; }
 
 /* ---------- teaching by playing: one tip at a time over the field, the enemy waits while it is open ---------- */
@@ -612,9 +614,10 @@ button.linkish:active { transform: none; }
 .alane { grid-template-rows: 1fr calc(var(--ch) + 8px) minmax(var(--rgap), 1fr) 18px minmax(var(--rgap), 1fr) calc(var(--ch) + 8px) 1fr; }
 .alane > :nth-child(1) { grid-row: 1; } .alane > :nth-child(2) { grid-row: 2; } .alane > :nth-child(4) { grid-row: 6; } .alane > :nth-child(5) { grid-row: 7; }
 .alane > .river { grid-row: 4; margin: 0 calc(var(--cw) * .25); }
-/* the middle column uses the lanes' rows: the enemy's next card is centered on the enemy slots' row, the round on the bridge */
+/* the middle column uses the lanes' rows: each side's next card is centered on its slots' row, the round on the bridge */
 .lanes .mid.rows { --rgap: calc(var(--ch) * .12); position: relative; display: grid; grid-template-rows: 1fr calc(var(--ch) + 8px) minmax(var(--rgap), 1fr) 18px minmax(var(--rgap), 1fr) calc(var(--ch) + 8px) 1fr; justify-items: center; gap: 0; min-height: 0; }
 .mid.rows > .sidechip { grid-row: 2; align-self: center; }
+.mid.rows > .sidechip.mine { grid-row: 6; } /* your next card mirrors the enemy's, centered on your slots' row */
 .mid.rows > .round { grid-row: 4; align-self: center; }
 /* a card at a tower is drawn in the lane slot next to that tower (new cards in that lane fight it first), marked by a swords badge */
 .unit.atk { position: relative; }
