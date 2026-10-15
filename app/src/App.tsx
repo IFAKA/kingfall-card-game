@@ -395,6 +395,7 @@ const TABLE_TIPS: Partial<Record<TipId, string>> = {
   elixir: 'Elixir pays for cards. You get 3 more every round, up to 10. Play another card, or press the ✓ button next to your hand to end your turn and let the enemy move.',
   tower: "The fan in the middle is your king; the two beside it guard the left and right lanes. A card that reaches a tower fights its front card: win or tie and it breaks, and your card stays, turned sideways (wounded), for one more hit. Lose and the tower card cracks (turn it sideways at the table), and any later hit breaks it. Break both enemy king cards to win.",
 }
+const DEBUG = import.meta.env.DEV || new URLSearchParams(location.search).has('debug')
 const TIPS_KEY = 'kingfall-tips-seen'
 const PULSES = ['droppulse', 'suggestglow', 'suggestring', 'flipglow']
 const readJSON = <T,>(key: string, fallback: T): T => { try { const v = localStorage.getItem(key); return v ? (JSON.parse(v) as T) : fallback } catch { return fallback } }
@@ -909,7 +910,7 @@ export default function App() {
     )
     const field = (
       <div className={`field ${shake}`}>
-        {import.meta.env.DEV && <span className="corner left undoredo">{undoRedo}</span>} {/* debugging aid: dev server only, never in the deployed build */}
+        {DEBUG && <span className="corner left undoredo">{undoRedo}</span>} {/* debugging aid: dev server, or any build opened with ?debug=1 */}
         <span className="corner right">{menu}</span>
         <div className="castles theirs">
           {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} fx={towerFx('E', k)} shake={fighting.includes(`tower-E-${k}`)} />)}
