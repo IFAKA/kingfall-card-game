@@ -1,12 +1,12 @@
 import { deal, newGame, autoTowers, suggestDeck, playCard, endRound, canPlay, DEFAULT_RULES, shuffle, cost } from '../src/engine.ts'
 function mulberry(a: number) { return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296 } }
-function play(seed: number, smart: boolean, enemyRegen: number) {
+function play(seed: number, smart: boolean) {
   const rnd = mulberry(seed)
   const { mine, theirs } = deal(rnd)
   let deck, towers
   if (smart) { deck = suggestDeck(mine); towers = autoTowers(mine.filter(c => !deck.includes(c))) }
   else { const s = shuffle(mine, rnd); deck = s.slice(0, 8); towers = s.slice(8) }
-  let g = newGame(deck, towers, theirs, { ...DEFAULT_RULES, enemyRegen }, rnd)
+  let g = newGame(deck, towers, theirs, DEFAULT_RULES, rnd)
   let n = 0
   while (!g.winner && n++ < 300) {
     if (smart) {
@@ -34,6 +34,6 @@ function play(seed: number, smart: boolean, enemyRegen: number) {
 }
 for (const smart of [false, true]) {
   let w = 0, t = 0; const N = 3000
-  for (let i = 0; i < N; i++) { const r = play(i + 1, smart, 5); w += r.w; t += r.t }
+  for (let i = 0; i < N; i++) { const r = play(i + 1, smart); w += r.w; t += r.t }
   console.log(smart ? 'rule-follower' : 'random', 'win', (w / N).toFixed(3), 'avg rounds', (t / N).toFixed(1))
 }

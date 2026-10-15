@@ -2,25 +2,25 @@ import { useEffect, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { CircleHelp, Shuffle, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { cost, randomSetup, suggestSetup } from './engine'
+import { DECK_SIZE, PER_SIDE, cost, randomSetup, suggestSetup } from './engine'
 import type { Card } from './engine'
 import { RulesSheet } from './Menu'
 import { CastleArt, TCard } from './Pieces'
 import { useViewport } from '@/hooks/use-viewport'
 import { sfx } from './sfx'
 
-// The deck screen: your 16 cards are always split 8 + 8, the deck (soldiers you play) and the towers (armor).
+// The deck screen: your 14 cards are always split 8 + 6, the deck (soldiers you play) and the towers (armor).
 // Every change is a swap: tap a card, then another. A deck card and a tower card trade places; two tower cards trade
 // places too, which reorders the armor (the front card is hit first). So the screen can never be left half-built.
 
 const TOWERS = [
-  { k: 'L', name: 'Left', slots: [0, 1, 2] },
-  { k: 'K', name: 'King', slots: [6, 7] },
-  { k: 'R', name: 'Right', slots: [3, 4, 5] },
+  { k: 'L', name: 'Left', slots: [0, 1] },
+  { k: 'K', name: 'King', slots: [4, 5] },
+  { k: 'R', name: 'Right', slots: [2, 3] },
 ] as const
 // how much of each card behind the front one peeks out above it, as a share of the card's height
 const PEEK = 0.33
-// dealing again, timed to watch but not to wait for: the 16 cards gather into a pile, then fly out one by one
+// dealing again, timed to watch but not to wait for: the 14 cards gather into a pile, then fly out one by one
 const GATHER_MS = 420, DEAL_MS = 55, FLY = 0.35
 const SUGGESTED_KEY = 'kingfall-suggested-hand'
 
@@ -29,14 +29,14 @@ const GUIDE = <>
   <ul>
     <li><b>Cost:</b> stronger cards cost more elixir to play (the purple number: 2→2, 6→5, 10→8, K→10).</li>
     <li><b>Suit wheel:</b> ♠ beats ♥, ♥ beats ♦, ♦ beats ♣, ♣ beats ♠ — a card of the winning suit counts double in that fight (a 6♠ fights a J♥ as 12).</li>
-    <li><b>Aces beat picture cards:</b> an ace wins any fight against a J, Q or K, whatever the suits. Only in fights, not against towers.</li>
-    <li><b>Towers:</b> a tower card is armor; a soldier must have rank ≥ the tower's front card to break it. A failed hit cracks that card, and any later hit breaks a cracked card.</li>
+    <li><b>Aces beat picture cards:</b> an ace wins any fight against a J, Q or K, whatever the suits, and towers count too.</li>
+    <li><b>Towers:</b> a tower card fights back. A soldier must win or tie a fight against the tower's front card to break it (the wheel and aces count), so an ace on top of a tower stops any picture card. A failed hit cracks that card, and any later hit breaks a cracked card.</li>
   </ul>
   <p><b>Building a good deck.</b></p>
   <ul>
-    <li>Your 8 deck cards are the soldiers you play; the other 8 are your towers. Swap cards between them until you like both.</li>
+    <li>Your 8 deck cards are the soldiers you play; the other 6 are your towers. Swap cards between them until you like both.</li>
     <li>It's a trade-off: <b>strong cards are great soldiers but cost a lot</b>. You get only 3 elixir per round, so a deck of all kings can barely play anything.</li>
-    <li>A good recipe (from thousands of simulated games) is <b>a mix</b>: 2–5 heavy cards (cost 7+) to win fights and break towers, plus <b>cheap cards</b> (cost 1–3). All-cheap and all-heavy decks are only a little behind: aces kill picture cards for 1 elixir, and the wheel lets a mid card beat a big one. Watch out: an enemy ace can kill your king.</li>
+    <li><b>Any kind of deck can win.</b> In thousands of simulated games, all-cheap, mixed and all-heavy decks win about as often: what decides the game is how you play it. Cheap cards answer big ones through aces (they kill picture cards for 1 elixir) and the wheel (a mid card can beat a big one); heavy cards break towers and stay there. Watch out: an enemy ace can kill your king.</li>
     <li>Don't put <i>all</i> your best cards in the deck: the cards you leave out are your tower armor. A mix of suits helps the wheel work for you.</li>
     <li>Your cards arrive split at random: building the deck is up to you. Stuck? "Suggest" sets a good split you can change from there (once per hand). On screen, "Deal" shuffles all 52 cards and deals you (and the enemy) new cards, again split at random.</li>
   </ul>
@@ -44,7 +44,7 @@ const GUIDE = <>
 
 type Spot = { zone: 'deck'; id: string } | { zone: 'tower'; i: number }
 
-// onRedeal (on-screen play only): shuffle all 52 cards and deal 16 to you and 16 to the enemy again, split at random, as often as you like before starting
+// onRedeal (on-screen play only): shuffle all 52 cards and deal 14 to you and 14 to the enemy again, split at random, as often as you like before starting
 export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal, title, bar, start }: {
   mine: Card[]; deckIds: string[]; slotIds: string[]; onChange: (deckIds: string[], slotIds: string[]) => void; onRedeal?: () => void
   title: string; bar: (title: ReactNode) => ReactNode; start: ReactNode
@@ -59,7 +59,7 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
   const [dealing, setDealing] = useState<{ phase: 'gather' | 'deal'; n: number } | null>(null)
   useEffect(() => {
     if (!dealing) return
-    if (dealing.phase === 'deal' && dealing.n >= 16) return setDealing(null)
+    if (dealing.phase === 'deal' && dealing.n >= PER_SIDE) return setDealing(null)
     const t = dealing.phase === 'gather'
       ? setTimeout(() => { onRedeal?.(); setDealing({ phase: 'deal', n: 0 }) }, GATHER_MS)
       : setTimeout(() => { sfx('hover'); setDealing({ phase: 'deal', n: dealing.n + 1 }) }, DEAL_MS)
@@ -67,7 +67,7 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dealing])
   const view = useViewport()
-  const valid = deckIds.length === 8 && slotIds.length === 8
+  const valid = deckIds.length === DECK_SIZE && slotIds.length === PER_SIDE - DECK_SIZE
   const suggested = suggestSetup(mine)
   // a hand saved by an older version, half-built or already on the suggestion without Suggest being used, starts from a random split like a fresh deal
   const stale = !valid || (suggestedHand !== hand && suggested.deckIds.every(id => deckIds.includes(id)) && suggested.slotIds.every((id, i) => slotIds[i] === id))
@@ -75,7 +75,7 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
   if (stale) return null
 
   const byId = (id: string) => mine.find(c => c.id === id)!
-  const deck = mine.filter(c => deckIds.includes(c.id)) // strongest first, like the hand of 16
+  const deck = mine.filter(c => deckIds.includes(c.id)) // strongest first, like the hand you were dealt
   const suggestUsed = suggestedHand === hand
 
   const tap = (s: Spot) => {
@@ -107,12 +107,12 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
   const wide = w >= 620
   const rows = wide ? 1 : 2, cols = 8 / rows
   const byWidth = (w - 24 - 10 * (cols - 1)) / cols / 0.714
-  // the towers row is as tall as its tallest column: a side castle over three cards, or the king's bigger castle over two
-  const byHeight = (view.sh - 302) / (rows + Math.max(0.45 + 1 + 2 * PEEK, 0.84 + 1 + PEEK))
+  // the towers row is as tall as its tallest column: every tower has two cards, so it's the king's bigger castle
+  const byHeight = (view.sh - 302) / (rows + 0.84 + 1 + PEEK)
   const ch = Math.max(60, Math.min(byWidth, byHeight, 150))
   const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px`, '--peek': `${ch * PEEK}px` } as CSSProperties
 
-  const avg = deck.reduce((a, c) => a + cost(c.rank), 0) / 8
+  const avg = deck.reduce((a, c) => a + cost(c.rank), 0) / DECK_SIZE
   const heavy = deck.filter(c => cost(c.rank) >= 7).length
   const cheap = deck.filter(c => cost(c.rank) <= 3).length
   const speed = avg < 3.5 ? 'fast' : avg <= 5.5 ? 'balanced' : 'heavy'
@@ -145,7 +145,7 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
           </div>
         </section>
         <section className="dpanel towers">
-          <header><h2>Your towers</h2><span>the other 8 are armor · the front card is hit first</span></header>
+          <header><h2>Your towers</h2><span>the other 6 are armor · the front card is hit first</span></header>
           <div className="dtowers">
             {TOWERS.map(t => (
               <div key={t.k} className={`dtower castle mine${t.k === 'K' ? ' king' : ''}`}>

@@ -1,8 +1,8 @@
 // Automated checks for the guided app's rules engine. Run with `npm test` (Node 22+ runs TypeScript directly).
 // Plays full games through the same code the app uses and fails if a rule invariant breaks or balance drifts.
-import { autoTowers, canPlay as engineCanPlay, compare, cost, DEFAULT_RULES, endRound, freshDeck, newGame, playCard as enginePlay, shuffle, suggestDeck } from '../src/engine.ts'
+import { autoTowers, breaksTower, canPlay as engineCanPlay, compare, cost, DECK_SIZE, DEFAULT_RULES, endRound, freshDeck, newGame, PER_SIDE, playCard as enginePlay, shuffle, suggestDeck } from '../src/engine.ts'
 import type { Card } from '../src/engine.ts'
-import { advise, canPlay, describe, endMyTurn, enterEnemyCard, enterTowerCard, lastStandPlay, makeGame, next, playCard, startRound } from '../src/guide.ts'
+import { advise, canPlay, describe, endMyTurn, enterEnemyCard, enterTowerCard, fightingNext, lastStandPlay, makeGame, next, playCard, startRound, switchCards, takeBack } from '../src/guide.ts'
 import type { Advice, GuideState } from '../src/guide.ts'
 
 function mulberry(a: number) {
@@ -15,15 +15,15 @@ function check(ok: boolean, what: string) {
   if (!ok) failures++
 }
 
-// Every physical card is somewhere: 16 per side at every step, and elixir stays on the bar.
+// Every physical card is somewhere: 14 per side at every step, and your elixir stays on the bar.
 function invariantError(g: GuideState): string | null {
   const p = g.P.hand.length + g.P.queue.length + g.P.towers.L.length + g.P.towers.R.length + g.P.towers.K.length
     + g.units.filter(u => u.side === 'P').length + g.discard.filter(d => d.owner === 'P').length
   const e = g.E.queue.length + g.E.towers.L.length + g.E.towers.R.length + g.E.towers.K.length
     + g.units.filter(u => u.side === 'E').length + g.discard.filter(d => d.owner === 'E').length
-  if (p !== 16) return `your cards add up to ${p}, not 16`
-  if (e !== 16) return `enemy cards add up to ${e}, not 16`
-  for (const x of [g.P.elixir, g.E.elixir]) if (x < 0 || x > g.rules.cap) return `elixir ${x} is off the bar`
+  if (p !== PER_SIDE) return `your cards add up to ${p}, not ${PER_SIDE}`
+  if (e !== PER_SIDE) return `enemy cards add up to ${e}, not ${PER_SIDE}`
+  if (g.P.elixir < 0 || g.P.elixir > g.rules.cap) return `elixir ${g.P.elixir} is off the bar`
   if (g.P.hand.length > 4) return `hand has ${g.P.hand.length} cards`
   for (const l of [...g.lines, ...g.why, ...g.lastAction]) if (!l || /undefined|NaN|\[object/.test(l)) return `bad instruction text: "${l}"`
   return null
@@ -38,7 +38,7 @@ function eventError(prev: GuideState, g: GuideState): string | null {
   for (const [t, re] of pairs) if (of(t).length !== count(re)) return `${of(t).length} ${t} events for ${count(re)} log lines`
   for (const e of ev) {
     const d = describe(e)
-    if ((e.type === 'play' || e.type === 'fight' || e.type === 'tower' || e.type === 'blocked') && (!d || /undefined|NaN|\[object/.test(d))) return `bad ${e.type} description: "${d}"`
+    if ((e.type === 'play' || e.type === 'fight' || e.type === 'tower') && (!d || /undefined|NaN|\[object/.test(d))) return `bad ${e.type} description: "${d}"`
     if (e.type === 'fight') {
       const r = compare(e.mine.card, e.theirs.card, g.rules)
       if (e.winner !== (r > 0 ? 'P' : r < 0 ? 'E' : 'tie')) return `fight event says ${e.winner} won ${e.mine.card.id} vs ${e.theirs.card.id}`
@@ -65,11 +65,11 @@ function playGuided(n: number, player: Player, seed: number) {
   let error: string | null = null
   for (let k = 0; k < n && !error; k++) {
     const d = shuffle(freshDeck())
-    const my16 = d.slice(0, 16), e16 = d.slice(16, 32)
-    const deck = suggestDeck(my16)
+    const mine = d.slice(0, PER_SIDE), theirs = d.slice(PER_SIDE, 2 * PER_SIDE)
+    const deck = suggestDeck(mine)
     const real = new Map<string, Card>()
-    e16.forEach((c, i) => real.set(i < 8 ? `ep${i}` : `et${i - 8}`, c))
-    let g = startRound(makeGame(deck, autoTowers(my16.filter(c => !deck.includes(c))), my16, DEFAULT_RULES))
+    theirs.forEach((c, i) => real.set(i < DECK_SIZE ? `ep${i}` : `et${i - DECK_SIZE}`, c))
+    let g = startRound(makeGame(deck, autoTowers(mine.filter(c => !deck.includes(c))), mine, DEFAULT_RULES))
     let steps = 0, playsThisTurn = 0
     while (g.stage !== 'over' && g.round < 200 && steps++ < 60000) {
       const st = g.stage, before = g
@@ -100,10 +100,11 @@ const strong = playGuided(400, suggestions, 7)
 check(strong.error === null, `rules stay consistent in 400 games with the app's suggestions${strong.error ? ` (${strong.error})` : ''}`)
 check(strong.unfinished === 0, `every game finishes (${strong.unfinished} unfinished)`)
 check(strong.winRate >= 0.7 && strong.winRate <= 0.92, `following the suggestions wins 70–92% (got ${pct(strong.winRate)}, ${strong.avgRounds.toFixed(0)} rounds on average)`)
+check(strong.avgRounds >= 8 && strong.avgRounds <= 18, `games are short: 8–18 rounds on average (got ${strong.avgRounds.toFixed(1)})`)
 
 const weak = playGuided(400, random, 11)
 check(weak.error === null, `rules stay consistent in 400 games of random play${weak.error ? ` (${weak.error})` : ''}`)
-check(weak.winRate <= 0.1, `random play almost never wins (got ${pct(weak.winRate)})`)
+check(weak.winRate <= 0.2, `random play rarely wins (got ${pct(weak.winRate)})`) // units staying at the tower let blind pushes win now and then (about 3% before that rule)
 
 // The plain engine (used for quick balance checks) must agree with the guided rules on the basics.
 {
@@ -112,9 +113,9 @@ check(weak.winRate <= 0.1, `random play almost never wins (got ${pct(weak.winRat
   const N = 1000
   for (let i = 0; i < N; i++) {
     const d = shuffle(freshDeck(), rnd)
-    const mine = d.slice(0, 16)
+    const mine = d.slice(0, PER_SIDE)
     const deck = suggestDeck(mine)
-    let g = newGame(deck, autoTowers(mine.filter(c => !deck.includes(c))), d.slice(16, 32), DEFAULT_RULES, rnd)
+    let g = newGame(deck, autoTowers(mine.filter(c => !deck.includes(c))), d.slice(PER_SIDE, 2 * PER_SIDE), DEFAULT_RULES, rnd)
     let t = 0
     while (!g.winner && t++ < 300) {
       if (rnd() < 0.5) {
@@ -127,7 +128,7 @@ check(weak.winRate <= 0.1, `random play almost never wins (got ${pct(weak.winRat
     else if (g.winner === 'P') w++
   }
   check(unfinished === 0, `plain engine: every random game finishes (${unfinished} unfinished)`)
-  check(w / N <= 0.1, `plain engine: random play almost never wins (got ${pct(w / N)})`)
+  check(w / N <= 0.25, `plain engine: random play rarely wins (got ${pct(w / N)})`)
 }
 
 check(cost(1) === 1 && cost(5) === 4 && cost(9) === 7 && cost(13) === 10, 'cost table matches the rulebook (A=1, 5=4, 9=7, K=10)')
@@ -141,6 +142,98 @@ check(cost(1) === 1 && cost(5) === 4 && cost(9) === 7 && cost(13) === 10, 'cost 
   check(compare(c(13, 0), c(1, 1), R) === -1, 'aces ignore the wheel: A♥ beats K♠ even though ♠ beats ♥')
   check(compare(c(6, 0), c(11, 1), R) === 1 && compare(c(6, 0), c(12, 1), R) === 0 && compare(c(5, 0), c(11, 1), R) === -1, 'winning suit counts double: 6♠ beats J♥, ties Q♥; 5♠ loses to J♥')
   check(compare(c(7), c(9, 2), R) === -1 && compare(c(7), c(7, 2), R) === 0, 'no wheel between ♠ and ♦: higher rank wins, equal ranks tie')
+}
+
+{
+  // a unit that breaks a tower card stays at the tower; one that only cracks a card goes back to its pile
+  const c = (rank: number, suit = 0): Card => ({ id: `t${rank}-${suit}`, rank, suit })
+  const d = freshDeck()
+  let g = newGame(d.slice(0, DECK_SIZE), d.slice(DECK_SIZE, PER_SIDE), d.slice(PER_SIDE, 2 * PER_SIDE), DEFAULT_RULES, mulberry(5))
+  g.E.towers.L = [c(3, 1), c(12, 1)]
+  g.E.queue = [] // the enemy has nothing to play, so nothing answers the unit
+  g.units = [{ uid: 99, card: c(5), side: 'P', lane: 0, pos: DEFAULT_RULES.laneLen }]
+  g = endRound(g)
+  const stayed = g.units.some(u => u.uid === 99 && u.wounded) && g.E.towers.L.length === 1
+  g = endRound(g)
+  const wentHome = !g.units.some(u => u.uid === 99) && [...g.P.hand, ...g.P.queue].some(x => x.id === 't5-0') && g.cracked.length === 1
+  check(stayed && wentHome, 'a 5 that breaks a 3 stays at the tower, wounded; next round it only cracks the Q and goes back to your pile')
+}
+
+{
+  // towers shoot back: even a king breaks at most 2 tower cards, then goes back to its pile
+  const c = (rank: number, suit = 0): Card => ({ id: `t${rank}-${suit}`, rank, suit })
+  const d = freshDeck()
+  let g = newGame(d.slice(0, DECK_SIZE), d.slice(DECK_SIZE, PER_SIDE), d.slice(PER_SIDE, 2 * PER_SIDE), DEFAULT_RULES, mulberry(7))
+  g.E.towers.L = [c(3, 2), c(4, 2)]
+  g.E.towers.K = [c(5, 2), c(6, 2)]
+  g.E.queue = []
+  g.units = [{ uid: 99, card: c(13, 0), side: 'P', lane: 0, pos: DEFAULT_RULES.laneLen }]
+  for (let i = 0; i < 4; i++) g = endRound(g)
+  check(g.E.towers.L.length === 0 && g.E.towers.K.length === 2 && !g.units.some(u => u.uid === 99), 'a wounded king goes back after its second break: it takes a side tower, never the king too')
+}
+
+{
+  // a tower hit is a fight: the wheel and aces count against towers too
+  const c = (rank: number, suit = 0): Card => ({ id: `t${rank}-${suit}`, rank, suit })
+  const R = DEFAULT_RULES
+  check(breaksTower(c(6, 0), c(11, 1), R) && breaksTower(c(9), c(9, 2), R), 'towers: 6♠ breaks a J♥ (♠ beats ♥, it counts 12), and a tie breaks too')
+  check(!breaksTower(c(13, 2), c(1, 1), R) && !breaksTower(c(13, 2), c(7, 1), R) && breaksTower(c(1), c(12, 2), R),
+    'towers: an ace on top stops a K, a 7♥ stops a K♦ (counts 14), and an attacking ace breaks a Q')
+}
+
+{
+  // the enemy has no elixir: it plays exactly one card per round, even a king
+  const c = (rank: number, suit = 0): Card => ({ id: `t${rank}-${suit}`, rank, suit })
+  const d = freshDeck()
+  let g = newGame(d.slice(0, DECK_SIZE), d.slice(DECK_SIZE, PER_SIDE), d.slice(PER_SIDE, 2 * PER_SIDE), DEFAULT_RULES, mulberry(6))
+  g.E.queue = [c(13, 1), c(2, 1), c(3, 1)]
+  g = endRound(g)
+  check(g.units.filter(u => u.side === 'E').length === 1 && g.units[0].card.rank === 13 && g.E.queue.length === 2, 'the enemy plays exactly one card per round, whatever it costs (K first, the 2 waits)')
+}
+
+{
+  // your turn is a draft: a card taken back is as if it was never played, and a placed card can switch lanes
+  const c = (rank: number, suit = 0): Card => ({ id: `t${rank}-${suit}`, rank, suit })
+  const d = freshDeck()
+  const base: GuideState = { ...makeGame(d.slice(0, DECK_SIZE), d.slice(DECK_SIZE, PER_SIDE), d.slice(0, PER_SIDE)), stage: 'my_play', turn: [] }
+  base.P = { ...base.P, elixir: 10, hand: [c(2), c(3), c(4), c(5)], queue: [c(6), c(7), c(8), c(9)] }
+  const sig = (g: GuideState) => JSON.stringify([g.P.hand.map(x => x.id), g.P.queue.map(x => x.id), g.P.elixir, g.units.map(u => [u.tid, u.lane]), g.stats.placed, g.log])
+  const one = playCard(base, 0, 0), two = playCard(one, 0, 1) // the 2 left, then the 3 right
+  check(sig(takeBack(two, 't2-0')) === sig(playCard(base, 1, 1)), 'taking back the first of two cards: as if only the second was played (elixir back, the drawn card back on the queue)')
+  check(sig(takeBack(two, 't3-0')) === sig(one), 'taking back the last card undoes it exactly')
+  const moved = takeBack(two, 't2-0', 1), done = endMyTurn(two)
+  check(moved.units.every(u => u.lane === 1) && moved.P.elixir === two.P.elixir && takeBack(done, 't2-0') === done, 'a placed card moves lanes for free; after Done nothing can be taken back')
+}
+
+{
+  // tap one card, then another: they switch places
+  const c = (rank: number, suit = 0): Card => ({ id: `t${rank}-${suit}`, rank, suit })
+  const d = freshDeck()
+  const base: GuideState = { ...makeGame(d.slice(0, DECK_SIZE), d.slice(DECK_SIZE, PER_SIDE), d.slice(0, PER_SIDE)), stage: 'my_play', turn: [] }
+  base.P = { ...base.P, elixir: 10, hand: [c(2), c(3), c(4), c(13)], queue: [c(6), c(7), c(8), c(9)] }
+  const mine = (g: GuideState) => g.units.map(u => `${u.card.rank}${u.lane ? 'R' : 'L'}`).join(' ')
+  const two = playCard(playCard(base, 0, 0), 0, 1) // the 2 left, the 3 right; the 6 and 7 drawn
+  check(mine(switchCards(two, 't2-0', 't3-0')) === '3L 2R', 'two placed cards in different lanes switch lanes')
+  const same = playCard(playCard(base, 0, 0), 0, 0)
+  check(mine(switchCards(same, 't3-0', 't2-0')) === '3L 2L', 'two placed cards in one slot switch order: the one now first fights first')
+  const sw = switchCards(two, 't2-0', 't4-0') // the 4 from the hand takes the 2's place; the 2 comes back, 1 elixir less
+  check(mine(sw) === '4L 3R' && sw.P.elixir === two.P.elixir - 1 && sw.P.hand.some(x => x.id === 't2-0') && sw.P.hand.length === 4 && sw.P.queue.length === two.P.queue.length,
+    'a placed card and a hand card trade places, paying the difference')
+  const one = playCard(base, 0, 0), poor = playCard({ ...base, P: { ...base.P, elixir: 2 } }, 0, 0) // the 2 drew the 6; then 0 elixir left
+  check(switchCards(one, 't2-0', 't6-0') === one && switchCards(poor, 't2-0', 't13-0') === poor && switchCards(poor, 't2-0', 't3-0') !== poor,
+    "no switch with a card you only drew because of the other one, or that you can't afford")
+}
+
+{
+  // a hit on a face-down enemy tower card shakes on the step that turns it up, not before
+  const c = (rank: number, suit = 0): Card => ({ id: `t${rank}-${suit}`, rank, suit })
+  const d = freshDeck()
+  const g: GuideState = { ...makeGame(d.slice(0, DECK_SIZE), d.slice(DECK_SIZE, PER_SIDE), d.slice(0, PER_SIDE)), stage: 'move' }
+  g.units = [{ uid: 1, card: c(9), side: 'P', lane: 0, pos: DEFAULT_RULES.laneLen, tid: 'x9' }]
+  g.hitQueue = [1]
+  const faceDown = fightingNext(g).length === 0 && fightingNext({ ...g, stage: 'tower_enter' }).join() === 'x9,tower-E-L'
+  g.E.towers.L[0] = { ...g.E.towers.L[0], card: c(4) }
+  check(faceDown && fightingNext(g).join() === 'x9,tower-E-L', 'a hit on a face-down tower card shakes as the card turns up; on a known card it shakes a step before')
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nall checks passed')

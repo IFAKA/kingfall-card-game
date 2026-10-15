@@ -9,6 +9,13 @@ import { sfx } from './sfx'
 export interface Pop { id: number; x: number; y: number; text: string; sub?: string; kind: string }
 export type Shake = '' | 'shake-s' | 'shake-m' | 'shake-l'
 
+// A card you move yourself (dropped, or tapped into place) is already moving under your finger, so its trip is quicker than the
+// board's own moves and eases out: seconds by tid, read by TCard while it flies.
+export const landing = new Map<string, number>()
+export function quick(tid: string | undefined, seconds: number) {
+  if (tid) { landing.set(tid, seconds); setTimeout(() => landing.delete(tid), seconds * 1000 + 100) }
+}
+
 let nextId = 1
 const STAGGER = 140 // ms between effects of the same step, so two fights read as two hits
 

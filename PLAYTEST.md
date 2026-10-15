@@ -14,32 +14,32 @@ In a fight, a card **counts double** against the suit it beats (6♠ vs J♥ fig
 ♠ beats ♥ · ♥ beats ♦ · ♦ beats ♣ · ♣ beats ♠
 
 ## Aces beat picture cards
-In a fight, an **ace beats a J, Q or K** (suits don't matter). Both sides use it. Fights only, not tower hits.
+In a fight, an **ace beats a J, Q or K** (suits don't matter). Both sides use it, and it counts against towers too (a tower hit is a fight).
 
-## Setup (52 cards = 16 + 16 + 10 + 10)
-1. Shuffle. Deal **16 to you**, **16 to the enemy** (face-down, do not look), then **10 face-down row for you** (your elixir bar) and **10 face-down row for the enemy** (its bar).
-2. **Your 16:** look at them. Pick **8 for your deck**. The other 8 are your towers: build 3 stacks — **left princess (3 cards)**, **right princess (3)**, **king (2)**. You choose each stack's order; the top card is the one that gets hit first.
+## Setup (52 cards = 14 + 14 + 10 + 14 back in the box)
+1. Shuffle. Deal **14 to you**, **14 to the enemy** (face-down, do not look), then a **10 face-down row for you** (your elixir bar). Put the other **14 back in the box** without looking.
+2. **Your 14:** look at them. Pick **8 for your deck**. The other 6 are your towers: build 3 stacks — **left princess (2 cards)**, **right princess (2)**, **king (2)**. You choose each stack's order; the top card is the one that gets hit first.
 3. Shuffle your 8 deck cards. Take 4 as your **hand**; the other 4 are your **queue** (face-down pile).
-4. **Enemy 16:** without looking, take 8 as its **pile** (shuffle, face-down). The other 8 are its towers: 3 / 3 / 2, face-down.
-5. Elixir: lay each bar as a horizontal row of 10 face-down cards, with a small gap after the 5th. Turn the **5th card sideways** (still face-down): that is the **marker**. Elixir = the marker's position counted from the left (1–10); no card sideways = 0. To gain or spend, straighten the marker and turn the card that many places right or left sideways. Never more than 10. Tip: work out the sum in your head and move each marker once per round.
+4. **Enemy 14:** without looking, take 8 as its **pile** (shuffle, face-down). The other 6 are its towers: 2 / 2 / 2, face-down. Turn the pile's **top card face-up**: the enemy's top card is always face-up.
+5. Elixir: lay your bar as a horizontal row of 10 face-down cards, with a small gap after the 5th. Turn the **5th card sideways** (still face-down): that is the **marker**. Elixir = the marker's position counted from the left (1–10); no card sideways = 0. To gain or spend, straighten the marker and turn the card that many places right or left sideways. Never more than 10. Tip: work out the sum in your head and move the marker once per round. The enemy has no bar.
 6. Table: two lanes (left, right) between the tower rows. Each lane has **2 slots**: slot 1 next to you, slot 2 next to the enemy. Units are cards lying in a slot (several can share a slot).
 
 ## Each round (called a tick)
-1. **Elixir.** Your marker moves **3** to the right. The enemy's moves **5**. Cap 10.
+1. **Elixir.** Your marker moves **3** to the right. Cap 10.
 2. **You play** as many cards from your hand as you like and can afford: move your marker left by the cost, put the card in slot 1 of a lane, then refill your hand to 4 from the top of your queue.
-3. **Enemy plays.** Turn its top pile card face-up. While its cost ≤ enemy elixir: it pays (its marker moves left by the cost), the card goes to slot 2 of the lane where **you have more units** (tie: left): it defends against your biggest push, then turn up the next top card. When it can't afford the face-up top card, stop; that card stays face-up (its known next play).
-4. **Move.** Every unit steps one slot toward the other side, **except** the front units that already face each other (same slot, or neighbouring slots): those do not move, they clash in place. Cards never pass through each other. A unit that steps off the last slot is "at the tower".
+3. **Enemy plays exactly one card:** its face-up top card, whatever it costs. It goes to slot 2 of the lane where **you have more units** (tie: left): it defends against your biggest push. Then turn its next top card face-up (its known next play).
+4. **Move.** Every unit steps one slot toward the other side, **except** the front units that already face each other (same slot, or neighbouring slots): those do not move, they clash in place. Cards never pass through each other. A unit that steps off the last slot is "at the tower". Units already at a tower stay there.
 5. **Fight.** In each lane that has units from both sides: your front-most unit fights the enemy's front-most (front-most = furthest advanced; tie: placed first). Compare rank, doubled for the winning suit (an ace against a picture card always wins). **Higher wins; loser goes to the bottom of its owner's pile/queue.** Equal: both go. The winner steps forward into the slot it cleared (if no other enemy card is still in its way), then fights the next enemy card, until one side has no units in that lane. Refill your hand to 4 whenever a card returns to your queue.
-6. **Tower hits.** Each unit still at the tower hits that lane's princess stack (or the king stack if that princess stack is empty). The unit goes to the bottom of its owner's pile. Turn the top tower card face-up. If the unit's rank ≥ that card's rank, **or the card is already cracked (sideways)**, discard the tower card. **Otherwise the tower holds, but the card cracks: turn it sideways and move it to the BOTTOM of that tower** (face-up if it is an enemy card: you now know it), so the next card is on top. Any later hit breaks a cracked card, so small cards can wear any tower down.
-   - **Last stand:** when a left or right tower loses its last card, its owner immediately places one card in that lane for free (marker doesn't move). You: any card from your hand into slot 1, then refill. Enemy: the top card of its pile (normally already face-up) into slot 2. Not for the king.
+6. **Tower hits.** Each unit at the tower hits that lane's princess stack (or the king stack if that princess stack is empty). Turn the top tower card face-up: **the hit is a fight** against it (wheel and aces count). If the unit **wins or ties**, **or the card is already cracked (sideways)**, discard the tower card, and the unit stays at the tower **turned sideways (wounded)**: it hits **once more** next round, unless an enemy unit beats it first (new enemy cards in that lane fight it first), then goes to the bottom of its owner's pile. **If it loses, the tower holds and shoots it back: the unit goes to the bottom of its owner's pile, and the card cracks: turn it sideways and move it to the BOTTOM of that tower** (face-up if it is an enemy card: you now know it), so the next card is on top. Any later hit breaks a cracked card, so small cards can wear any tower down.
+   - **Last stand:** when a left or right tower loses its last card, its owner immediately places one card in that lane for free (marker doesn't move). You: any card from your hand into slot 1, then refill. Enemy: its face-up top card into slot 2, then turn the next one face-up. Not for the king.
 7. **End check.** Enemy king stack empty = you win. Yours empty = you lose. Both = draw.
 
 Enemy moves in the same way against your towers (it hits your stacks; you know your cards).
 
 ## What to look for (from the bot simulator)
-- Bots say every deck type works for a strong player: mixed ≈ 88%, all-cheap ≈ 84%, all-high ≈ 82%. Try them and see if you feel it.
-- Expected strength: random play ≈ 4% wins, a simple rule-follower ≈ 40–45%, a strong player ≈ 85–90%. Expect to lose your first games.
-- Estimated length: ~20–30 rounds (median 26; about 1 game in 40 goes past 45). Time yourself.
+- Bots say every deck type wins about as often (70–82% for a strong bot): skill is in the playing. Try an all-cheap and an all-heavy deck and see if that feels true.
+- Expected strength: random play ≈ 10% wins, a simple rule-follower ≈ 50%, the app's suggestions ≈ 80%. Expect to lose your first games.
+- Estimated length: ~12–17 rounds (about 1 game in 10 goes past 22). Time yourself.
 
 ## Log (copy per game)
 - Your draft (how many high cards): __  Result: __
@@ -49,8 +49,9 @@ Enemy moves in the same way against your towers (it hits your stacks; you know y
 - Rules I got wrong or didn't understand: __
 - Did the visible enemy next-card make it too easy? __
 - Did the enemy defending your pushed lane feel smart, or predictable/exploitable? __
-- Did the sideways elixir marker feel quick, or still like bookkeeping? __
+- Did the sideways elixir marker feel quick, or still like bookkeeping? Did the enemy feel fine with no bar (one card per round)? __
 - Did a last stand ever turn a game around? __
+- Did a card sitting at a tower feel exciting to push or to clear, or unfair? Did a single enemy card ever feel unstoppable? Did stacking your towers (suits, an ace on top) matter? Were there still rounds where nothing happened? __
 - Did an ace killing a picture card feel fair, or cheap? __
 - Was doubling for the winning suit quick in your head, or did you have to stop and count? __
 - Did cracking (sideways tower cards) feel natural? Did any tower feel impossible? __

@@ -311,6 +311,9 @@ h3 { margin: 18px 0 8px; }
 .hand .wheel.aces { right: auto; left: 12px; gap: 10px; }
 .hand .aces .ud { display: flex; align-items: center; gap: 3px; color: #fff; font-size: calc(var(--cw) * .3); font-weight: 800; white-space: nowrap; }
 .hdrag.lifted { opacity: .35; }
+.unit.grab { cursor: grab; touch-action: none; -webkit-touch-callout: none; }
+.unit.grab:active { cursor: grabbing; }
+.unit.lifted { opacity: .35; }
 
 .gameover { animation: dlgin .2s var(--ease-out); }
 .modal-backdrop { animation: fadein .2s var(--ease-out); }
@@ -553,6 +556,8 @@ button.linkish:active { transform: none; }
 .mtable .mt-me { background: rgba(61, 120, 240, .5); }
 .mtable .mt-lane { min-height: 56px; display: grid; place-items: center; background: rgba(255,255,255,.12); border: 1px dashed rgba(255,255,255,.5); }
 .mtable .mt-lane.l { grid-column: 2; } .mtable .mt-lane.r { grid-column: 4; }
+/* your row starts on a new line after the lanes (column 1), instead of filling the lanes row's last cell */
+.mtable .mt-lane.r + span { grid-column: 1; }
 @media (max-width: 440px) { .page .topbar .modechip { display: none; } .page .topbar { flex-wrap: nowrap; } }
 @media (min-width: 700px) { .mc { width: 32px; height: 45px; font-size: 13px; } .mstack { width: 52px; height: 62px; } }
 .gameover { box-sizing: border-box; }
@@ -604,21 +609,34 @@ button.linkish:active { transform: none; }
 .castle .armor { min-height: calc(max(9px, var(--cw) * .28) + 3px); }
 .castle .tslot { height: calc(max(12px, var(--cw) * .27) + 4px); display: flex; align-items: center; }
 .castle .topcard.empty { width: 2.2em; height: 100%; box-sizing: border-box; padding: 0; background: none; box-shadow: none; border: 1.5px dashed rgba(255,255,255,.5); }
-/* the two cards that fight next tremble, leaning toward each other; a card at a tower lunges at it when it hits */
+/* each slot sits halfway between its towers and the bridge: tower, gap, slot, gap, bridge, gap, slot, gap, tower */
+.alane { grid-template-rows: 1fr calc(var(--ch) + 8px) minmax(var(--rgap), 1fr) 18px minmax(var(--rgap), 1fr) calc(var(--ch) + 8px) 1fr; }
+.alane > :nth-child(1) { grid-row: 1; } .alane > :nth-child(2) { grid-row: 2; } .alane > :nth-child(4) { grid-row: 6; } .alane > :nth-child(5) { grid-row: 7; }
+.alane > .river { grid-row: 4; margin: 0 calc(var(--cw) * .25); }
+/* a card at a tower is drawn in the lane slot next to that tower (new cards in that lane fight it first), marked by a swords badge */
+.unit.atk { position: relative; }
+.siege { position: absolute; z-index: 6; left: -7px; bottom: -7px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #fff; color: #fff; box-shadow: 0 2px 0 rgba(0,0,0,.35); }
+.siege svg { width: 12px; height: 12px; }
+/* bottom-left: the card at a tower is first in its slot, so that corner is never under the next card (whose rank and suit stay clear) */
+.unit.P .siege { background: #2c9c90; }
+.unit.E .siege { background: #d23c3c; }
+/* wounded: it broke a tower card and has one hit left, drawn like a cracked tower card (sideways at the table) */
+.unit.wounded > .tcard { rotate: 12deg; } /* on the card, so the trembling (which turns the unit) keeps the lean */
+.unit.wounded .cf.front { box-shadow: 0 0 0 3px #b06bff, 0 0 10px #b06bff; }
+/* the two cards that fight next tremble, leaning toward each other (or the next card to hit a tower, and that tower);
+   a card at a tower lunges at it when it hits */
+.spot > .unit { position: relative; z-index: 1; } /* every lane card is its own layer, so a trembling one keeps its place in the stack */
 .unit.tremble { animation: tremble .3s linear infinite; }
+.castle.tremble, .tfan.tremble { animation: tremble .3s linear infinite; --lean: 0px; }
 .unit.P.tremble { --lean: -1.5px; } .unit.E.tremble { --lean: 1.5px; }
 @keyframes tremble { 0%, 50%, 100% { translate: 0 0; rotate: 0deg; } 25% { translate: -1px var(--lean); rotate: -1.8deg; } 75% { translate: 1px var(--lean); rotate: 1.8deg; } }
 .unit.lunge-up { animation: lunge .45s ease-out; --to: -14px; } .unit.lunge-down { animation: lunge .45s ease-out; --to: 14px; }
 @keyframes lunge { 35% { translate: 0 var(--to); scale: 1.08; } }
 .castle .tslot { position: relative; perspective: 200px; }
 @media (prefers-reduced-motion: reduce) {
-  .unit.tremble { animation: none; filter: drop-shadow(0 0 5px var(--gold)); }
+  .unit.tremble, .castle.tremble, .tfan.tremble { animation: none; filter: drop-shadow(0 0 5px var(--gold)); }
   .unit.lunge-up, .unit.lunge-down { animation: none; }
 }
-/* each slot sits halfway between its towers and the bridge: tower, gap, slot, gap, bridge, gap, slot, gap, tower */
-.alane { grid-template-rows: 1fr calc(var(--ch) + 8px) minmax(var(--rgap), 1fr) 18px minmax(var(--rgap), 1fr) calc(var(--ch) + 8px) 1fr; }
-.alane > :nth-child(1) { grid-row: 1; } .alane > :nth-child(2) { grid-row: 2; } .alane > :nth-child(4) { grid-row: 6; } .alane > :nth-child(5) { grid-row: 7; }
-.alane > .river { grid-row: 4; margin: 0 calc(var(--cw) * .25); }
 .overbtns { position: static; transform: none; flex: none; min-height: 2.5em; display: flex; justify-content: center; align-items: center; gap: 12px; padding: 3px 0; }
 /* primary and secondary buttons share one size */
 .overbtns button, .gameover .row button { font-size: 17px; padding: 10px 24px; }
@@ -627,11 +645,11 @@ button.linkish:active { transform: none; }
 .arena.guide { gap: 5px; }
 .tbar { flex: none; display: flex; align-items: center; gap: 6px; }
 .tbar .modechip { margin-right: auto; }
-/* five card columns (pile, left, king, right, discard); rows: enemy elixir, enemy side, the lanes, your side, your elixir */
+/* five card columns (pile, left, king, right, discard); rows: enemy side, the lanes, your side, your elixir (the enemy has no bar) */
 /* (not ".table": Tailwind's utility of that name, display: table, would win over this layer) */
 .cardtable { flex: 1; min-height: 0; position: relative; display: grid; align-content: space-between; justify-content: center; row-gap: 4px; column-gap: 4px; padding: 6px; border-radius: 18px;
   grid-template-columns: calc(var(--cw) + 10px) calc(var(--cw) * 1.9) minmax(calc(var(--cw) * 1.6), 1fr) calc(var(--cw) * 1.9) calc(var(--cw) + 10px);
-  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   background: radial-gradient(ellipse at 50% 50%, #5cbf4a, #3f9a37 60%, #2f7d2b);
   border: 3px solid #0b1430; box-shadow: inset 0 0 0 2px rgba(255,255,255,.12), inset 0 0 40px rgba(0,0,0,.25), 0 8px 20px rgba(0,0,0,.4); }
 .cardtable > .cbar, .cardtable > .trow, .cardtable > .lanes { grid-column: 1 / -1; }

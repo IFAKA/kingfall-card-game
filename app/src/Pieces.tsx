@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { RANKS, SUITS, cost, isRed } from './engine'
+import { landing } from './fx'
 import type { Card } from './engine'
 
 // Pieces shared by the deck screen and the arena.
@@ -22,7 +23,7 @@ export function TCard({ tid, card, down, selected, dim, showCost, fly = 0.5, onC
   return (
     <motion.div
       layoutId={tid} layout
-      transition={{ layout: { duration: fly, ease: [0.77, 0, 0.175, 1] } }}
+      transition={{ layout: landing.has(tid) ? { duration: landing.get(tid), ease: [0.23, 1, 0.32, 1] } : { duration: fly, ease: [0.77, 0, 0.175, 1] } }}
       className={`tcard ${selected ? 'selected' : ''} ${dim ? 'dim' : ''} ${onClick ? 'clickable' : ''}`}
       style={{ zIndex: 5 }} onClick={onClick} data-tid={tid}
     >
