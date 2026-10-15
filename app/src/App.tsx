@@ -378,12 +378,12 @@ const SuitWheel = () => (
 )
 
 // The round chip on the bridge: when the round changes, each digit rolls like a wheel (up going forward, down on undo)
-// and the chip pops with a gold glow, so the eye goes there. Columns are keyed from the right, so 9 → 10 rolls the ones
+// and the chip glows gold with a gentle swell, so the eye goes to the rolling digits rather than to a jump in size. Columns are keyed from the right, so 9 → 10 rolls the ones
 // digit 9 → 0 while the new tens digit rolls in.
 const roll: Variants = {
   enter: (dir: number) => ({ y: `${dir * 100}%` }),
-  still: { y: '0%', transition: { type: 'spring', stiffness: 260, damping: 22 } },
-  leave: (dir: number) => ({ y: `${dir * -100}%`, transition: { duration: 0.25, ease: 'easeIn' } }),
+  still: { y: '0%', transition: { type: 'spring', stiffness: 150, damping: 18 } },
+  leave: (dir: number) => ({ y: `${dir * -100}%`, transition: { duration: 0.4, ease: 'easeIn' } }),
 }
 function RoundChip({ n }: { n: number }) {
   // the number before the last change, kept in state so the digit that leaves knows its direction in the same render
@@ -398,7 +398,7 @@ function RoundChip({ n }: { n: number }) {
   useEffect(() => {
     if (n === seen.current) return
     seen.current = n
-    if (!calm) animate(scope.current, { scale: [1, 1.45, 0.94, 1.08, 1], boxShadow: ['0 0 0 0 rgba(255,200,60,0)', '0 0 0 4px rgba(255,200,60,.95), 0 0 28px 8px rgba(255,200,60,.7)', '0 0 0 3px rgba(255,200,60,.7), 0 0 18px 4px rgba(255,200,60,.4)', '0 0 0 0 rgba(255,200,60,0)'] }, { duration: 1.1, ease: 'easeOut' })
+    if (!calm) animate(scope.current, { scale: [1, 1.06, 1, 1], boxShadow: ['0 0 0 0 rgba(255,200,60,0)', '0 0 0 4px rgba(255,200,60,.95), 0 0 28px 8px rgba(255,200,60,.7)', '0 0 0 3px rgba(255,200,60,.7), 0 0 18px 4px rgba(255,200,60,.4)', '0 0 0 0 rgba(255,200,60,0)'] }, { duration: 1.3, ease: 'easeInOut' })
   }, [n, calm, animate, scope])
   return (
     <div ref={scope} className="round" aria-live="polite" aria-label={`Round ${n}`}>
