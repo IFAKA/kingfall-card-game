@@ -1,8 +1,8 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import confetti from 'canvas-confetti'
-import { DECK_SIZE, DEFAULT_RULES, PER_SIDE, RANKS, SUITS, aceWins, cost, deal, effective, freshDeck, isRed, label, randomSetup, shuffle, suggestSetup } from './engine'
-import type { Card, Unit } from './engine'
+import { DECK_SIZE, DEFAULT_RULES, PER_SIDE, RANKS, SUITS, aceWins, compare, cost, deal, effective, freshDeck, isRed, label, randomSetup, shuffle, suggestSetup } from './engine'
+import type { Card, Rules, Unit } from './engine'
 import {
   advise, adviseLastStand, autoReveal, canPlay, describe, endMyTurn, extendBatch, fightingNext, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary, switchCards, takeBack,
 } from './guide'
@@ -142,22 +142,20 @@ const CHIP: Variants = {
     : { opacity: 0, transition: { duration: 0 } },
 }
 
-// The numbers behind a fight between the card you hold and a card on the table: yours (blue chip) against theirs, the bigger one wins.
-// A suit bonus doubles a number (an enemy card's rank is struck out and its doubled value written beside it); an ace beating a king reads ∞.
-type Verdict = { mine: string; theirs: string; mineBonus: boolean; theirsBonus: boolean; rank: string }
-type Verdicts = Record<string, Verdict>
-function VerdictTag({ v, compact }: { v?: Verdict; compact?: boolean }) {
-  if (!v) return null
-  return (
-    <>
-      {v.theirsBonus && <span className="duel theirs bonus" title={`This card hits as ${v.theirs}`} aria-hidden>{!compact && <s>{v.rank}</s>}{v.theirs}</span>}
-      <span className="duel mine" title={`Your card hits as ${v.mine}`} aria-hidden><Swords />{v.mine}</span>
-    </>
-  )
+// The fight between the card you hold and an enemy card, in words for the line under the field:
+// why it goes that way (an ace, the suit that counts double, or just the ranks), then who wins.
+function fightLine(m: Card, t: Card, rules: Rules) {
+  const res = compare(m, t, rules)
+  const who = res > 0 ? 'you win' : res < 0 ? `${label(t)} wins` : 'a tie, both are removed'
+  const mv = effective(m, t, rules.wheel), tv = effective(t, m, rules.wheel)
+  const why = aceWins(m, t, rules) || aceWins(t, m, rules) ? 'Aces beat Kings'
+    : mv > m.rank ? `${SUITS[m.suit]} beats ${SUITS[t.suit]}, your ${label(m)} counts ${mv} vs ${tv}`
+    : tv > t.rank ? `${SUITS[t.suit]} beats ${SUITS[m.suit]}, ${label(t)} counts ${tv} vs your ${mv}`
+    : `${label(m)} vs ${label(t)}${[m, t].some(c => c.rank === 1 || c.rank > 10) ? ` is ${mv} vs ${tv}` : ''}` // an ace or a picture's number isn't on the card
+  return `${why}: ${who}.`
 }
 
-// A tower drawn as a castle: one armor pip per card left (a cracked card shows cracked), and the armor to beat on its top card when it is known (an empty slot until then).
-function Castle({ k, items, own, cracked, fx, shake, verdicts }: { k: 'L' | 'R' | 'K'; items: ESlot[]; own: boolean; cracked: string[]; fx?: TowerFx; shake?: boolean; verdicts?: Verdicts }) {
+function Castle({ k, items, own, cracked, fx, shake }: { k: 'L' | 'R' | 'K'; items: ESlot[]; own: boolean; cracked: string[]; fx?: TowerFx; shake?: boolean }) {
   const top = items[0]
   const known = top?.card
   return (
@@ -169,13 +167,13 @@ function Castle({ k, items, own, cracked, fx, shake, verdicts }: { k: 'L' | 'R' 
       <div className="tslot"><AnimatePresence initial={false} mode="popLayout" custom={fx}>{top
         ? <motion.div key={top.tid + (known ? '' : '?')} custom={fx} variants={CHIP} initial="enter" animate="show" exit="leave"
           className={`topcard ${known ? (isRed(known) ? 'red' : '') : 'empty'}`}>{known && <><span>{RANKS[known.rank]}</span><span>{SUITS[known.suit]}</span></>}</motion.div>
-        : null}</AnimatePresence>{top && <VerdictTag v={verdicts?.[top.tid]} compact />}</div>
+        : null}</AnimatePresence></div>
     </div>
   )
 }
 
 // With real cards, a tower is drawn as the cards on the table: a fan, top card (hit first) in front. Yours face-up, the enemy's face-down until flipped.
-function TowerFan({ k, items, own, cracked, flip, shake, verdicts }: { k: 'L' | 'R' | 'K'; items: ESlot[]; own: boolean; cracked: string[]; flip?: boolean; shake?: boolean; verdicts?: Verdicts }) {
+function TowerFan({ k, items, own, cracked, flip, shake }: { k: 'L' | 'R' | 'K'; items: ESlot[]; own: boolean; cracked: string[]; flip?: boolean; shake?: boolean }) {
   const n = items.length
   return (
     <div className={`tfan ${own ? 'mine' : 'theirs'} ${k === 'K' ? 'king' : ''} ${n ? '' : 'fallen'} ${flip ? 'flipme' : ''} ${shake ? 'tremble' : ''}`} data-anchor={`tower-${own ? 'P' : 'E'}-${k}`}
@@ -184,7 +182,6 @@ function TowerFan({ k, items, own, cracked, flip, shake, verdicts }: { k: 'L' | 
         {items.map((it, i) => (
           <div key={it.tid} className={`fc ${cracked.includes(it.tid) ? 'cracked' : ''}`} style={{ left: `calc(${i} * var(--toff))`, zIndex: n - i }}>
             <TCard tid={it.tid} card={it.card} down={!it.card} side={own ? 'P' : 'E'} />
-            {i === 0 && <VerdictTag v={verdicts?.[it.tid]} />}
           </div>
         ))}
       </div>
@@ -211,13 +208,12 @@ function CardBar({ n, spend = 0 }: { n: number; spend?: number }) {
 
 // A pile squared up on the table: the top card shows face-up only where it is face-up at the table, with the count under it.
 // The top card keeps its id, so a card played from the pile, drawn from it or thrown on it slides there.
-function TablePile({ top, down, side, n, name, flip, discard, verdict }: { top?: ESlot; down: boolean; side?: 'P' | 'E'; n: number; name: string; flip?: boolean; discard?: boolean; verdict?: Verdict }) {
+function TablePile({ top, down, side, n, name, flip, discard }: { top?: ESlot; down: boolean; side?: 'P' | 'E'; n: number; name: string; flip?: boolean; discard?: boolean }) {
   return (
     <div className={`tpile ${flip ? 'flipme' : ''}`}>
       <div className="pcards">
         {Array.from({ length: Math.min(3, Math.max(0, n - 1)) }, (_, i) => <div key={i} className={`pback ${discard ? 'face' : ''}`} style={{ translate: `${(i + 1) * 2}px ${(i + 1) * 2}px` }} />)}
         {top && <TCard key={top.tid} tid={top.tid} card={top.card} down={down} side={side} />}
-        {top && <VerdictTag v={verdict} />}
         <span className="pcount" aria-label={`${n} cards`}>{n}</span>
       </div>
       <div className="cname">{name}</div>
@@ -247,7 +243,7 @@ function ElixirBar({ n, spend }: { n: number; spend: number }) {
 // fight it there. A wounded one (it broke a tower card, one hit left) leans like a cracked card.
 // On screen, the cards you placed this turn (grabbable) can be dragged out of their slot again until you end your turn.
 // Tapped, one of them is picked (picked): tapping another card then switches the two.
-function ArenaLane({ idx, units, fighting, laneLen, verdicts, blocked, dragging, hint, suggested, over, onPlace, grabbable = [], lifted, picked, onGrab, onTap }: { idx: 0 | 1; units: Unit[]; fighting: string[]; laneLen: number; verdicts?: Verdicts; blocked?: boolean; dragging: boolean; hint: boolean; suggested: boolean; over: boolean; onPlace: () => void; grabbable?: string[]; lifted?: string | null; picked?: string | null; onGrab?: (e: React.PointerEvent<HTMLElement>, tid: string) => void; onTap?: (tid: string) => void }) {
+function ArenaLane({ idx, units, fighting, laneLen, blocked, dragging, hint, suggested, over, onPlace, grabbable = [], lifted, picked, onGrab, onTap }: { idx: 0 | 1; units: Unit[]; fighting: string[]; laneLen: number; blocked?: boolean; dragging: boolean; hint: boolean; suggested: boolean; over: boolean; onPlace: () => void; grabbable?: string[]; lifted?: string | null; picked?: string | null; onGrab?: (e: React.PointerEvent<HTMLElement>, tid: string) => void; onTap?: (tid: string) => void }) {
   const atTower = (u: Unit) => (u.side === 'P' && u.pos >= laneLen) || (u.side === 'E' && u.pos < 0)
   const here = (pred: (u: Unit) => boolean) => units.filter(u => u.lane === idx && pred(u)).sort((a, b) => +atTower(b) - +atTower(a)).map(u => (
     <div key={u.uid} className={`unit ${u.side} ${atTower(u) ? 'atk' : ''} ${u.wounded ? 'wounded' : ''} ${u.free ? 'free' : ''} ${fighting.includes(u.tid!) ? 'tremble' : ''} ${grabbable.includes(u.tid!) ? 'grab' : ''} ${lifted === u.tid ? 'lifted' : ''}`}
@@ -255,7 +251,6 @@ function ArenaLane({ idx, units, fighting, laneLen, verdicts, blocked, dragging,
       onPointerDown={grabbable.includes(u.tid!) ? e => onGrab?.(e, u.tid!) : undefined}
       onClick={grabbable.includes(u.tid!) ? e => { e.stopPropagation(); onTap?.(u.tid!) } : undefined}>
       <TCard tid={u.tid!} card={u.card} down={false} side={u.side} selected={picked === u.tid} />
-      {u.side === 'E' && <VerdictTag v={verdicts?.[u.tid!]} />}
     </div>
   ))
   return (
@@ -268,6 +263,18 @@ function ArenaLane({ idx, units, fighting, laneLen, verdicts, blocked, dragging,
         {(dragging || hint || suggested) && <span className="droptag">{suggested && '★ '}{idx === 0 ? 'LEFT' : 'RIGHT'}</span>}
       </div>
       <div className="spot atk" />
+    </div>
+  )
+}
+
+// A side's pile between its lanes: the Next card on top, the rest of the pile stacked out of sight under it.
+// So a card that goes back to its pile slides there over the lanes (the middle column is drawn above them) and tucks in under the top card.
+function ArenaPile({ slots, side }: { slots: { tid: string; card: Card | null }[]; side: 'P' | 'E' }) {
+  return (
+    <div className="ncard">
+      {slots.map((x, i) => ({ x, i })).reverse().map(({ x, i }) => ( // the top card last, so it covers the others
+        <div key={x.tid} className={i ? 'pileunder' : undefined}><TCard tid={x.tid} card={x.card} down={!x.card} side={side} showCost={side === 'P' && !i} /></div>
+      ))}
     </div>
   )
 }
@@ -516,7 +523,7 @@ const TIPS: Record<TipId, string> = {
   change: 'Changed your mind? Before ✓, drag a placed card back to your hand or to the other lane.',
   enemy: 'The enemy defends the lane where you have more cards. Its Next card is what it plays next.',
   rank: 'Cards fight where they meet: the higher rank wins. The loser goes back to its pile.',
-  suit: 'Suits beat each other in a circle: ♠ beats ♥ beats ♦ beats ♣ beats ♠. The winning suit counts ×2. The ⚔ button, top left, shows it again.',
+  suit: 'Suits beat each other in a circle:\n♠ beats ♥ beats ♦ beats ♣ beats ♠. The winning suit counts ×2. The ⚔ button, top left, shows it again.',
   ace: 'Aces beat Kings! A 1-elixir ace kills a 10-elixir King.',
   tower: 'A card at a tower fights its top card. Win or tie: the tower card breaks. The king is safe until its side tower falls.',
   crack: 'Lost at a tower? The card goes back to its pile, but the tower card cracks: the next hit breaks it.',
@@ -1094,7 +1101,8 @@ export default function App() {
         : Math.max(44, Math.min((view.sh - 300) / 6.84, (aw - 60) / 7.4 / 0.714, 128))
       : Math.max(52, Math.min((view.sh - 218) / 6.9, (aw - 72) / 4.75 / 0.714, 128))
     const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px` } as CSSProperties
-    const prompt = stage === 'my_play' ? 'Your turn: drag a card onto a lane, then tap ✓.' : standing ? TITLES[stage] : stage === 'round_start' ? `Round ${g.round}: you get ${g.rules.regen} more elixir.` : 'Enemy turn…'
+    // the tips teach how to play a card, what ✓ does and the elixir each round, and the river shows the round: the line only says whose turn it is
+    const prompt = stage === 'my_play' ? 'Your turn.' : standing ? TITLES[stage] : stage === 'round_start' ? `+${g.rules.regen} elixir.` : 'Enemy turn…'
     // the enemy's last-stand card came in during its turn: your turn still says where it came from, until it has fought
     const stood = stage === 'my_play' && g.units.find(u => u.side === 'E' && u.free)
     // with suggestions on, your turn's line says what they suggest and, in a few words, why (the whole reason is in Menu → Hints)
@@ -1104,8 +1112,20 @@ export default function App() {
     const standSide = g.lastStand?.lane === 0 ? 'left' : 'right'
     const standMsg = `Your ${standSide} tower fell: drag a card onto the ${standSide} lane, it joins free.`
     const stoodMsg = stood ? `Enemy ${label(stood.card)} came in free (its ${stood.lane === 0 ? 'left' : 'right'} tower fell).` : ''
-    // at most two lines: one sentence, or the suggestion when suggestions are on
-    const lines = standing ? [suggestion ?? standMsg] : stood ? [suggestion ?? stoodMsg]
+    // the card in your hand (picked, dragged or hovered) against what it would meet: each lane's front enemy card (only the lane it is
+    // dragged over), or the enemy's Next card when no enemy is in those lanes and it is face-up
+    const fights: string[] = []
+    if (previewCard && (stage === 'my_play' || standing)) {
+      const front = (l: 0 | 1) => g.units.filter(u => u.side === 'E' && u.lane === l).sort((a, b) => a.pos - b.pos)[0]
+      for (const l of [0, 1] as const) {
+        const e = front(l)
+        if (e && (overLane === null || overLane === l)) fights.push(`${l === 0 ? 'Left' : 'Right'}: ${fightLine(previewCard, e.card, g.rules)}`)
+      }
+      const next = g.E.queue[0]?.card
+      if (!fights.length && next) fights.push(`Enemy Next: ${fightLine(previewCard, next, g.rules)}`)
+    }
+    // at most two lines: the fights of the card you hold, one sentence, or the suggestion when suggestions are on
+    const lines = fights.length ? fights : standing ? [suggestion ?? standMsg] : stood ? [suggestion ?? stoodMsg]
       : suggestion ? [suggestion] : said.length ? said : [prompt]
     // the suggested lane glows only while no other card is picked up; tapping it with nothing picked plays the suggestion
     const fighting = fightingNext(g)
@@ -1125,19 +1145,6 @@ export default function App() {
         if (pick) { const n = takeBack(g, pick, l); if (n === g) { sfx('unpick'); setPick(null) } else { quick(pick, 0.26); commit(n) } return }
         const i = sel ?? suggested?.handIndex; if (i !== undefined) { quick(g.P.hand[i].id, 0.32); commit(playCard(g, i, l)) } },
     })
-    // what the card in your hand (picked, dragged or hovered) is worth against every enemy card on the table
-    const verdicts: Verdicts = {}
-    if (previewCard) {
-      const add = (tid: string | undefined, c: Card | null | undefined) => {
-        if (!tid || !c) return
-        const w = g.rules.wheel, mv = effective(previewCard, c, w), tv = effective(c, previewCard, w)
-        const mineAce = aceWins(previewCard, c, g.rules), theirAce = aceWins(c, previewCard, g.rules)
-        verdicts[tid] = { mine: mineAce ? '∞' : String(mv), theirs: theirAce ? '∞' : String(tv), mineBonus: mineAce || mv > previewCard.rank, theirsBonus: theirAce || tv > c.rank, rank: RANKS[c.rank] }
-      }
-      for (const u of g.units) if (u.side === 'E') add(u.tid, u.card)
-      add(g.E.queue[0]?.tid, g.E.queue[0]?.card) // the card the enemy plays next
-      for (const k of ['L', 'R', 'K'] as const) add(g.E.towers[k][0]?.tid, g.E.towers[k][0]?.card)
-    }
     const eNext = g.E.queue[0]
     const undoRedo = <>
       <Button variant="secondary" size="icon-lg" aria-label="Undo" title="Undo" onClick={undo} disabled={!history.length}><Undo2 /></Button>
@@ -1158,15 +1165,15 @@ export default function App() {
         <div className="tbar"><span className="undoredo">{undoRedo}</span>{cheat}<span className="modechip">Real cards</span><span className="tmenu">{menu}</span></div>
         <div className={`cardtable ${shake}`}>
           <div className="trow theirs">
-            <TablePile top={eNext} down={!eNext?.card} side="E" n={g.E.queue.length} name="Pile" verdict={eNext && verdicts[eNext.tid]} flip={stage === 'enemy_enter' || stage === 'last_stand_enter'} />
-            {(['L', 'K', 'R'] as const).map(k => <TowerFan key={k} k={k} items={g.E.towers[k]} own={false} verdicts={verdicts} cracked={g.cracked ?? []} flip={flipTower === k} shake={fighting.includes(`tower-E-${k}`)} />)}
+            <TablePile top={eNext} down={!eNext?.card} side="E" n={g.E.queue.length} name="Pile" flip={stage === 'enemy_enter' || stage === 'last_stand_enter'} />
+            {(['L', 'K', 'R'] as const).map(k => <TowerFan key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} flip={flipTower === k} shake={fighting.includes(`tower-E-${k}`)} />)}
             {discard('E')}
           </div>
           <div className="lanes">
             <span />
-            <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} verdicts={verdicts} />
+            <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} />
             <div className="mid">{round}</div>
-            <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} verdicts={verdicts} />
+            <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} />
             <span />
           </div>
           <div className="trow mine">
@@ -1186,20 +1193,20 @@ export default function App() {
         <span className="corner left undoredo">{cheat}{DEBUG && undoRedo}</span> {/* undo/redo: debugging aid, dev server or any build opened with ?debug=1 */}
         <span className="corner right">{menu}</span>
         <div className="castles theirs">
-          {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={g.E.towers[k]} own={false} verdicts={verdicts} cracked={g.cracked ?? []} fx={towerFx('E', k)} shake={fighting.includes(`tower-E-${k}`)} />)}
+          {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} fx={towerFx('E', k)} shake={fighting.includes(`tower-E-${k}`)} />)}
         </div>
         <div className="lanes">
-          <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} verdicts={verdicts} />
+          <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} />
           <div className="mid rows">
             <div className="sidechip enemy" title="The next card of the enemy pile (face-down until you have seen it). The enemy plays one card per round.">
-              {eNext && <div className="nextcard"><div className="ncard"><TCard key={eNext.tid} tid={eNext.tid} card={eNext.card} down={!eNext.card} side="E" /><VerdictTag v={verdicts[eNext.tid]} /></div><span>Next</span></div>}
+              {eNext && <div className="nextcard"><ArenaPile slots={g.E.queue} side="E" /><span>Next</span></div>}
             </div>
             {round}
             <div className="sidechip mine" title="Your next card: it comes into your hand when you play one">
-              {g.P.queue[0] && <div className="nextcard"><span>Next</span><TCard key={g.P.queue[0].id} tid={g.P.queue[0].id} card={g.P.queue[0]} down={false} side="P" showCost /></div>}
+              {g.P.queue[0] && <div className="nextcard"><span>Next</span><ArenaPile slots={g.P.queue.map(c => ({ tid: c.id, card: c }))} side="P" /></div>}
             </div>
           </div>
-          <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} verdicts={verdicts} />
+          <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} />
         </div>
         <div className="castles mine">
           {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={mineSlots(k)} own cracked={g.cracked ?? []} fx={towerFx('P', k)} shake={fighting.includes(`tower-P-${k}`)} />)}
@@ -1212,7 +1219,7 @@ export default function App() {
         <div className="tray">
           {stage === 'over' && overSeen
             ? <div className="overbtns"><button className="big" onClick={playAgain}>Play again</button><button onClick={() => setOverSeen(false)}>Result</button></div>
-            : <div className="feed" aria-live="polite">
+            : <div className={`feed${coach && !tableStep ? ' hushed' : ''}`} aria-live="polite"> {/* an open tip says it better: the line steps aside, keeping its place */}
               {lines.map((l, i) => <div key={i}>{l}</div>)}
             </div>}
           <div className="handwrap">
