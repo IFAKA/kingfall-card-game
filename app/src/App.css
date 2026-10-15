@@ -351,7 +351,7 @@ h3 { margin: 18px 0 8px; }
 /* .pbtn.red means a red suit, not the red "leave" button */
 .pbtn.red { color: #c0262d; background: #f4f4ee; border-color: #8b8b84; box-shadow: 0 3px 0 #6d6d66; text-shadow: none; }
 
-/* ---------- game feel: pop-ups over the board and the board shake (driven by the step's events, see fx.tsx); each pop-up's duration is set inline from its reading time ---------- */
+/* ---------- game feel: pop-ups and sparks over the board (driven by the step's events, see fx.ts; the board shake is set there too); each pop-up's duration is set inline from its reading time ---------- */
 .fxlayer { position: absolute; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
 .pop { position: absolute; transform: translate(-50%, -50%); font-family: var(--display); font-size: var(--popsize, clamp(26px, 4.2vmin, 46px)); line-height: 1; color: #fff; white-space: nowrap; text-align: center;
   text-shadow: 0 3px 0 rgba(0,0,0,.65), 0 0 3px #000, 0 0 3px #000; animation: popup 1.45s cubic-bezier(.2,.8,.3,1) forwards; }
@@ -373,13 +373,18 @@ h3 { margin: 18px 0 8px; }
   70% { transform: translate(-50%, -62%) scale(1); opacity: 1; }
   100% { transform: translate(-50%, -85%) scale(.95); opacity: 0; }
 }
-.shake-s { animation: shake 0.22s linear; --amp: 3px; }
-.shake-m { animation: shake 0.32s linear; --amp: 6px; }
-.shake-l { animation: shake 0.5s linear; --amp: 11px; }
-@keyframes shake {
-  0%, 100% { translate: 0 0; } 15% { translate: calc(var(--amp) * -1) calc(var(--amp) * .5); } 30% { translate: var(--amp) calc(var(--amp) * -.4); }
-  45% { translate: calc(var(--amp) * -.7) calc(var(--amp) * -.3); } 60% { translate: calc(var(--amp) * .6) calc(var(--amp) * .4); } 80% { translate: calc(var(--amp) * -.3) 0; }
-}
+/* sparks at the point of a hit (see fx.ts): each <i> is thrown from the middle of its .spark by a script animation */
+.spark { position: absolute; width: 0; height: 0; }
+.spark i { position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; border-radius: 50%; background: #fff; box-shadow: 0 0 6px 1px rgba(255,240,200,.9); }
+.spark i.line { left: -9px; top: -1px; width: 18px; height: 2px; border-radius: 1px; } /* ♠ slashes */
+.spark i.glint { left: -4px; top: -4px; width: 8px; height: 8px; border-radius: 1px; background: #ffe1e1; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); box-shadow: none; } /* ♦ */
+.spark i.ring { left: -14px; top: -14px; width: 28px; height: 28px; background: none; box-shadow: none; border: 3px solid #fff; box-sizing: border-box; }
+.spark.suit1 i.ring { border-color: #ff7b8a; } /* ♥ a pulse */
+.spark.suit3 i.ring { border-width: 6px; border-color: #e6e9f5; } /* ♣ a heavy ring */
+.spark.suit1 i:not(.ring), .spark.suit2 i:not(.glint) { box-shadow: 0 0 6px 1px rgba(255,120,130,.9); }
+.spark.ace i { background: var(--gold); box-shadow: 0 0 6px 1px var(--gold); }
+.spark.ace i.slash { left: -36px; top: -2px; width: 72px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, transparent, #fff 30%, var(--gold) 70%, transparent); box-shadow: 0 0 10px var(--gold); }
+.spark.chips i { left: -3px; top: -3px; width: 6px; height: 5px; border-radius: 1px; background: #b9b4a6; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .pop { animation: fade 1.4s forwards; } }
 @keyframes fade { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
 
@@ -597,18 +602,15 @@ button.linkish:active { transform: none; }
 .unit.wounded > .tcard { rotate: 12deg; } /* on the card, so the trembling (which turns the unit) keeps the lean */
 .unit.wounded .cf.front { box-shadow: 0 0 0 3px var(--elixir-glow), 0 0 10px var(--elixir-glow); }
 /* the two cards that fight next tremble, leaning toward each other (or the next card to hit a tower, and that tower);
-   a card at a tower lunges at it when it hits */
+   then they strike (fx.ts moves them, stopping the trembling while it does) */
 .spot > .unit { position: relative; z-index: 1; } /* every lane card is its own layer, so a trembling one keeps its place in the stack */
 .unit.tremble { animation: tremble .3s linear .55s infinite; } /* starts once the step's moves (.5s) are over: first the cards move, then they square up */
 .castle.tremble, .tfan.tremble { animation: tremble .3s linear .55s infinite; --lean: 0px; }
 .unit.P.tremble { --lean: -1.5px; } .unit.E.tremble { --lean: 1.5px; }
 @keyframes tremble { 0%, 50%, 100% { translate: 0 0; rotate: 0deg; } 25% { translate: -1px var(--lean); rotate: -1.8deg; } 75% { translate: 1px var(--lean); rotate: 1.8deg; } }
-.unit.lunge-up { animation: lunge .45s ease-out; --to: -14px; } .unit.lunge-down { animation: lunge .45s ease-out; --to: 14px; }
-@keyframes lunge { 35% { translate: 0 var(--to); scale: 1.08; } }
 .castle .tslot { position: relative; perspective: 200px; }
 @media (prefers-reduced-motion: reduce) {
   .unit.tremble, .castle.tremble, .tfan.tremble { animation: none; filter: drop-shadow(0 0 5px var(--gold)); }
-  .unit.lunge-up, .unit.lunge-down { animation: none; }
 }
 .overbtns { position: static; transform: none; flex: none; min-height: 2.5em; display: flex; justify-content: center; align-items: center; gap: 12px; padding: 3px 0; }
 /* primary and secondary buttons share one size */

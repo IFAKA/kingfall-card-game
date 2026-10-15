@@ -254,8 +254,8 @@ const SOUNDS: Record<Sfx, { wet: number; play: (s: S, mood: Mood) => void }> = {
   },
 }
 
-/** Plays a sound after `delayMs`. `pan`: -1 (left) to 1 (right), where on the board it happens. */
-export function sfx(name: Sfx, delayMs = 0, { mood = 'tie', pan = 0 }: { mood?: Mood; pan?: number } = {}) {
+/** Plays a sound after `delayMs`. `pan`: -1 (left) to 1 (right), where on the board it happens; `pitch`: a shift on top of the random one. */
+export function sfx(name: Sfx, delayMs = 0, { mood = 'tie', pan = 0, pitch = 1 }: { mood?: Mood; pan?: number; pitch?: number } = {}) {
   if (muted) return
   const go = () => {
     try {
@@ -266,7 +266,7 @@ export function sfx(name: Sfx, delayMs = 0, { mood = 'tie', pan = 0 }: { mood?: 
       send.gain.value = wet
       bus.connect(side).connect(mix.master)
       side.connect(send).connect(mix.room)
-      play({ a, out: bus, t: a.currentTime + 0.005, k: 0.96 + Math.random() * 0.08, noise: mix.noise }, mood)
+      play({ a, out: bus, t: a.currentTime + 0.005, k: (0.96 + Math.random() * 0.08) * pitch, noise: mix.noise }, mood)
     } catch { /* no audio on this device */ }
   }
   if (delayMs) setTimeout(go, delayMs)

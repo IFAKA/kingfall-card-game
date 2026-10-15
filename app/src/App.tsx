@@ -138,8 +138,9 @@ type TowerFx = 'reveal' | 'break' | 'crack' | undefined
 const CHIP: Variants = {
   enter: (fx: TowerFx) => ({ rotateY: 90, scale: fx === 'reveal' ? 1.8 : 1 }),
   show: (fx: TowerFx) => ({ rotateY: 0, scale: 1, transition: { duration: fx === 'reveal' ? 0.5 : 0.3, ease: 'easeOut' } }),
-  leave: (fx: TowerFx) => fx === 'break' ? { y: 34, rotate: 40, opacity: 0, transition: { duration: 0.7, delay: 0.2, ease: 'easeIn' } }
-    : fx === 'crack' ? { rotate: 90, scale: 0.4, opacity: 0, transition: { duration: 0.5, delay: 0.2 } }
+  // the hit has already struck by the time the step lands (see fx.ts), so the card goes at once
+  leave: (fx: TowerFx) => fx === 'break' ? { y: 34, rotate: 40, opacity: 0, transition: { duration: 0.7, ease: 'easeIn' } }
+    : fx === 'crack' ? { rotate: 90, scale: 0.4, opacity: 0, transition: { duration: 0.5 } }
     : { opacity: 0, transition: { duration: 0 } },
 }
 
@@ -164,7 +165,7 @@ function Castle({ k, items, own, cracked, fx, shake }: { k: 'L' | 'R' | 'K'; ite
       title={!items.length ? `${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower has fallen` : `${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower: ${items.length} card${items.length === 1 ? '' : 's'} of armor${known ? `; a soldier must win or tie a fight against its top card, ${label(known)}, to break it` : ''}`}>
       <CastleArt king={k === 'K'} fallen={!items.length} />
       <div className="armor"><AnimatePresence initial={false}>{items.map(it => <motion.i key={it.tid} layout className={cracked.includes(it.tid) ? 'crk' : ''}
-        exit={{ scale: 0, opacity: 0, transition: { duration: 0.3, delay: 0.2 } }} />)}</AnimatePresence></div>
+        exit={{ scale: 0, opacity: 0, transition: { duration: 0.3 } }} />)}</AnimatePresence></div>
       <div className="tslot"><AnimatePresence initial={false} mode="popLayout" custom={fx}>{top
         ? <motion.div key={top.tid + (known ? '' : '?')} custom={fx} variants={CHIP} initial="enter" animate="show" exit="leave"
           className={`topcard ${known ? (isRed(known) ? 'red' : '') : 'empty'}`}>{known && <><span>{RANKS[known.rank]}</span><span>{SUITS[known.suit]}</span></>}</motion.div>
@@ -638,9 +639,16 @@ export default function App() {
   }, [sel, bad, pick])
   // the state the latest step produced: only it gets effects (not undo, redo or a reloaded game)
   const fresh = useRef<GuideState | null>(null)
-  const advance = (g: GuideState) => { fresh.current = g; setGame(g) }
   const playRef = useRef<HTMLDivElement>(null)
-  const { pops, shake } = useFx(game, fresh.current, playRef)
+  const fx = useFx(game, fresh.current, playRef, mode === 'play' && fast ? 1.6 : 1)
+  const { pops } = fx
+  // a step with fights or tower hits is shown once they have struck on the board as it was (see fx.ts). Anything done during a
+  // strike was meant for the step before it, so it only skips the strike to its end.
+  const advance = (g: GuideState) => {
+    if (fx.striking()) return fx.land()
+    fresh.current = g
+    if (!fx.strike(g, () => setGame(g))) setGame(g)
+  }
   const [tipsSeen, setTipsSeen] = useState<string[]>(() => readJSON(TIPS_KEY, []))
   const [tip, setTip] = useState<TipId | null>(null)
   // a tip told differently at the table is seen separately there, so switching modes still teaches the table's version
@@ -704,7 +712,8 @@ export default function App() {
   // on screen, informational steps advance by themselves, slowly enough to follow what happens; not recorded for undo
   useEffect(() => {
     if (mode !== 'play' || screen !== 'play' || !game || tip || !AUTO_STAGES.includes(game.stage)) return
-    const t = setTimeout(() => advance(settle(next(game))), autoDelay(game.lines.length, fast))
+    // the strike that showed this step counts toward its time
+    const t = setTimeout(() => advance(settle(next(game))), Math.max(400, autoDelay(game.lines.length, fast) - fx.held(game)))
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, screen, game, tip, fast])
@@ -723,6 +732,7 @@ export default function App() {
   const deck = mine.filter(c => deckIds.includes(c.id))
 
   const reset = () => {
+    fx.land()
     setTip(null)
     setScreen('title'); setDealt([]); setDeckIds([]); setSlotIds([]); setPre(null); setGame(null); setHistory([]); setFuture([]); setSel(null); setMode('guide'); setSecret({}); setIntro(null)
   }
@@ -732,13 +742,14 @@ export default function App() {
     const help = m === 'play' ? novice : played.guide === 0
     if (help) { if (m === 'play') setSuggestOn(true); else setExplainOn(true) }
     setIntro(novice || help ? { deck: novice, help } : null)
+    fx.land()
     advance(startRound(g)); setHistory([]); setFuture([]); setPre(null); setCounted(false); setScreen('play')
   }
   const deckOf = (cards: Card[], ids: string[]) => cards.filter(c => ids.includes(c.id))
   const settle = (g: GuideState) => (mode === 'play' ? autoReveal(g, secret) : g)
-  const commit = (g: GuideState) => { setHistory(h => [...h, game!]); setFuture([]); advance(settle(g)); setSel(null); setBad(null); setPick(null) }
-  const undo = () => { if (!history.length || !game) return; browsing.current = true; setFuture(f => [...f, game]); setGame(history[history.length - 1]); setHistory(h => h.slice(0, -1)); setSel(null); setBad(null) }
-  const redo = () => { if (!future.length || !game) return; browsing.current = true; setHistory(h => [...h, game]); setGame(future[future.length - 1]); setFuture(f => f.slice(0, -1)); setSel(null); setBad(null) }
+  const commit = (g: GuideState) => { if (fx.striking()) return fx.land(); setHistory(h => [...h, game!]); setFuture([]); advance(settle(g)); setSel(null); setBad(null); setPick(null) }
+  const undo = () => { if (fx.striking()) return fx.land(); if (!history.length || !game) return; browsing.current = true; setFuture(f => [...f, game]); setGame(history[history.length - 1]); setHistory(h => h.slice(0, -1)); setSel(null); setBad(null) }
+  const redo = () => { if (fx.striking()) return fx.land(); if (!future.length || !game) return; browsing.current = true; setHistory(h => [...h, game]); setGame(future[future.length - 1]); setFuture(f => f.slice(0, -1)); setSel(null); setBad(null) }
 
   const setSplit = ({ deckIds, slotIds }: { deckIds: string[]; slotIds: string[] }) => { setDeckIds(deckIds); setSlotIds(slotIds) }
   // on-screen play: deal both hands at random; the enemy's cards stay hidden inside the app (tid ep0-7 = pile, et0-5 = towers)
@@ -1180,7 +1191,7 @@ export default function App() {
     const table = (
       <>
         <div className="tbar"><span className="undoredo">{undoRedo}</span>{cheat}<span className="modechip">Real cards</span><span className="tmenu">{menu}</span></div>
-        <div className={`cardtable ${shake}`}>
+        <div className="cardtable">
           <div className="trow theirs">
             <TablePile top={eNext} down={!eNext?.card} side="E" n={g.E.queue.length} name="Pile" flip={stage === 'enemy_enter' || stage === 'last_stand_enter'} />
             {(['L', 'K', 'R'] as const).map(k => <TowerFan key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} flip={flipTower === k} shake={fighting.includes(`tower-E-${k}`)} />)}
@@ -1206,7 +1217,7 @@ export default function App() {
     const skippable = mode === 'play' && !tip && AUTO_STAGES.includes(stage)
     const skip = (e: React.PointerEvent) => { if (!(e.target as Element).closest('button')) advance(settle(next(g))) }
     const field = (
-      <div className={`field ${shake}${skippable ? ' skippable' : ''}`} onPointerDown={skippable ? skip : undefined}>
+      <div className={`field${skippable ? ' skippable' : ''}`} onPointerDown={skippable ? skip : undefined}>
         <span className="corner left undoredo">{cheat}{DEBUG && undoRedo}</span> {/* undo/redo: debugging aid, dev server or any build opened with ?debug=1 */}
         <span className="corner right">{menu}</span>
         <div className="castles theirs">
