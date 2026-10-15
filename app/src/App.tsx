@@ -40,7 +40,6 @@ function CardView({ card, down, showCost, selected, dim, small, onClick }: {
   return (
     <div className={`card face ${isRed(card) ? 'red' : 'black'} ${selected ? 'selected' : ''} ${dim ? 'dim' : ''} ${small ? 'small' : ''} ${onClick ? 'clickable' : ''}`} onClick={onClick}>
       <div className="corner">{RANKS[card.rank]}<br />{SUITS[card.suit]}</div>
-      <div className="pip">{SUITS[card.suit]}</div>
       {showCost && <div className="cost" title="elixir cost">{cost(card.rank)}</div>}
     </div>
   )

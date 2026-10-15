@@ -31,7 +31,6 @@ export function TCard({ tid, card, down, selected, dim, showCost, fly = 0.5, onC
         <div className={`cf front ${card && isRed(card) ? 'red' : 'black'}`}>
           {card && <>
             <div className="corner">{RANKS[card.rank]}<br />{SUITS[card.suit]}</div>
-            <div className="pip">{SUITS[card.suit]}</div>
             {showCost && <div className="cost" title="elixir cost">{cost(card.rank)}</div>}
           </>}
         </div>

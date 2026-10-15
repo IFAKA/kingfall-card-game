@@ -2,7 +2,6 @@
 // Effects are placed on board elements marked with data-anchor ("lane-0", "tower-E-L", ...), so any board layout can use them.
 import { useEffect, useState } from 'react'
 import type { RefObject } from 'react'
-import { isRed } from './engine'
 import type { GameEvent, GuideState } from './guide'
 import { sfx } from './sfx'
 
@@ -72,8 +71,7 @@ export function useFx(game: GuideState | null, fresh: GuideState | null, root: R
           if (e.ace) {
             pop(ms, p && { ...p, text: 'ACE!', kind: `ace ${good}` }); sfx('big', ms, sound); hit(2)
           } else if (e.double) {
-            const d = e.double === 'P' ? e.mine : e.theirs
-            pop(ms, p && { ...p, text: '×2!', sub: vs, kind: `x2 ${isRed(d.card) ? 'red' : 'black'} ${good}` }); sfx('big', ms, sound); hit(2)
+            pop(ms, p && { ...p, text: '×2!', sub: vs, kind: `x2 ${good}` }); sfx('big', ms, sound); hit(2)
           } else {
             pop(ms, p && { ...p, text: vs, sub: e.winner === 'tie' ? 'tie' : undefined, kind: `fight ${good}` }); sfx('clash', ms, sound); hit(1)
           }

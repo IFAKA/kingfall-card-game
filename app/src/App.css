@@ -192,7 +192,10 @@ h3 { margin: 18px 0 8px; }
 .slot, .slot.attack { min-height: var(--ch); padding: 2px 0; align-items: center; gap: 6px; }
 .slot.attack { background: #3a1a1a22; }
 .unit .who { display: none; }
-.unit.P .cf.front { box-shadow: 0 0 0 3px #4fd1c5; } .unit.E .cf.front { box-shadow: 0 0 0 3px #f56565; } .unit.E .cf.backside { box-shadow: 0 0 0 3px #f56565; }
+/* whose card it is: a ring and a wash of the side's colour over the face */
+.unit.P .cf.front { background: linear-gradient(rgba(79,209,197,.38), rgba(79,209,197,.38)), #fbfbf6; box-shadow: 0 0 0 3px #4fd1c5; }
+.unit.E .cf.front { background: linear-gradient(rgba(245,101,101,.34), rgba(245,101,101,.34)), #fbfbf6; box-shadow: 0 0 0 3px #f56565; }
+.unit.E .cf.backside { background: linear-gradient(rgba(245,101,101,.5), rgba(245,101,101,.5)), repeating-linear-gradient(45deg, #263a8c, #263a8c 5px, #3150b8 5px, #3150b8 10px); box-shadow: 0 0 0 3px #f56565; }
 .hand { display: flex; gap: 8px; margin: 0 10px 0 0; min-height: var(--ch); }
 .mini .cf.front { font-size: 1.1em; }
 .play { --ch: max(54px, calc(((100 * var(--vh)) - 200px) / 8.9)); }
@@ -385,7 +388,6 @@ details.help[open] > summary { margin-bottom: 8px; }
 .pop.bad { color: #ff6b6b; }
 .pop.tie { color: #e6e9f5; }
 .pop.x2, .pop.ace { font-size: calc(var(--popsize, clamp(26px, 4.2vmin, 46px)) * 1.35); }
-.pop.x2.red { color: #ff4d5e; } .pop.x2.black { color: #fff; }
 .pop.x2 small, .pop.ace small { color: #fff; }
 .pop.ace { color: #fff; -webkit-text-stroke: 1px var(--gold-d); }
 .pop.down { font-size: calc(var(--popsize, clamp(26px, 4.2vmin, 46px)) * 1.5); animation-duration: 1.5s; }
