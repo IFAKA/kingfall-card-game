@@ -539,7 +539,7 @@ const TIPS: Record<TipId, string> = {
   drag: 'Drag a card onto a lane at the bottom. The purple number is its cost.',
   elixir: 'Elixir pays for cards: +3 every round. Done? Press ✓ and the enemy moves.',
   change: 'Changed your mind? Before ✓, drag a placed card back to your hand or to the other lane.',
-  enemy: 'The enemy defends the lane where you have more cards. Its Next card is what it plays next.',
+  enemy: 'The enemy defends the lane where you have more cards. Equal? Where your best card is higher. Its Next card is what it plays next.',
   rank: 'Cards fight where they meet: the higher rank wins. The loser goes back to its pile.',
   suit: 'Suits beat each other in a circle:\n♠ beats ♥ beats ♦ beats ♣ beats ♠. The winning suit counts ×2. The ⚔ button, top left, shows it again.',
   ace: 'Aces beat Kings! A 1-elixir ace kills a 10-elixir King.',
@@ -552,7 +552,7 @@ const TIPS: Record<TipId, string> = {
 const TABLE_TIPS: Partial<Record<TipId, string>> = {
   goal: "Goal: break the enemy's king, the middle tower across the table. Your cards are soldiers.",
   drag: 'Drag a card onto a lane at the bottom. The purple number is its cost.',
-  enemy: 'The enemy defends the lane where you have more cards.',
+  enemy: 'The enemy defends the lane where you have more cards. Equal? Where your best card is higher.',
   change: 'Wrong card? Undo, top left, takes back any step.',
   tower: 'A card at a tower fights its front card. Win or tie: the tower card breaks. The king is safe until its side tower falls.',
   crack: 'Lost at a tower? The card goes back to its pile; turn the tower card sideways and move it to the bottom. The next hit breaks it.',
