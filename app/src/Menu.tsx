@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import type { ComponentProps, ReactElement, ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { ComponentProps, ReactElement, ReactNode, Ref } from 'react'
 import { BookOpen, Castle, ChevronRight, Download, Hand, Lightbulb, LogOut, Menu as MenuIcon, ScrollText, Share, Shield, SquarePlus, Swords, Volume2, VolumeX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
@@ -14,36 +14,37 @@ function Sheet(props: ComponentProps<typeof Drawer>) {
   return <Drawer swipeDirection={mobile ? 'down' : 'right'} showSwipeHandle={mobile} {...props} />
 }
 
-// a blue panel with a gold rim, like the game's other boxes
-function Panel({ title, description, footer, children }: { title: ReactNode; description?: ReactNode; footer?: ReactNode; children?: ReactNode }) {
+// a blue panel with a gold rim, like the game's other boxes.
+// turn: the drawer just changed page, and the new page fades in
+function Panel({ title, description, footer, children, turn, pageRef }: {
+  title: ReactNode; description?: ReactNode; footer?: ReactNode; children?: ReactNode; turn?: { key: string }; pageRef?: Ref<HTMLDivElement>
+}) {
   return (
     <DrawerContent
       className="border-(--gold-d) bg-linear-to-b from-[#24408c] to-[#172a5e] text-base [--drawer-bleed-background:#172a5e] data-[swipe-direction=down]:border-t-3 data-[swipe-direction=right]:border-l-3">
-      <DrawerHeader>
-        <DrawerTitle className="font-heading text-2xl font-normal tracking-wide text-primary [text-shadow:0_3px_0_rgb(0_0_0/45%)]">{title}</DrawerTitle>
-        {description && <DrawerDescription className="text-base">{description}</DrawerDescription>}
-      </DrawerHeader>
-      {children && <div className="flex flex-1 flex-col gap-3 overflow-y-auto overscroll-contain p-4 *:shrink-0">{children}</div>}
-      {footer && <DrawerFooter className="pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">{footer}</DrawerFooter>}
+      <div key={turn?.key} ref={pageRef} tabIndex={-1} className={`flex min-h-0 flex-1 flex-col outline-none ${turn ? 'animate-in duration-300 fade-in' : ''}`}>
+        <DrawerHeader>
+          <DrawerTitle className="font-heading text-2xl font-normal tracking-wide text-primary [text-shadow:0_3px_0_rgb(0_0_0/45%)]">{title}</DrawerTitle>
+          {description && <DrawerDescription className="text-base">{description}</DrawerDescription>}
+        </DrawerHeader>
+        {children && <div className="flex flex-1 flex-col gap-3 overflow-y-auto overscroll-contain p-4 *:shrink-0">{children}</div>}
+        {footer && <DrawerFooter className="pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">{footer}</DrawerFooter>}
+      </div>
     </DrawerContent>
   )
 }
 
-const back = <DrawerClose render={<Button variant="secondary" size="xl" />}>Back</DrawerClose>
 const row = 'min-h-14 bg-black/25 text-left hover:bg-black/35'
 const rowTitle = 'font-heading text-lg font-normal tracking-wide'
 
-// a menu row that opens its page over the menu (a nested drawer); Back closes the page again
-function PageRow({ icon, title, description, children }: { icon: ReactNode; title: string; description: string; children: ReactNode }) {
+// a menu row that turns the menu to one of its pages
+function PageRow({ icon, title, description, onOpen }: { icon: ReactNode; title: string; description: string; onOpen: () => void }) {
   return (
-    <Sheet>
-      <DrawerTrigger render={<Item variant="outline" className={row} render={<button />} />}>
-        <ItemMedia variant="icon" className="h-7 translate-y-px! text-primary [&_svg]:size-5!">{icon}</ItemMedia>
-        <ItemContent><ItemTitle className={rowTitle}>{title}</ItemTitle><ItemDescription>{description}</ItemDescription></ItemContent>
-        <ItemActions><ChevronRight className="size-5 opacity-60" /></ItemActions>
-      </DrawerTrigger>
-      <Panel title={title} footer={back}>{children}</Panel>
-    </Sheet>
+    <Item variant="outline" className={row} render={<button onClick={onOpen} />}>
+      <ItemMedia variant="icon" className="h-7 translate-y-px! text-primary [&_svg]:size-5!">{icon}</ItemMedia>
+      <ItemContent><ItemTitle className={rowTitle}>{title}</ItemTitle><ItemDescription>{description}</ItemDescription></ItemContent>
+      <ItemActions><ChevronRight className="size-5 opacity-60" /></ItemActions>
+    </Item>
   )
 }
 
@@ -113,7 +114,7 @@ const iosSteps = (
     <li className="flex items-center gap-3"><Castle className="size-6 shrink-0 text-primary" /><span>Open Kingfall from its icon: full screen, and it plays without a connection.</span></li>
   </ol>
 )
-function InstallRow() {
+function InstallRow({ onOpen }: { onOpen: () => void }) {
   const { how, install } = useInstall()
   if (how === 'prompt') return (
     <Item variant="outline" className={row} render={<button onClick={install} />}>
@@ -121,7 +122,7 @@ function InstallRow() {
       <ItemContent><ItemTitle className={rowTitle}>Install the app</ItemTitle><ItemDescription>On your home screen, plays offline</ItemDescription></ItemContent>
     </Item>
   )
-  if (how === 'ios') return <PageRow icon={<Download />} title="Install the app" description="On your home screen, plays offline">{iosSteps}</PageRow>
+  if (how === 'ios') return <PageRow icon={<Download />} title="Install the app" description="On your home screen, plays offline" onOpen={onOpen} />
   return null
 }
 // the title screen's quiet offer under the big buttons
@@ -133,37 +134,73 @@ export function InstallLink() {
   return null
 }
 
+type PageId = 'rules' | 'log' | 'hints' | 'install' | 'leave'
+
 // One menu for every screen, behind the ☰ button: rules, the log and hints while playing, sound, and leaving the game.
+// Its pages open inside the same drawer: Back (or Escape, or the phone's back gesture) returns to the menu.
 export function GameMenu({ rules, log, hints, muted, toggleMute, onLeave }: {
   rules: ReactNode; log?: string[]; hints?: (close: () => void) => ReactNode; muted: boolean; toggleMute: () => void; onLeave?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [leaving, setLeaving] = useState(false) // leave only once the menu has slid away, so the screen doesn't change under it
+  const [page, setPage] = useState<PageId | null>(null)
+  const [turn, setTurn] = useState<{ key: string; from?: number }>() // unset until the first page turn, so opening the menu doesn't fade
+  const pageRef = useRef<HTMLDivElement>(null)
+  const sheet = () => pageRef.current?.closest<HTMLElement>('[data-slot=drawer-popup]')
   const close = () => setOpen(false)
+  const go = (p: PageId | null) => { setPage(p); setTurn({ key: p ?? 'menu', from: sheet()?.offsetHeight }) }
+  // the row that was tapped is gone after a turn: put focus on the new page
+  useEffect(() => { if (turn) pageRef.current?.focus({ preventScroll: true }) }, [turn])
+  // the sheet fits its page (height auto), which CSS can't animate: grow or shrink it from the old page's height to the new one's
+  useLayoutEffect(() => {
+    const el = sheet(), from = turn?.from
+    if (!el || from === undefined) return
+    el.style.transition = 'none' // measure the new page's height without a running transition in the way
+    el.style.height = ''
+    const to = el.offsetHeight
+    el.style.height = `${from}px`
+    void el.offsetHeight // apply the old height before setting the new one, so the change transitions
+    el.style.transition = ''
+    el.style.height = `${to}px`
+    const t = setTimeout(() => { el.style.height = '' }, 500)
+    return () => clearTimeout(t)
+  }, [turn])
+  const back = <Button variant="secondary" size="xl" onClick={() => go(null)}>Back</Button>
+  const pages: Record<PageId, { title: string; description?: string; body?: ReactNode; footer: ReactNode }> = {
+    rules: { title: 'How to play', body: <Rules rules={rules} />, footer: back },
+    log: { title: 'What happened', body: <LogView log={log ?? []} />, footer: back },
+    hints: { title: 'Hints', body: hints?.(close), footer: back },
+    install: { title: 'Install the app', body: iosSteps, footer: back },
+    leave: { title: 'Leave this game?', description: 'The game will be discarded and you go back to the title screen.', footer: <>
+      <Button variant="success" size="xl" onClick={() => go(null)}>Keep playing</Button>
+      <Button variant="destructive" size="xl" onClick={() => { setLeaving(true); close() }}>Leave game</Button>
+    </> },
+  }
+  const shown = page && pages[page]
   return (
-    <>
-      <Sheet open={open} onOpenChange={setOpen} onOpenChangeComplete={o => { if (!o && leaving) { setLeaving(false); onLeave?.() } }}>
-        <DrawerTrigger render={<Button variant="secondary" size="icon-lg" aria-label="Menu" title="Menu" />}><MenuIcon /></DrawerTrigger>
-        <Panel title="Menu" footer={onLeave && (
-          <Sheet>
-            <DrawerTrigger render={<Button variant="destructive" size="xl" />}><LogOut /> Leave game</DrawerTrigger>
-            <Panel title="Leave this game?" description="The game will be discarded and you go back to the title screen." footer={<>
-              <DrawerClose render={<Button variant="success" size="xl" />}>Keep playing</DrawerClose>
-              <Button variant="destructive" size="xl" onClick={() => { setLeaving(true); close() }}>Leave game</Button>
-            </>} />
-          </Sheet>
-        )}>
+    <Sheet open={open}
+      onOpenChange={(o, d) => {
+        if (!o && page && (d.reason === 'escape-key' || d.reason === 'close-watcher')) { d.cancel(); go(null); return }
+        setOpen(o)
+      }}
+      onOpenChangeComplete={o => {
+        if (o) return
+        setPage(null)
+        setTurn(undefined)
+        if (leaving) { setLeaving(false); onLeave?.() }
+      }}>
+      <DrawerTrigger render={<Button variant="secondary" size="icon-lg" aria-label="Menu" title="Menu" />}><MenuIcon /></DrawerTrigger>
+      {shown ? <Panel title={shown.title} description={shown.description} footer={shown.footer} turn={turn} pageRef={pageRef}>{shown.body}</Panel> : (
+        <Panel title="Menu" turn={turn} pageRef={pageRef} footer={onLeave && <Button variant="destructive" size="xl" onClick={() => go('leave')}><LogOut /> Leave game</Button>}>
           <ItemGroup className="gap-3">
-            <PageRow icon={<BookOpen />} title="How to play" description="The rules in 60 seconds"><Rules rules={rules} /></PageRow>
-            {log && <PageRow icon={<ScrollText />} title="What happened" description="Every play and fight so far">
-              <LogView log={log} />
-            </PageRow>}
-            {hints && <PageRow icon={<Lightbulb />} title="Hints" description="Explain options, suggest moves, tips">{hints(close)}</PageRow>}
+            <PageRow icon={<BookOpen />} title="How to play" description="The rules in 60 seconds" onOpen={() => go('rules')} />
+            {log && <PageRow icon={<ScrollText />} title="What happened" description="Every play and fight so far" onOpen={() => go('log')} />}
+            {hints && <PageRow icon={<Lightbulb />} title="Hints" description="Explain options, suggest moves, tips" onOpen={() => go('hints')} />}
           </ItemGroup>
-          <InstallRow />
+          <InstallRow onOpen={() => go('install')} />
           <Choice id="sound" icon={muted ? <VolumeX /> : <Volume2 />} title="Sound" description="Plays, fights and falling towers" checked={!muted} onChange={toggleMute} />
         </Panel>
-      </Sheet>
-    </>
+      )}
+    </Sheet>
   )
 }
