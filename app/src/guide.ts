@@ -859,7 +859,7 @@ export function describe(e: GameEvent): string | null {
   const lane = (l: 0 | 1) => laneName(l).toLowerCase()
   switch (e.type) {
     case 'play':
-      if (e.free) return `${e.side === 'P' ? 'Your' : 'Enemy'} last stand: ${label(e.card)} enters the ${lane(e.lane)} lane for free.`
+      if (e.free) return `${e.side === 'P' ? 'Your' : 'Enemy'} last stand: ${label(e.card)} enters the ${lane(e.lane)} lane free.`
       return e.side === 'P' ? `You play ${label(e.card)} in the ${lane(e.lane)} lane (${e.cost} elixir).` : `Enemy plays ${label(e.card)} in the ${lane(e.lane)} lane.`
     case 'fight': {
       const { mine, theirs } = e
@@ -867,13 +867,13 @@ export function describe(e: GameEvent): string | null {
       if (e.ace) return `${head}: aces beat picture cards.`
       if (e.double) {
         const [d, o] = e.double === 'P' ? [mine, theirs] : [theirs, mine]
-        return `${head}: ${SUITS[d.card.suit]} beats ${SUITS[o.card.suit]}, so the ${RANKS[d.card.rank]} counts double (${d.value} vs ${o.value}).`
+        return `${head}: ${SUITS[d.card.suit]} beats ${SUITS[o.card.suit]}, so ${RANKS[d.card.rank]} counts double (${d.value} vs ${o.value}).`
       }
       return `${head} (${mine.value} vs ${theirs.value}).`
     }
     case 'tower': {
       const who = `${e.side === 'P' ? 'Your' : 'Enemy'} ${label(e.card)}`, where = stackName(e.stack).toLowerCase()
-      if (e.result === 'crack') return `${who} is too weak for ${label(e.top.card)} on the ${where}: it cracks.`
+      if (e.result === 'crack') return `${who} is too weak for ${label(e.top.card)}: it cracks.`
       const how = e.wasCracked ? `breaks the cracked ${label(e.top.card)}` : `breaks ${label(e.top.card)}`
       return `${who} ${how} on the ${where}${e.destroyed ? `. The ${where} is DESTROYED!` : '.'}`
     }

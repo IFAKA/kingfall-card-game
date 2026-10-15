@@ -597,8 +597,8 @@ export default function App() {
     if (!game || game !== fresh.current) return
     const d = (game.events ?? []).flatMap(e => { const s = describe(e); return s ? [{ s, special: e.type === 'fight' && !!(e.ace || e.double) }] : [] })
     // a ×2 or ace pop-up doesn't say why, so its sentence stays even when later events would push it out
-    const sp = d.filter(x => x.special).at(-1), last = d.slice(-2)
-    if (d.length) setSaid((sp && !last.includes(sp) ? [sp, d[d.length - 1]] : last).map(x => x.s))
+    const sp = d.filter(x => x.special).at(-1)
+    if (d.length) setSaid([(sp ?? d[d.length - 1]).s])
     else if (game.stage === 'my_play') setSaid([])
   }, [game])
   const browsing = useRef(false) // undo/redo after the end is the player studying the game, so the result stays dismissed
@@ -811,8 +811,6 @@ export default function App() {
   const flipping = stage === 'enemy_enter' || stage === 'last_stand_enter' || hitEnemy
   const standing = stage === 'my_last_stand'
   const previewCard = standing ? undefined : g.P.hand[drag ?? sel ?? bad ?? hov ?? -1]
-  const badCard = bad !== null ? g.P.hand[bad] : undefined
-  const note = badCard && !standing ? `${label(badCard)} costs ${cost(badCard.rank)} elixir but you only have ${g.P.elixir}. Pick a card whose purple number is ${g.P.elixir} or less.` : null
   const spend = previewCard ? cost(previewCard.rank) : 0
   const side = stage === 'my_play' || standing ? 'me' : stage.startsWith('enemy_') || stage === 'last_stand_enter' ? 'enemy' : null
   // with real cards, every step that moves cards on the table waits on a panel over the tray until the player taps Done;
@@ -1030,8 +1028,10 @@ export default function App() {
       ? `★ ${label(g.P.hand[advice.handIndex])}${standing ? '' : ` in the ${advice.lane === 0 ? 'left' : 'right'} lane`}: ${advice.short}.`
       : `★ End your turn: ${advice.short}.`)
     const standSide = g.lastStand?.lane === 0 ? 'left' : 'right'
-    const standMsg = `LAST STAND! Your ${standSide} tower fell. Tap a card: it joins the ${standSide} lane for free.`
-    const lines = note ? [note] : standing ? [standMsg, ...(suggestion ? [suggestion] : [])] : stood ? [`LAST STAND! Enemy's ${stood.lane === 0 ? 'left' : 'right'} tower fell: ${label(stood.card)} came in free.`, suggestion ?? prompt]
+    const standMsg = `Your ${standSide} tower fell: tap a card, it joins that lane free.`
+    const stoodMsg = stood ? `Enemy ${label(stood.card)} came in free (its ${stood.lane === 0 ? 'left' : 'right'} tower fell).` : ''
+    // at most two lines: one sentence, or the suggestion when suggestions are on
+    const lines = standing ? [suggestion ?? standMsg] : stood ? [suggestion ?? stoodMsg]
       : suggestion ? [suggestion] : said.length ? said : [prompt]
     // the suggested lane glows only while no other card is picked up; tapping it with nothing picked plays the suggestion
     const fighting = fightingNext(g)
@@ -1125,7 +1125,7 @@ export default function App() {
         <div className="tray">
           {stage === 'over' && overSeen
             ? <div className="overbtns"><button className="big" onClick={playAgain}>Play again</button><button onClick={() => setOverSeen(false)}>Result</button></div>
-            : <div className={`feed ${note ? 'warn' : standing || stood ? 'stand' : ''}`} aria-live="polite">
+            : <div className="feed" aria-live="polite">
               {lines.map((l, i) => <div key={i}>{l}</div>)}
             </div>}
           <div className="handwrap">
