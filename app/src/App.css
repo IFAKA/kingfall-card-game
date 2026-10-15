@@ -792,3 +792,8 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .suitwheel b { grid-area: 2 / 2; font-size: .7em; color: var(--gold); }
 /* after a first game: what changes in the next one */
 .gonext { margin: 0 0 14px; font-size: 15px; line-height: 1.4; color: rgba(255,255,255,.8); }
+/* your own results: on the title under the tagline, and at the end of a game */
+.title .record { margin: -26px 0 22px; font-size: 15px; color: rgba(255,255,255,.75); }
+.gorecord { margin: 0 0 10px; font-size: 15px; color: rgba(255,255,255,.85); }
+/* on screen, the field can be tapped to skip ahead while the enemy plays */
+.field.skippable { cursor: pointer; }

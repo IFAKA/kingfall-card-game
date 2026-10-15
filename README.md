@@ -34,10 +34,12 @@ Full rules: [RULEBOOK.md](RULEBOOK.md) · Printable rulebook (2 pages, A4): [pri
 
 - **Game feel:** "×2!", "ACE!", "CRACK" and "TOWER DOWN!" pop-ups, board shake and sound effects. Every fight also says in plain words why it was won.
 - **Arena view** on screen: castles with armor pips, two lanes with a river, an elixir bar and your hand with the next card. The purple elixir cost shows only where you need it: your hand and your next card. Cards already in the lanes stay clean. The cards about to fight tremble first, and a card attacking a tower waits in the slot next to it.
-- **Deck building:** your 14 cards arrive split at random into a deck of 8 and three towers of 2; building a good deck is up to you. Tap two cards to swap them and watch the average-cost meter. **Suggest** sets a good split once per hand. On screen, **Deal** shuffles all 52 cards and deals new hands, card by card, as often as you like.
+- **Deck building:** your 14 cards arrive split at random into a deck of 8 and three towers of 2; building a good deck is up to you. Tap two cards to swap them and watch the average-cost meter. **Suggest** sets a good split and says why. On screen, **Deal** shuffles all 52 cards and deals new hands, card by card, as often as you like.
 - **Installable app:** add it to your home screen (Install in the menu, or Share → Add to Home Screen on iPhone). After one visit it plays offline.
 - **Real-cards setup in pictures:** one step per screen, from shuffling to laying out the table.
 - **Change your mind until you tap Done:** drag a card you placed back to your hand or onto the other lane, or tap two cards to switch them. With real cards, undo and redo fix entry mistakes.
+- **Your pace:** on screen, tap the field to skip ahead while the enemy plays, or turn on fast enemy turns. With real cards, a round's fights, moves and tower hits can come as one checklist with one Done (on by default after two games at the table).
+- **Learn from each game:** the end of a game names the one thing that cost you most (an open lane, an enemy ace, the suit wheel, wasted elixir), and keeps your record: wins, games and fastest win.
 - Game saved in the browser, an optional suggested move, and a log of everything that happened.
 - **Balanced by simulation:** thousands of simulated games tuned the rules. Games last about 12–17 rounds. Random play wins about 10%, a simple rule-follower about half, the app's suggestions about 80%, and every kind of deck (all cheap, mixed, all heavy) wins about as often: skill is in the playing.
 

@@ -62,3 +62,6 @@
   .deckb .dc { transition: none; }
   .deckb .dc.target .cf.front { animation: none; box-shadow: 0 0 0 3px var(--gold); }
 }
+/* on the suggested split: why it is built that way */
+.dwhy { display: flex; gap: 6px; align-items: flex-start; margin: -2px 0 8px; font-size: 14px; line-height: 1.3; color: rgba(255,255,255,.85); }
+.dwhy svg { flex: none; width: 15px; height: 15px; margin-top: 2px; color: var(--gold); }

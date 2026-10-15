@@ -22,7 +22,13 @@ export type GameEvent =
   | { type: 'tower'; side: 'P' | 'E'; tid: string; card: Card; stack: StackKey; top: { tid: string; card: Card }; result: 'break' | 'crack'; wasCracked: boolean; destroyed: boolean }
   | { type: 'over'; winner: 'P' | 'E' | 'draw' }
 
-export interface Stats { overkills: string[]; leakRounds: number; placed: number; mineBroken: number; theirsBroken: number; rounds: number }
+export interface Stats {
+  overkills: string[]; leakRounds: number; placed: number; mineBroken: number; theirsBroken: number; rounds: number
+  // what cost you the most, for the end-of-game lesson (optional: games saved before they were kept don't have them)
+  undefended?: number    // your tower cards broken by an enemy card in a lane where you had no card when you ended your turn
+  wheelLosses?: string[] // fights you lost only because the enemy's suit beat yours
+  aceLosses?: string[]   // your picture cards beaten by an enemy ace
+}
 
 export interface GuideState {
   rules: Rules
@@ -48,13 +54,15 @@ export interface GuideState {
   turn?: Placed[] // the cards you placed this turn, in order: until you end it, any of them can be taken back
   stats: Stats
   events?: GameEvent[] // what the latest step did
+  openLanes?: number[] // lanes where you had no card when you ended your turn
+  batched?: boolean // this step is several steps in one checklist (see extendBatch)
 }
 
 const laneName = (l: number) => (l === 0 ? 'LEFT' : 'RIGHT')
 const stackName = (k: StackKey) => (k === 'K' ? 'KING tower' : k === 'L' ? 'LEFT tower' : 'RIGHT tower')
 const clone = (g: GuideState): GuideState => structuredClone(g)
 /** Every exported transition starts a new step: a fresh copy with no events yet. */
-const step = (g0: GuideState): GuideState => ({ ...clone(g0), events: [] })
+const step = (g0: GuideState): GuideState => ({ ...clone(g0), events: [], batched: undefined })
 const emit = (g: GuideState, e: GameEvent) => { (g.events ??= []).push(e) }
 const bonusNote = (a: Card, b: Card, r: Rules) =>
   aceWins(a, b, r) ? ' (ace: beats pictures)' : effective(a, b, r.wheel) > a.rank ? ` (winning suit: counts double, ${effective(a, b, r.wheel)})` : ''
@@ -136,6 +144,25 @@ export function next(g0: GuideState): GuideState {
     case 'tower_result': return g.lastStand ? lastStandStep(g) : processHit(g)
     default: return g
   }
+}
+
+// ---------- many steps in one ----------
+// With real cards, an experienced player can take a round's fights, moves and tower hits as one checklist: steps that need nothing
+// from you (no flipped card, no choice) run on, their instructions in order, until one does or the round ends.
+const PHASE: Stage[] = ['step_up', 'fight', 'move', 'tower_result']
+export function extendBatch(g0: GuideState): GuideState {
+  if (!PHASE.includes(g0.stage)) return g0
+  let g = g0
+  const lines = [...g.lines], why = [...g.why], events = [...(g.events ?? [])]
+  for (;;) {
+    const n = next(g)
+    if (!PHASE.includes(n.stage)) break
+    g = n
+    lines.push(...n.lines)
+    for (const w of n.why) if (!why.includes(w)) why.push(w)
+    events.push(...(n.events ?? []))
+  }
+  return g === g0 ? g0 : { ...g, lines, why, events, batched: true }
 }
 
 // ---------- your play ----------
@@ -257,6 +284,7 @@ function rework(g0: GuideState, j: number, plays: { id: string; lane: 0 | 1 }[],
 export function endMyTurn(g0: GuideState): GuideState {
   const g = step(g0)
   if (g.P.elixir >= g.rules.cap) g.stats.leakRounds++
+  g.openLanes = ([0, 1] as const).filter(l => !g.units.some(u => u.side === 'P' && u.lane === l))
   g.lastAction = []
   return enemyStep(g)
 }
@@ -484,6 +512,11 @@ function resolveNext(g: GuideState): GuideState {
     } else {
       res = [`The ENEMY ${label(e.card)} WINS and stays where it is.`, ...kill(g, p)]
       g.log.push(`Enemy ${label(e.card)} beats your ${label(p.card)}.`)
+      if (aceWins(e.card, p.card, g.rules)) {
+        (g.stats.aceLosses ??= []).push(`The enemy ${label(e.card)} beat your ${label(p.card)}: aces beat J, Q and K. When the enemy's next card is an ace, meet it with a cheap card, not a picture card.`)
+      } else if (ev > e.card.rank && p.card.rank > e.card.rank) {
+        (g.stats.wheelLosses ??= []).push(`Your ${label(p.card)} lost to ${label(e.card)}: ${SUITS[e.card.suit]} beats ${SUITS[p.card.suit]}, so the ${RANKS[e.card.rank]} counted double. Check the wheel before you pick a card: ♠ › ♥ › ♦ › ♣ › ♠.`)
+      }
     }
     g.stage = 'fight'
     g.lines = [head, ...res]
@@ -597,6 +630,7 @@ function resolveHit(g: GuideState, u: Unit, k: StackKey): GuideState {
     else { const r = g.P.towers[k].shift()!; g.discard.push({ tid: r.id, card: r, owner: 'P' }) }
     lines.push(`${wasCracked && !won ? `${label(top)} was already cracked` : versus}: the tower card BREAKS. Discard ${label(top)} (set it aside).`)
     if (mineHit) g.stats.theirsBroken++; else g.stats.mineBroken++
+    if (!mineHit && g.openLanes?.includes(u.lane)) g.stats.undefended = (g.stats.undefended ?? 0) + 1
     const fell = mineHit ? g.E.towers : g.P.towers
     if (k !== 'K' && !fell[k].length && g.E.towers.K.length && g.P.towers.K.length) {
       g.lastStand = { side: mineHit ? 'E' : 'P', lane: k === 'L' ? 0 : 1 }
@@ -860,9 +894,12 @@ export interface Summary {
 export function summary(g: GuideState): Summary {
   const s = g.stats
   const left = (t: Record<'L' | 'R' | 'K', unknown[]>) => t.L.length + t.R.length + t.K.length
-  const tip = s.leakRounds
-    ? `${s.leakRounds === 1 ? 'Once' : `${s.leakRounds} times`} you ended your turn with a full elixir bar, so that round's refill was lost. Spend a bit earlier.`
-    : s.overkills[0] ?? null
+  // the lesson that cost the most: tower cards lost to an open lane, then a fight lost to an ace or the wheel, then waste
+  const open = s.undefended ?? 0
+  const tip = open >= 2 ? `${open} of your tower cards broke to enemy cards in a lane where you had no card. When an enemy card is coming down a lane, put a card there to meet it.`
+    : s.aceLosses?.[0] ?? s.wheelLosses?.[0]
+    ?? (s.leakRounds ? `${s.leakRounds === 1 ? 'Once' : `${s.leakRounds} times`} you ended your turn with a full elixir bar, so that round's refill was lost. Spend a bit earlier.` : null)
+    ?? s.overkills[0] ?? null
   return {
     broke: s.theirsBroken, theirTotal: s.theirsBroken + left(g.E.towers),
     standing: left(g.P.towers), mineTotal: s.mineBroken + left(g.P.towers),

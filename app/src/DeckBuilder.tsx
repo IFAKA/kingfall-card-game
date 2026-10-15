@@ -22,9 +22,15 @@ const TOWERS = [
 const PEEK = 0.33
 // dealing again, timed to watch but not to wait for: the 14 cards gather into a pile, then fly out one by one
 const GATHER_MS = 420, DEAL_MS = 55, FLY = 0.35
-const SUGGESTED_KEY = 'kingfall-suggested-hand'
 
 const GUIDE = <>
+  <p><b>Three rules of thumb</b></p>
+  <ul>
+    <li><b>Mix your costs:</b> a few strong cards to break towers, and enough cheap ones (cost 1 to 3) to play something every round.</li>
+    <li><b>Put an ace on top of a tower:</b> it beats any J, Q or K that reaches it.</li>
+    <li><b>Mix your suits,</b> so the suit wheel can work for you whatever the enemy plays.</li>
+  </ul>
+  <details className="help"><summary>Everything about cards and decks</summary>
   <p><b>What a card is.</b> Cards have <u>no special abilities</u>: a card is a soldier with one number, its <b>rank</b> (2 … 10, J=11, Q=12, K=13, A=1). Higher rank wins fights. The only extra rules:</p>
   <ul>
     <li><b>Cost:</b> stronger cards cost more elixir to play (the purple number: 2→2, 6→5, 10→8, K→10).</li>
@@ -38,8 +44,9 @@ const GUIDE = <>
     <li>It's a trade-off: <b>strong cards are great soldiers but cost a lot</b>. You get only 3 elixir per round, so a deck of all kings can barely play anything.</li>
     <li><b>Any kind of deck can win.</b> In thousands of simulated games, all-cheap, mixed and all-heavy decks win about as often: what decides the game is how you play it. Cheap cards answer big ones through aces (they kill picture cards for 1 elixir) and the wheel (a mid card can beat a big one); heavy cards break towers and stay there. Watch out: an enemy ace can kill your king.</li>
     <li>Don't put <i>all</i> your best cards in the deck: the cards you leave out are your tower armor. A mix of suits helps the wheel work for you.</li>
-    <li>Your cards arrive split at random: building the deck is up to you. Stuck? "Suggest" sets a good split you can change from there (once per hand). On screen, "Deal" shuffles all 52 cards and deals you (and the enemy) new cards, again split at random.</li>
+    <li>Your cards arrive split at random: building the deck is up to you. Stuck? "Suggest" sets a good split and says why; change it from there. On screen, "Deal" shuffles all 52 cards and deals you (and the enemy) new cards, again split at random.</li>
   </ul>
+  </details>
 </>
 
 type Spot = { zone: 'deck'; id: string } | { zone: 'tower'; i: number }
@@ -50,11 +57,6 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
   title: string; bar: (title: ReactNode) => ReactNode; start: ReactNode
 }) {
   const [pick, setPick] = useState<Spot | null>(null)
-  // the suggestion is one hint per hand: once used it stays off until a new hand is dealt (the hand is named by its cards)
-  const hand = mine.map(c => c.id).join()
-  // (kept across reloads, so reloading never gives the suggestion back)
-  const [suggestedHand, setSuggestedHandState] = useState<string | null>(() => { try { return localStorage.getItem(SUGGESTED_KEY) } catch { return null } })
-  const setSuggestedHand = (h: string) => { setSuggestedHandState(h); try { localStorage.setItem(SUGGESTED_KEY, h) } catch { /* storage blocked */ } }
   // a deal in progress: 'gather' while the old cards fly into the pile, then 'deal' with n new cards already placed
   const [dealing, setDealing] = useState<{ phase: 'gather' | 'deal'; n: number } | null>(null)
   useEffect(() => {
@@ -69,14 +71,14 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
   const view = useViewport()
   const valid = deckIds.length === DECK_SIZE && slotIds.length === PER_SIDE - DECK_SIZE
   const suggested = suggestSetup(mine)
-  // a hand saved by an older version, half-built or already on the suggestion without Suggest being used, starts from a random split like a fresh deal
-  const stale = !valid || (suggestedHand !== hand && suggested.deckIds.every(id => deckIds.includes(id)) && suggested.slotIds.every((id, i) => slotIds[i] === id))
-  useEffect(() => { if (stale) { const r = randomSetup(mine); onChange(r.deckIds, r.slotIds) } })
-  if (stale) return null
+  // a hand saved by an older version or half-built starts from a random split like a fresh deal
+  useEffect(() => { if (!valid) { const r = randomSetup(mine); onChange(r.deckIds, r.slotIds) } })
+  if (!valid) return null
+  // on the suggestion, the screen says why it is built that way (Suggest has nothing left to do)
+  const onSuggestion = suggested.deckIds.every(id => deckIds.includes(id)) && suggested.slotIds.every((id, i) => slotIds[i] === id)
 
   const byId = (id: string) => mine.find(c => c.id === id)!
   const deck = mine.filter(c => deckIds.includes(c.id)) // strongest first, like the hand you were dealt
-  const suggestUsed = suggestedHand === hand
 
   const tap = (s: Spot) => {
     const same = pick?.zone === 'deck' ? s.zone === 'deck' && s.id === pick.id : pick?.zone === 'tower' && s.zone === 'tower' && s.i === pick.i
@@ -94,7 +96,7 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
     onChange(ids, slots)
     sfx('place', 0, { mood: 'good' }); setPick(null)
   }
-  const suggest = () => { setPick(null); setSuggestedHand(hand); onChange(suggested.deckIds, suggested.slotIds) }
+  const suggest = () => { setPick(null); onChange(suggested.deckIds, suggested.slotIds) }
   const deal = () => { setPick(null); sfx('unpick'); setDealing({ phase: 'gather', n: 0 }) }
   // the dealing order: the deck slots, then each tower from its back card to its front card, as you'd stack them
   const order = [...deck.map(c => c.id), ...TOWERS.flatMap(t => [...t.slots].reverse().map(i => slotIds[i]))]
@@ -108,7 +110,7 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
   const rows = wide ? 1 : 2, cols = 8 / rows
   const byWidth = (w - 24 - 10 * (cols - 1)) / cols / 0.714
   // the towers row is as tall as its tallest column: every tower has two cards, so it's the king's bigger castle
-  const byHeight = (view.sh - 302) / (rows + 0.84 + 1 + PEEK)
+  const byHeight = (view.sh - 302 - (onSuggestion ? 44 : 0)) / (rows + 0.84 + 1 + PEEK) // (the suggestion's why takes a line or two)
   const ch = Math.max(60, Math.min(byWidth, byHeight, 150))
   const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px`, '--peek': `${ch * PEEK}px` } as CSSProperties
 
@@ -134,8 +136,9 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
           <header><h2>Your deck</h2><span>the 8 soldiers you play</span>
             <span className="ml-auto" />
             {onRedeal && <Button variant="secondary" size="sm" disabled={!!dealing} onClick={deal} title="Shuffle all 52 cards and deal new hands to you and the enemy"><Shuffle /> Deal</Button>}
-            <Button variant="secondary" size="sm" disabled={suggestUsed || !!dealing} onClick={suggest} title={suggestUsed ? 'Used for this hand: Deal for a new one' : 'Set a good deck and towers for these cards'}><Sparkles /> Suggest</Button>
+            <Button variant="secondary" size="sm" disabled={onSuggestion || !!dealing} onClick={suggest} title={onSuggestion ? 'This is the suggested split' : 'Set a good deck and towers for these cards'}><Sparkles /> Suggest</Button>
           </header>
+          {onSuggestion && !dealing && <p className="dwhy"><Sparkles aria-hidden /> Suggested: your 3 strongest cards break towers, your 5 cheapest let you play every round. The towers get the rest, the 2 strongest on the king, each tower's stronger card in front.</p>}
           <div className="dcards">
             {deck.map(c => {
               const on = pick?.zone === 'deck' && pick.id === c.id

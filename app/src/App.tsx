@@ -4,7 +4,7 @@ import confetti from 'canvas-confetti'
 import { DECK_SIZE, DEFAULT_RULES, PER_SIDE, RANKS, SUITS, cost, deal, freshDeck, isRed, label, randomSetup, shuffle, suggestSetup } from './engine'
 import type { Card, Unit } from './engine'
 import {
-  advise, adviseLastStand, autoReveal, canPlay, describe, endMyTurn, fightingNext, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary, switchCards, takeBack,
+  advise, adviseLastStand, autoReveal, canPlay, describe, endMyTurn, extendBatch, fightingNext, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary, switchCards, takeBack,
 } from './guide'
 import type { ESlot, GuideState } from './guide'
 import { quick, useFx } from './fx'
@@ -12,7 +12,7 @@ import { AnimatePresence, motion, useAnimate, useReducedMotion } from 'framer-mo
 import type { Variants } from 'framer-motion'
 import type { Pop } from './fx'
 import { isMuted, setMuted, sfx } from './sfx'
-import { Flag, Lightbulb, Redo2, Swords, Undo2 } from 'lucide-react'
+import { FastForward, Flag, Lightbulb, ListChecks, Redo2, Swords, Undo2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { CardText, Choice, GameMenu, InstallLink, RulesSheet } from './Menu'
@@ -444,7 +444,7 @@ const TIPS: Record<TipId, string> = {
   drag: 'Drag a card from your hand onto one of your lane slots, the bottom half of the field. The purple number is its elixir cost.',
   elixir: 'Elixir pays for cards. You get 3 more every round, up to 10. Play another card, or press the ✓ button next to your hand to end your turn and let the enemy move.',
   change: 'Changed your mind? Until you press ✓, drag a card you placed back to your hand or onto the other lane, or tap two cards to switch them.',
-  enemy: "The enemy defends: it plays into the lane where you have more cards. The card marked Next, between its lanes, is the one it plays next round.",
+  enemy: "The enemy defends: it plays into the lane where you have more cards. The card marked Next, between its lanes, is the one it plays next round. Tap the field to skip ahead while it plays.",
   fight: 'When two cards meet, the higher rank wins. A card of the suit that beats the other counts double (♠ › ♥ › ♦ › ♣ › ♠), and aces beat J, Q and K.',
   tower: 'A card that reaches a tower fights its top card, shown under the castle (the suit wheel and aces count). Win or tie and the tower card breaks, and the attacker stays, wounded, for one more hit. The king can only be hit once the tower in its lane has fallen.',
   crack: 'A card that loses at a tower is shot back to its pile, but the tower card cracks, and any later hit breaks it. So even small cards wear towers down.',
@@ -471,8 +471,13 @@ const readJSON = <T,>(key: string, fallback: T): T => { try { const v = localSto
 const writeJSON = (key: string, v: unknown) => { try { localStorage.setItem(key, JSON.stringify(v)) } catch { /* storage full or blocked */ } }
 
 const AUTO_STAGES = ['round_start', 'enemy_play', 'enemy_peek', 'enemy_stop', 'step_up', 'fight', 'move', 'tower_enter', 'tower_result']
-// hold each step longer the more it shows (one line per event), so busy fights can be followed
-const autoDelay = (events: number) => Math.min(4000, 700 + 600 * events)
+// hold each step longer the more it shows (one line per event), so busy fights can be followed; fast halves it
+const autoDelay = (events: number, fast = false) => Math.min(4000, 700 + 600 * events) * (fast ? 0.5 : 1)
+const FAST_KEY = 'kingfall-fast'
+const BATCH_KEY = 'kingfall-batch' // real cards: a round's fights and moves as one checklist (unset: on after 2 games at the table)
+const RECORD_KEY = 'kingfall-record'
+// your own results, every mode together: shown on the title and at the end of a game, never as a streak to keep
+interface GameRecord { games: number; wins: number; best?: number } // best: fewest rounds to a win
 
 export default function App() {
   const saved = useMemo(() => load(), [])
@@ -494,6 +499,14 @@ export default function App() {
   const novice = played.play + played.guide === 0 // has never finished a game: the first one comes with its deck built
   const [intro, setIntro] = useState<Intro | null>(saved?.intro ?? null)
   const [counted, setCounted] = useState(saved?.counted ?? false)
+  const [record, setRecord] = useState<GameRecord>(() => readJSON(RECORD_KEY, { games: 0, wins: 0 }))
+  const [newBest, setNewBest] = useState(false)
+  const [fast, setFastState] = useState<boolean>(() => readJSON(FAST_KEY, false))
+  const setFast = (on: boolean) => { setFastState(on); writeJSON(FAST_KEY, on) }
+  const [batchPref, setBatchPref] = useState<boolean | null>(() => readJSON<boolean | null>(BATCH_KEY, null))
+  const batchOn = batchPref ?? played.guide >= 2
+  const setBatch = (on: boolean) => { setBatchPref(on); writeJSON(BATCH_KEY, on) }
+  const batch = (g: GuideState) => (mode === 'guide' && batchOn ? extendBatch(g) : g)
   const [future, setFuture] = useState<GuideState[]>([])
   const [sel, setSel] = useState<number | null>(null)
   const [drag, setDrag] = useState<number | null>(null)
@@ -581,16 +594,19 @@ export default function App() {
     if (screen !== 'play' || game?.stage !== 'over' || counted) return
     const n = { ...played, [mode]: played[mode] + 1 }
     setCounted(true); setPlayed(n); writeJSON(PLAYED_KEY, n)
+    const won = game.winner === 'P', best = won && (record.best === undefined || game.round < record.best)
+    const rec: GameRecord = { games: record.games + 1, wins: record.wins + (won ? 1 : 0), best: best ? game.round : record.best }
+    setRecord(rec); writeJSON(RECORD_KEY, rec); setNewBest(best && record.wins > 0) // a first win is its own news
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.stage, screen])
 
   // on screen, informational steps advance by themselves, slowly enough to follow what happens; not recorded for undo
   useEffect(() => {
     if (mode !== 'play' || screen !== 'play' || !game || tip || !AUTO_STAGES.includes(game.stage)) return
-    const t = setTimeout(() => advance(settle(next(game))), autoDelay(game.lines.length))
+    const t = setTimeout(() => advance(settle(next(game))), autoDelay(game.lines.length, fast))
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, screen, game, tip])
+  }, [mode, screen, game, tip, fast])
   // when no card in hand is affordable, ending the turn is the only move, so it ends by itself; not recorded for undo,
   // so undo goes back past it to your last real choice instead of landing here and ending again
   useEffect(() => {
@@ -664,6 +680,7 @@ export default function App() {
         <div className="titlefan" aria-hidden>{fan.map(c => <CardView key={c.id} card={c} />)}</div>
         <Logo />
         <p className="tagline">A lane battle for one player and a deck of cards</p>
+        {record.games > 0 && <p className="record">{record.wins} {record.wins === 1 ? 'win' : 'wins'} in {record.games} {record.games === 1 ? 'game' : 'games'}{record.best !== undefined && ` · fastest win: ${record.best} rounds`}</p>}
         <div className="menu">
           <button className="big xl" onClick={startOnScreen}>Play<small>the app deals and plays the enemy</small></button>
           <button className="xl" onClick={() => { setMode('guide'); setScreen('deal') }}>Play with real cards<small>you play at the table, the app guides you</small></button>
@@ -783,7 +800,7 @@ export default function App() {
   // after one of your own plays that is paying, placing and drawing, then the hand is free again
   const doNow = mode === 'guide' && stage === 'my_play' && g.lastAction.length > 0 && doSeen !== g.log.length
   const atTable = mode === 'guide' && (doNow || flipping || AUTO_STAGES.includes(stage))
-  const stepTitle = doNow ? 'Now at the table' : stage === 'round_start' ? `Round ${g.round}` : g.events?.some(e => e.type === 'play' && e.free) ? 'Last stand' : TITLES[stage]
+  const stepTitle = doNow ? 'Now at the table' : stage === 'round_start' ? `Round ${g.round}` : g.batched ? 'Fights and moves, in order' : g.events?.some(e => e.type === 'play' && e.free) ? 'Last stand' : TITLES[stage]
   // the card to turn face-up glows on the field: the enemy's next card, or the top of the tower being hit
   const hitUnit = hitEnemy ? g.units.find(u => u.uid === g.hitQueue[0]) : undefined
   const flipTower = hitUnit ? (g.E.towers[hitUnit.lane === 0 ? 'L' : 'R'].length ? (hitUnit.lane === 0 ? 'L' : 'R') : 'K') : null
@@ -901,6 +918,7 @@ export default function App() {
         <div><b>{sum.standing}<small>/{sum.mineTotal}</small></b><span>of your tower cards standing</span></div>
       </div>
       {sum.close && <p className="goclose">So close! Their king had one card left.</p>}
+      <p className="gorecord">{newBest ? `Your fastest win yet: ${sum.rounds} rounds! ` : ''}{record.wins} {record.wins === 1 ? 'win' : 'wins'} in {record.games} {record.games === 1 ? 'game' : 'games'}.</p>
       {intro?.deck && g.winner !== 'P' && <p className="goclose">Most first games are lost: this one was for learning the rules.</p>}
       <div className="gotip"><Lightbulb aria-hidden /><p>{sum.tip ? <CardText text={sum.tip} /> : 'Clean game: no elixir wasted and no expensive cards spent on cheap enemies.'}</p></div>
       {intro && (
@@ -949,12 +967,12 @@ export default function App() {
       <div className="tsbody" key={history.length}>
         <div className="tshead">
           <h3>{stepTitle}</h3>
-          {!flipping && <button className="big" title="Done at the table" onClick={doNow ? () => setDoSeen(g.log.length) : () => commit(next(g))}>Done
+          {!flipping && <button className="big" title="Done at the table" onClick={doNow ? () => setDoSeen(g.log.length) : () => commit(batch(next(g)))}>Done
             <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg></button>}
         </div>
         <ul className="tslist">{(doNow ? g.lastAction : g.lines).map((l, i) => <li key={i}><Said text={l} /></li>)}</ul>
         {help !== 'off' && !doNow && g.why.length > 0 && <p className="tswhy"><b>Why:</b> <CardText text={g.why.join(' ')} /></p>}
-        {flipping && <FlipPicker known={excludedIds(g)} onPick={c => commit(hitEnemy ? enterTowerCard(g, c) : enterEnemyCard(g, c))} />}
+        {flipping && <FlipPicker known={excludedIds(g)} onPick={c => commit(batch(hitEnemy ? enterTowerCard(g, c) : enterEnemyCard(g, c)))} />}
       </div>
     </div>
   )
@@ -1003,7 +1021,10 @@ export default function App() {
       <Button variant="secondary" size="icon-lg" aria-label="Undo" title="Undo" onClick={undo} disabled={!history.length}><Undo2 /></Button>
       <Button variant="secondary" size="icon-lg" aria-label="Redo" title="Redo" onClick={redo} disabled={!future.length}><Redo2 /></Button>
     </>
-    const menu = <GameMenu rules={RULES_60} muted={muted} toggleMute={toggleMute} onLeave={reset} log={g.log} hints={hints} />
+    const settings = mode === 'play'
+      ? <Choice id="fast" icon={<FastForward />} title="Fast enemy turns" description="Its steps go by twice as quickly. Tapping the field skips ahead any time." checked={fast} onChange={setFast} />
+      : <Choice id="batch" icon={<ListChecks />} title="Fights in one list" description="A round's fights, moves and tower hits as one checklist with one Done" checked={batchOn} onChange={setBatch} />
+    const menu = <GameMenu rules={RULES_60} muted={muted} toggleMute={toggleMute} onLeave={reset} log={g.log} hints={hints} settings={settings} />
     const round = <RoundChip n={g.round} />
     const discard = (owner: 'P' | 'E') => {
       const d = g.discard.filter(x => x.owner === owner)
@@ -1035,8 +1056,11 @@ export default function App() {
         </div>
       </>
     )
+    // on screen, a tap on the field while a step plays out goes straight to the next one
+    const skippable = mode === 'play' && !tip && AUTO_STAGES.includes(stage)
+    const skip = (e: React.PointerEvent) => { if (!(e.target as Element).closest('button')) advance(settle(next(g))) }
     const field = (
-      <div className={`field ${shake}`}>
+      <div className={`field ${shake}${skippable ? ' skippable' : ''}`} onPointerDown={skippable ? skip : undefined}>
         {DEBUG && <span className="corner left undoredo">{undoRedo}</span>} {/* debugging aid: dev server, or any build opened with ?debug=1 */}
         <span className="corner right">{menu}</span>
         <div className="castles theirs">

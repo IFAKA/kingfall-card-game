@@ -138,8 +138,9 @@ type PageId = 'rules' | 'log' | 'hints' | 'install' | 'leave'
 
 // One menu for every screen, behind the ☰ button: rules, the log and hints while playing, sound, and leaving the game.
 // Its pages open inside the same drawer: Back (or Escape, or the phone's back gesture) returns to the menu.
-export function GameMenu({ rules, log, hints, muted, toggleMute, onLeave }: {
-  rules: ReactNode; log?: string[]; hints?: (close: () => void) => ReactNode; muted: boolean; toggleMute: () => void; onLeave?: () => void
+// settings: the switches that belong to this kind of game (on screen, fast enemy turns; with real cards, the fights in one list)
+export function GameMenu({ rules, log, hints, settings, muted, toggleMute, onLeave }: {
+  rules: ReactNode; log?: string[]; hints?: (close: () => void) => ReactNode; settings?: ReactNode; muted: boolean; toggleMute: () => void; onLeave?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [leaving, setLeaving] = useState(false) // leave only once the menu has slid away, so the screen doesn't change under it
@@ -198,6 +199,7 @@ export function GameMenu({ rules, log, hints, muted, toggleMute, onLeave }: {
             {hints && <PageRow icon={<Lightbulb />} title="Hints" description="Explain options, suggest moves, tips" onOpen={() => go('hints')} />}
           </ItemGroup>
           <InstallRow onOpen={() => go('install')} />
+          {settings}
           <Choice id="sound" icon={muted ? <VolumeX /> : <Volume2 />} title="Sound" description="Plays, fights and falling towers" checked={!muted} onChange={toggleMute} />
         </Panel>
       )}

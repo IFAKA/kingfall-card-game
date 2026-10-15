@@ -7,7 +7,7 @@ It has two modes:
 - **On screen:** the app deals, runs the enemy and animates every fight in an upright arena. The first game skips deck building (the app picks a good deck), turns suggestions on, and teaches one rule at a time, starting with the goal.
 - **With real cards:** you play with a real 52-card deck. The app runs the enemy automaton and draws your table as you sit at it, every card where it lies and all the same size (your elixir bar as 10 cards with a sideways marker, piles, tower fans, discards), and a panel over the hand tells you, step by step, what to move.
 
-It saves the game in the browser. With real cards it has undo and redo; on screen your turn stays open until you tap Done, so you can take a card back or switch two.
+It saves the game in the browser. With real cards it has undo and redo; on screen your turn stays open until you tap Done, so you can take a card back or switch two. On screen, a tap on the field skips ahead while the enemy plays; with real cards, the menu can put a round's fights in one checklist.
 
 ## Commands
 

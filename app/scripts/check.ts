@@ -2,7 +2,7 @@
 // Plays full games through the same code the app uses and fails if a rule invariant breaks or balance drifts.
 import { autoTowers, breaksTower, canPlay as engineCanPlay, compare, cost, DECK_SIZE, DEFAULT_RULES, endRound, freshDeck, newGame, PER_SIDE, playCard as enginePlay, shuffle, suggestDeck } from '../src/engine.ts'
 import type { Card } from '../src/engine.ts'
-import { advise, canPlay, describe, endMyTurn, enterEnemyCard, enterTowerCard, fightingNext, lastStandPlay, makeGame, next, playCard, startRound, switchCards, takeBack } from '../src/guide.ts'
+import { advise, canPlay, describe, endMyTurn, enterEnemyCard, enterTowerCard, extendBatch, fightingNext, lastStandPlay, makeGame, next, playCard, startRound, summary, switchCards, takeBack } from '../src/guide.ts'
 import type { Advice, GuideState } from '../src/guide.ts'
 
 function mulberry(a: number) {
@@ -43,7 +43,9 @@ function eventError(prev: GuideState, g: GuideState): string | null {
       const r = compare(e.mine.card, e.theirs.card, g.rules)
       if (e.winner !== (r > 0 ? 'P' : r < 0 ? 'E' : 'tie')) return `fight event says ${e.winner} won ${e.mine.card.id} vs ${e.theirs.card.id}`
     }
-    if (e.type === 'tower' && e.destroyed !== ((e.side === 'P' ? g.E.towers : g.P.towers)[e.stack].length === 0)) return `tower event destroyed=${e.destroyed} disagrees with the board`
+    // (the board is as the step left it: when a step hits one tower twice, the last hit is the one it shows)
+    const last = ev.findLast(x => x.type === 'tower' && e.type === 'tower' && x.side === e.side && x.stack === e.stack) === e
+    if (e.type === 'tower' && last && e.destroyed !== ((e.side === 'P' ? g.E.towers : g.P.towers)[e.stack].length === 0)) return `tower event destroyed=${e.destroyed} disagrees with the board`
   }
   if ((g.stage === 'over') !== (of('over').length === 1) && prev.stage !== 'over') return 'game over without an over event (or the reverse)'
   return null
@@ -52,13 +54,14 @@ function eventError(prev: GuideState, g: GuideState): string | null {
 type Player = (g: GuideState, rnd: () => number) => Advice
 const suggestions: Player = g => advise(g)
 const random: Player = (g, rnd) => {
-  if (rnd() < 0.5) return { kind: 'wait', reason: '' }
+  if (rnd() < 0.5) return { kind: 'wait', reason: '', short: '' }
   const ok = g.P.hand.map((_, i) => i).filter(i => canPlay(g, i))
-  return ok.length ? { kind: 'play', handIndex: ok[Math.floor(rnd() * ok.length)], lane: rnd() < 0.5 ? 0 : 1, reason: '' } : { kind: 'wait', reason: '' }
+  return ok.length ? { kind: 'play', handIndex: ok[Math.floor(rnd() * ok.length)], lane: rnd() < 0.5 ? 0 : 1, reason: '', short: '' } : { kind: 'wait', reason: '', short: '' }
 }
 
-/** Plays guided games with the real enemy cards behind the face-down ones, exactly as at the table. */
-function playGuided(n: number, player: Player, seed: number) {
+/** Plays guided games with the real enemy cards behind the face-down ones, exactly as at the table (batch: a round's fights as one checklist). */
+function playGuided(n: number, player: Player, seed: number, batch = false) {
+  const run = (s: GuideState) => (batch ? extendBatch(s) : s)
   Math.random = mulberry(seed)
   const rnd = mulberry(seed + 1)
   let wins = 0, unfinished = 0, rounds = 0
@@ -74,20 +77,22 @@ function playGuided(n: number, player: Player, seed: number) {
     while (g.stage !== 'over' && g.round < 200 && steps++ < 60000) {
       const st = g.stage, before = g
       if (st === 'my_play') {
-        const a = playsThisTurn++ < 8 ? player(g, rnd) : ({ kind: 'wait', reason: '' } as Advice)
+        const a = playsThisTurn++ < 8 ? player(g, rnd) : ({ kind: 'wait', reason: '', short: '' } as Advice)
         if (a.kind === 'play') g = playCard(g, a.handIndex, a.lane)
         else { g = endMyTurn(g); playsThisTurn = 0 }
-      } else if (st === 'enemy_enter' || st === 'last_stand_enter') g = enterEnemyCard(g, real.get(g.E.queue[0].tid)!)
+      } else if (st === 'enemy_enter' || st === 'last_stand_enter') g = run(enterEnemyCard(g, real.get(g.E.queue[0].tid)!))
       else if (st === 'tower_enter') {
         const u = g.units.find(x => x.uid === g.hitQueue[0])!
         const lk = u.lane === 0 ? 'L' : 'R'
         const key = g.E.towers[lk].length ? lk : 'K'
-        g = enterTowerCard(g, real.get(g.E.towers[key][0].tid)!)
+        g = run(enterTowerCard(g, real.get(g.E.towers[key][0].tid)!))
       } else if (st === 'my_last_stand') g = lastStandPlay(g, 0)
-      else g = next(g)
+      else g = run(next(g))
       error = invariantError(g) ?? (g !== before ? eventError(before, g) : null)
       if (error) { error = `game ${k}, round ${g.round}, stage ${g.stage}: ${error}`; break }
     }
+    const tip = g.stage === 'over' ? summary(g).tip : null
+    if (tip && /undefined|NaN|\[object/.test(tip)) { error = `game ${k}: bad end-of-game lesson "${tip}"`; break }
     if (g.stage !== 'over') unfinished++
     else { rounds += g.round; if (g.winner === 'P') wins++ }
   }
@@ -101,6 +106,10 @@ check(strong.error === null, `rules stay consistent in 400 games with the app's 
 check(strong.unfinished === 0, `every game finishes (${strong.unfinished} unfinished)`)
 check(strong.winRate >= 0.7 && strong.winRate <= 0.92, `following the suggestions wins 70–92% (got ${pct(strong.winRate)}, ${strong.avgRounds.toFixed(0)} rounds on average)`)
 check(strong.avgRounds >= 8 && strong.avgRounds <= 18, `games are short: 8–18 rounds on average (got ${strong.avgRounds.toFixed(1)})`)
+
+const batched = playGuided(400, suggestions, 7, true)
+check(batched.error === null && batched.winRate === strong.winRate && batched.avgRounds === strong.avgRounds,
+  `taking each round's fights as one checklist plays the same games, step for step${batched.error ? ` (${batched.error})` : ''}`)
 
 const weak = playGuided(400, random, 11)
 check(weak.error === null, `rules stay consistent in 400 games of random play${weak.error ? ` (${weak.error})` : ''}`)
