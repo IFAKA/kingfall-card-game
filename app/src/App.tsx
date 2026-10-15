@@ -707,6 +707,18 @@ export default function App() {
       <Button variant="link" className="mt-2 self-center text-base text-muted-foreground" onClick={() => { setTipsSeen([]); writeJSON(TIPS_KEY, []); close() }}>Show the first-game tips again</Button>
     </>
   )
+  const sum = stage === 'over' ? summary(g) : null
+  const gameSummary = sum && (
+    <>
+      <div className="gostats">
+        <div><b>{sum.broke}<small>/{sum.theirTotal}</small></b><span>enemy tower cards broken</span></div>
+        <div><b>{sum.rounds}</b><span>rounds</span></div>
+        <div><b>{sum.standing}<small>/{sum.mineTotal}</small></b><span>of your tower cards standing</span></div>
+      </div>
+      {sum.close && <p className="goclose">So close! Their king had one card left.</p>}
+      <div className="gotip"><Lightbulb aria-hidden /><p>{sum.tip ? <CardText text={sum.tip} /> : 'Clean game: no elixir wasted and no expensive cards spent on cheap enemies.'}</p></div>
+    </>
+  )
   const overlays = (
     <>
       <FxLayer pops={pops} />
@@ -716,7 +728,7 @@ export default function App() {
             {g.winner === 'P' && !resultViewed && <WinConfetti />}
             <h2>{g.winner === 'P' ? 'You win!' : g.winner === 'E' ? 'You lose' : 'Draw'}</h2>
             <p>{g.lines[0]}</p>
-            <ul className="todo">{summary(g).map((l, i) => <li key={i}>{l}</li>)}</ul>
+            {gameSummary}
             <div className="row">
               <button className="big" onClick={playAgain}>Play again</button>
               <button onClick={() => { setResultViewed(true); setOverSeen(true) }}>View board</button>

@@ -340,7 +340,7 @@ function resolveNext(g: GuideState): GuideState {
       res = [`YOUR ${label(p.card)} WINS${p.held ? ' and steps forward when the slot is clear' : ' and stays where it is'}.`, ...kill(g, e)]
       g.log.push(`Your ${label(p.card)} beats enemy ${label(e.card)}.`)
       if (!ace && cost(p.card.rank) - cost(e.card.rank) >= 4) {
-        g.stats.overkills.push(`Round ${g.round}: your ${label(p.card)} (cost ${cost(p.card.rank)}) beat a ${label(e.card)} (cost ${cost(e.card.rank)}) — a cheaper card could have done it.`)
+        g.stats.overkills.push(`In round ${g.round} your ${label(p.card)} (${cost(p.card.rank)} elixir) beat a ${label(e.card)} (${cost(e.card.rank)} elixir). A cheaper card would have won too.`)
       }
     } else {
       res = [`The ENEMY ${label(e.card)} WINS${e.held ? ' and steps forward when the slot is clear' : ' and stays where it is'}.`, ...kill(g, p)]
@@ -680,17 +680,24 @@ export function describe(e: GameEvent): string | null {
 
 // ---------- end-of-game summary ----------
 /** The end-of-game box: first something true that went well (or how close it was), then at most one tip. */
-export function summary(g: GuideState): string[] {
+export interface Summary {
+  broke: number; theirTotal: number   // enemy tower cards you broke, of how many
+  standing: number; mineTotal: number // your tower cards still standing, of how many
+  rounds: number
+  close: boolean     // you lost, but their king was down to its last card
+  tip: string | null // one thing to do better next game; null for a clean game
+}
+export function summary(g: GuideState): Summary {
   const s = g.stats
   const left = (t: Record<'L' | 'R' | 'K', unknown[]>) => t.L.length + t.R.length + t.K.length
-  const out: string[] = []
-  if (s.theirsBroken) out.push(`You broke ${s.theirsBroken} of the enemy's ${s.theirsBroken + left(g.E.towers)} tower cards in ${s.rounds} rounds.`)
-  if (g.winner === 'P') out.push(`${left(g.P.towers)} of your tower cards are still standing.`)
-  else if (g.E.towers.K.length === 1) out.push('Their king tower was down to its last card.')
-  if (s.leakRounds) out.push(`Tip: ${s.leakRounds === 1 ? 'once' : `${s.leakRounds} times`} you ended your turn with a full elixir bar, so that round's refill was lost. Spend a bit earlier.`)
-  else if (s.overkills.length) out.push(`Tip: ${s.overkills[0]}`)
-  else out.push('No elixir wasted and no expensive cards spent on cheap enemies. Clean game.')
-  return out
+  const tip = s.leakRounds
+    ? `${s.leakRounds === 1 ? 'Once' : `${s.leakRounds} times`} you ended your turn with a full elixir bar, so that round's refill was lost. Spend a bit earlier.`
+    : s.overkills[0] ?? null
+  return {
+    broke: s.theirsBroken, theirTotal: s.theirsBroken + left(g.E.towers),
+    standing: left(g.P.towers), mineTotal: s.mineBroken + left(g.P.towers),
+    rounds: s.rounds, close: g.winner !== 'P' && g.E.towers.K.length === 1, tip,
+  }
 }
 
 // ---------- on-screen play ----------
