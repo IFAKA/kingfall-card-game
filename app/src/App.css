@@ -390,6 +390,8 @@ details.help[open] > summary { margin-bottom: 8px; }
 .pop.x2 small, .pop.ace small { color: #fff; }
 .pop.ace { color: #fff; -webkit-text-stroke: 1px var(--gold-d); }
 .pop.down { font-size: calc(var(--popsize, clamp(26px, 4.2vmin, 46px)) * 1.5); }
+.pop.stand { font-size: calc(var(--popsize, clamp(26px, 4.2vmin, 46px)) * 1.1); }
+.pop.stand small { color: #fff; }
 .pop.crack { font-size: calc(var(--popsize, clamp(26px, 4.2vmin, 46px)) * .8); }
 @keyframes popup {
   0% { transform: translate(-50%, -50%) scale(.3); opacity: 0; }
@@ -626,6 +628,9 @@ button.linkish:active { transform: none; }
 .unit.atk { position: relative; }
 .siege { position: absolute; z-index: 6; left: -7px; bottom: -7px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #fff; color: #fff; box-shadow: 0 2px 0 rgba(0,0,0,.35); }
 .siege svg { width: 12px; height: 12px; }
+/* a last-stand card wears a flag on the other bottom corner until it has fought (the swords badge has the left one) */
+.standflag { position: absolute; z-index: 6; right: -7px; bottom: -7px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #fff; color: #2a1d00; background: var(--gold); box-shadow: 0 2px 0 rgba(0,0,0,.35); }
+.standflag svg { width: 11px; height: 11px; }
 /* bottom-left: the card at a tower is first in its slot, so that corner is never under the next card (whose rank and suit stay clear) */
 .unit.P .siege { background: #2c9c90; }
 .unit.E .siege { background: #d23c3c; }
