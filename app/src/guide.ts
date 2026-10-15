@@ -863,7 +863,7 @@ export function describe(e: GameEvent): string | null {
       return e.side === 'P' ? `You play ${label(e.card)} in the ${lane(e.lane)} lane (${e.cost} elixir).` : `Enemy plays ${label(e.card)} in the ${lane(e.lane)} lane.`
     case 'fight': {
       const { mine, theirs } = e
-      const head = e.winner === 'P' ? `Your ${label(mine.card)} beats ${label(theirs.card)}` : e.winner === 'E' ? `Enemy ${label(theirs.card)} beats your ${label(mine.card)}` : `${label(mine.card)} ties ${label(theirs.card)}, both die`
+      const head = e.winner === 'P' ? `Your ${label(mine.card)} beats ${label(theirs.card)}` : e.winner === 'E' ? `Enemy ${label(theirs.card)} beats your ${label(mine.card)}` : `${label(mine.card)} ties ${label(theirs.card)} (${mine.value} vs ${theirs.value}): both are removed`
       if (e.ace) return `${head}: aces beat picture cards.`
       if (e.double) {
         const [d, o] = e.double === 'P' ? [mine, theirs] : [theirs, mine]
@@ -873,7 +873,7 @@ export function describe(e: GameEvent): string | null {
     }
     case 'tower': {
       const who = `${e.side === 'P' ? 'Your' : 'Enemy'} ${label(e.card)}`, where = stackName(e.stack).toLowerCase()
-      if (e.result === 'crack') return `${who} is too weak for ${label(e.top.card)}: it cracks.`
+      if (e.result === 'crack') return `${who} is too weak to break ${label(e.top.card)}: the tower holds, but cracks.`
       const how = e.wasCracked ? `breaks the cracked ${label(e.top.card)}` : `breaks ${label(e.top.card)}`
       return `${who} ${how} on the ${where}${e.destroyed ? `. The ${where} is DESTROYED!` : '.'}`
     }
