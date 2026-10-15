@@ -23,10 +23,8 @@ export function useFx(game: GuideState | null, fresh: GuideState | null, root: R
     const el = root.current
     if (!game || game !== fresh || !game.events?.length || !el) return
     const pr = el.getBoundingClientRect()
-    const width = pr.width
-    // keep pop-ups (and their reason line) inside the board instead of cut off at its edge
-    const inside = (x: number) => Math.min(Math.max(x, Math.min(110, width / 2)), width - Math.min(110, width / 2))
-    const local = (cx: number, cy: number) => ({ x: inside(cx - pr.left), y: cy - pr.top })
+    // pop-ups fit themselves inside the board once they are drawn and measured (see PopView)
+    const local = (cx: number, cy: number) => ({ x: cx - pr.left, y: cy - pr.top })
     const rects = (name: string) => [...el.querySelectorAll(`[data-anchor~="${name}"]`)].map(e => e.getBoundingClientRect())
     const at = (name: string) => {
       const rs = rects(name)

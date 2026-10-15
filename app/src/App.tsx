@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import confetti from 'canvas-confetti'
 import { DEFAULT_RULES, RANKS, SUITS, cost, deal, freshDeck, isRed, label, randomSetup, shuffle } from './engine'
@@ -103,11 +103,31 @@ function WinConfetti() {
 function FxLayer({ pops }: { pops: Pop[] }) {
   return (
     <div className="fxlayer" aria-hidden>
-      {pops.map(p => (
-        <div key={p.id} className={`pop ${p.kind}`} style={{ left: p.x, top: p.y }}>
-          {p.text}{p.sub && <small>{p.sub}</small>}
-        </div>
-      ))}
+      {pops.map(p => <PopView key={p.id} p={p} />)}
+    </div>
+  )
+}
+
+// A pop-up fits inside the board, whole for all of its animation (it grows to 125% and floats up): too wide shrinks it, near an edge slides it in.
+function PopView({ p }: { p: Pop }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [fit, setFit] = useState<{ x: number; y: number; size?: number } | null>(null)
+  useLayoutEffect(() => {
+    const el = ref.current, layer = el?.parentElement
+    if (!el || !layer) return
+    const pad = 6, W = layer.clientWidth, H = layer.clientHeight
+    const k = Math.min(1, (W - 2 * pad) / (el.offsetWidth * 1.25))
+    const w = el.offsetWidth * k * 1.25, h = el.offsetHeight * k
+    const clamp = (v: number, lo: number, hi: number) => lo > hi ? (lo + hi) / 2 : Math.min(Math.max(v, lo), hi)
+    setFit({
+      x: clamp(p.x, w / 2 + pad, W - w / 2 - pad),
+      y: clamp(p.y, h * 0.85 + pad, H - h * 0.625 - pad),
+      size: k < 1 ? parseFloat(getComputedStyle(el).fontSize) * k : undefined,
+    })
+  }, [p])
+  return (
+    <div ref={ref} className={`pop ${p.kind}`} style={{ left: fit?.x ?? p.x, top: fit?.y ?? p.y, fontSize: fit?.size, visibility: fit ? undefined : 'hidden' }}>
+      {p.text}{p.sub && <small>{p.sub}</small>}
     </div>
   )
 }
