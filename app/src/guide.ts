@@ -535,7 +535,7 @@ function resolveNext(g: GuideState): GuideState {
       g.stage = 'move'
       g.lines = [
         `MOVE ${go.map(u => `${whose(u)} ${label(u.card)}`).join(', ')} one slot toward the other side: your cards go away from you, enemy cards come toward you.`,
-        'A card that moves past the last slot is now "at the tower" (the board shows it in the slot next to that tower, with a swords badge). Cards already at a tower stay there.',
+        'A card that moves past the last slot is now "at the tower" (the board shows it in the slot next to that tower). Cards already at a tower stay there.',
       ]
       g.why = ['When the fights are over, every card that hasn\'t moved yet this round steps one slot. A card at a tower stays there until an enemy card beats it.']
       emit(g, { type: 'move', tids: go.map(u => u.tid!) })

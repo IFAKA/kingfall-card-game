@@ -625,14 +625,6 @@ button.linkish:active { transform: none; }
 .mid.rows > .round { grid-row: 4; align-self: center; }
 /* a card at a tower is drawn in the lane slot next to that tower (new cards in that lane fight it first), marked by a swords badge */
 .unit.atk { position: relative; }
-.siege { position: absolute; z-index: 6; left: -7px; bottom: -7px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #fff; color: #fff; box-shadow: 0 2px 0 rgba(0,0,0,.35); }
-.siege svg { width: 12px; height: 12px; }
-/* a last-stand card wears a flag on the other bottom corner until it has fought (the swords badge has the left one) */
-.standflag { position: absolute; z-index: 6; right: -7px; bottom: -7px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #fff; color: #2a1d00; background: var(--gold); box-shadow: 0 2px 0 rgba(0,0,0,.35); }
-.standflag svg { width: 11px; height: 11px; }
-/* bottom-left: the card at a tower is first in its slot, so that corner is never under the next card (whose rank and suit stay clear) */
-.unit.P .siege { background: #2c9c90; }
-.unit.E .siege { background: #d23c3c; }
 /* wounded: it broke a tower card and has one hit left, drawn like a cracked tower card (sideways at the table) */
 .unit.wounded > .tcard { rotate: 12deg; } /* on the card, so the trembling (which turns the unit) keeps the lean */
 .unit.wounded .cf.front { box-shadow: 0 0 0 3px var(--elixir-glow), 0 0 10px var(--elixir-glow); }
@@ -810,3 +802,19 @@ button.fkey:disabled { opacity: .25; filter: none; }
 
 .corner.left { display: flex; gap: 6px; }
 .tbar .modechip { margin-left: 4px; }
+
+/* the card you hold against each enemy card: your number in a blue chip on its corner, the bigger one wins */
+.unit { position: relative; }
+.duel { position: absolute; z-index: 8; display: grid; place-items: center; box-sizing: border-box; min-width: 1.5em; height: 1.5em; padding: 0 .25em; border-radius: 999px; font-family: var(--display); font-size: max(12px, calc(var(--cw) * .27)); line-height: 1; font-weight: 800; pointer-events: none; box-shadow: 0 2px 0 rgba(0,0,0,.35); }
+.duel.mine { display: inline-flex; gap: .2em; align-items: center; right: -.6em; top: -.6em; background: #3d78f0; border: 2px solid #fff; color: #fff; }
+.duel.mine svg { width: .8em; height: .8em; flex: none; stroke-width: 3; }
+.duel.theirs { left: 3px; top: 2px; min-width: 0; height: auto; padding: 0; border-radius: 4px; background: #fbfbf6; color: #c0262d; box-shadow: none; display: flex; gap: .25em; align-items: baseline; }
+.duel.theirs s { color: #777; text-decoration-thickness: 2px; font-weight: 600; }
+.duel.theirs.bonus { color: #c0262d; }
+.castle .tslot { overflow: visible; }
+.castle .tslot .duel.mine { right: auto; left: 100%; top: 50%; translate: .2em -50%; }
+.castle .tslot .duel.theirs { left: auto; right: 100%; top: 50%; translate: -.2em -50%; background: #e24a4a; color: #fff; border: 2px solid #fff; min-width: 1.5em; height: 1.5em; padding: 0 .25em; border-radius: 999px; }
+.ncard { position: relative; }
+
+/* last stand: the lane whose tower did not fall can't take the free card */
+.spot.slot.mine.blocked { opacity: .35; filter: grayscale(.6); }

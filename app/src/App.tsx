@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import confetti from 'canvas-confetti'
-import { DECK_SIZE, DEFAULT_RULES, PER_SIDE, RANKS, SUITS, cost, deal, freshDeck, isRed, label, randomSetup, shuffle, suggestSetup } from './engine'
+import { DECK_SIZE, DEFAULT_RULES, PER_SIDE, RANKS, SUITS, aceWins, compare, cost, deal, effective, freshDeck, isRed, label, randomSetup, shuffle, suggestSetup } from './engine'
 import type { Card, Unit } from './engine'
 import {
   advise, adviseLastStand, autoReveal, canPlay, describe, endMyTurn, extendBatch, fightingNext, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary, switchCards, takeBack,
@@ -12,7 +12,7 @@ import { AnimatePresence, motion, useAnimate, useReducedMotion } from 'framer-mo
 import type { Variants } from 'framer-motion'
 import type { Pop } from './fx'
 import { isMuted, setMuted, sfx } from './sfx'
-import { FastForward, Flag, Lightbulb, ListChecks, Redo2, Swords, Undo2 } from 'lucide-react'
+import { FastForward, Lightbulb, ListChecks, Redo2, Swords, Undo2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { CardText, Choice, GameMenu, InstallLink, RulesSheet } from './Menu'
@@ -154,8 +154,22 @@ const CHIP: Variants = {
     : { opacity: 0, transition: { duration: 0 } },
 }
 
+// The numbers behind a fight between the card you hold and a card on the table: yours (blue chip) against theirs, the bigger one wins.
+// A suit bonus doubles a number (an enemy card's rank is struck out and its doubled value written beside it); an ace beating a picture card reads ∞.
+type Verdict = { mine: string; theirs: string; mineBonus: boolean; theirsBonus: boolean; rank: string }
+type Verdicts = Record<string, Verdict>
+function VerdictTag({ v, compact }: { v?: Verdict; compact?: boolean }) {
+  if (!v) return null
+  return (
+    <>
+      {v.theirsBonus && <span className="duel theirs bonus" title={`This card hits as ${v.theirs}`} aria-hidden>{!compact && <s>{v.rank}</s>}{v.theirs}</span>}
+      <span className="duel mine" title={`Your card hits as ${v.mine}`} aria-hidden><Swords />{v.mine}</span>
+    </>
+  )
+}
+
 // A tower drawn as a castle: one armor pip per card left (a cracked card shows cracked), and the armor to beat on its top card when it is known (an empty slot until then).
-function Castle({ k, items, own, cracked, fx, shake }: { k: 'L' | 'R' | 'K'; items: ESlot[]; own: boolean; cracked: string[]; fx?: TowerFx; shake?: boolean }) {
+function Castle({ k, items, own, cracked, fx, shake, verdicts }: { k: 'L' | 'R' | 'K'; items: ESlot[]; own: boolean; cracked: string[]; fx?: TowerFx; shake?: boolean; verdicts?: Verdicts }) {
   const top = items[0]
   const known = top?.card
   return (
@@ -167,13 +181,13 @@ function Castle({ k, items, own, cracked, fx, shake }: { k: 'L' | 'R' | 'K'; ite
       <div className="tslot"><AnimatePresence initial={false} mode="popLayout" custom={fx}>{top
         ? <motion.div key={top.tid + (known ? '' : '?')} custom={fx} variants={CHIP} initial="enter" animate="show" exit="leave"
           className={`topcard ${known ? (isRed(known) ? 'red' : '') : 'empty'}`}>{known && <><span>{RANKS[known.rank]}</span><span>{SUITS[known.suit]}</span></>}</motion.div>
-        : null}</AnimatePresence></div>
+        : null}</AnimatePresence>{top && <VerdictTag v={verdicts?.[top.tid]} compact />}</div>
     </div>
   )
 }
 
 // With real cards, a tower is drawn as the cards on the table: a fan, top card (hit first) in front. Yours face-up, the enemy's face-down until flipped.
-function TowerFan({ k, items, own, cracked, flip, shake }: { k: 'L' | 'R' | 'K'; items: ESlot[]; own: boolean; cracked: string[]; flip?: boolean; shake?: boolean }) {
+function TowerFan({ k, items, own, cracked, flip, shake, verdicts }: { k: 'L' | 'R' | 'K'; items: ESlot[]; own: boolean; cracked: string[]; flip?: boolean; shake?: boolean; verdicts?: Verdicts }) {
   const n = items.length
   return (
     <div className={`tfan ${own ? 'mine' : 'theirs'} ${k === 'K' ? 'king' : ''} ${n ? '' : 'fallen'} ${flip ? 'flipme' : ''} ${shake ? 'tremble' : ''}`} data-anchor={`tower-${own ? 'P' : 'E'}-${k}`}
@@ -182,6 +196,7 @@ function TowerFan({ k, items, own, cracked, flip, shake }: { k: 'L' | 'R' | 'K';
         {items.map((it, i) => (
           <div key={it.tid} className={`fc ${cracked.includes(it.tid) ? 'cracked' : ''}`} style={{ left: `calc(${i} * var(--toff))`, zIndex: n - i }}>
             <TCard tid={it.tid} card={it.card} down={!it.card} side={own ? 'P' : 'E'} />
+            {i === 0 && <VerdictTag v={verdicts?.[it.tid]} />}
           </div>
         ))}
       </div>
@@ -208,12 +223,13 @@ function CardBar({ n, spend = 0 }: { n: number; spend?: number }) {
 
 // A pile squared up on the table: the top card shows face-up only where it is face-up at the table, with the count under it.
 // The top card keeps its id, so a card played from the pile, drawn from it or thrown on it slides there.
-function TablePile({ top, down, side, n, name, flip, discard }: { top?: ESlot; down: boolean; side?: 'P' | 'E'; n: number; name: string; flip?: boolean; discard?: boolean }) {
+function TablePile({ top, down, side, n, name, flip, discard, verdict }: { top?: ESlot; down: boolean; side?: 'P' | 'E'; n: number; name: string; flip?: boolean; discard?: boolean; verdict?: Verdict }) {
   return (
     <div className={`tpile ${flip ? 'flipme' : ''}`}>
       <div className="pcards">
         {Array.from({ length: Math.min(3, Math.max(0, n - 1)) }, (_, i) => <div key={i} className={`pback ${discard ? 'face' : ''}`} style={{ translate: `${(i + 1) * 2}px ${(i + 1) * 2}px` }} />)}
         {top && <TCard key={top.tid} tid={top.tid} card={top.card} down={down} side={side} />}
+        {top && <VerdictTag v={verdict} />}
         <span className="pcount" aria-label={`${n} cards`}>{n}</span>
       </div>
       <div className="cname">{name}</div>
@@ -237,13 +253,13 @@ function ElixirBar({ n, spend }: { n: number; spend: number }) {
 }
 
 // One lane, top to bottom: your soldiers hitting the enemy tower, the enemy's slot, the river, your slot, enemy soldiers hitting your tower.
-// A soldier at a tower is drawn smaller, against that tower, with a swords badge; a wounded one (it broke a card, one hit left) leans like a cracked card.
+// A soldier at a tower is drawn smaller, against that tower; a wounded one (it broke a card, one hit left) leans like a cracked card.
 // The two cards that fight next tremble a little, so you see who meets whom before one of them is gone.
-// A card at a tower is drawn in the lane slot next to that tower, first in the slot, with a swords badge: new cards in that lane
+// A card at a tower is drawn in the lane slot next to that tower, first in the slot: new cards in that lane
 // fight it there. A wounded one (it broke a tower card, one hit left) leans like a cracked card.
 // On screen, the cards you placed this turn (grabbable) can be dragged out of their slot again until you end your turn.
 // Tapped, one of them is picked (picked): tapping another card then switches the two.
-function ArenaLane({ idx, units, fighting, laneLen, dragging, hint, suggested, over, onPlace, grabbable = [], lifted, picked, onGrab, onTap }: { idx: 0 | 1; units: Unit[]; fighting: string[]; laneLen: number; dragging: boolean; hint: boolean; suggested: boolean; over: boolean; onPlace: () => void; grabbable?: string[]; lifted?: string | null; picked?: string | null; onGrab?: (e: React.PointerEvent<HTMLElement>, tid: string) => void; onTap?: (tid: string) => void }) {
+function ArenaLane({ idx, units, fighting, laneLen, verdicts, blocked, dragging, hint, suggested, over, onPlace, grabbable = [], lifted, picked, onGrab, onTap }: { idx: 0 | 1; units: Unit[]; fighting: string[]; laneLen: number; verdicts?: Verdicts; blocked?: boolean; dragging: boolean; hint: boolean; suggested: boolean; over: boolean; onPlace: () => void; grabbable?: string[]; lifted?: string | null; picked?: string | null; onGrab?: (e: React.PointerEvent<HTMLElement>, tid: string) => void; onTap?: (tid: string) => void }) {
   const atTower = (u: Unit) => (u.side === 'P' && u.pos >= laneLen) || (u.side === 'E' && u.pos < 0)
   const here = (pred: (u: Unit) => boolean) => units.filter(u => u.lane === idx && pred(u)).sort((a, b) => +atTower(b) - +atTower(a)).map(u => (
     <div key={u.uid} className={`unit ${u.side} ${atTower(u) ? 'atk' : ''} ${u.wounded ? 'wounded' : ''} ${u.free ? 'free' : ''} ${fighting.includes(u.tid!) ? 'tremble' : ''} ${grabbable.includes(u.tid!) ? 'grab' : ''} ${lifted === u.tid ? 'lifted' : ''}`}
@@ -251,8 +267,7 @@ function ArenaLane({ idx, units, fighting, laneLen, dragging, hint, suggested, o
       onPointerDown={grabbable.includes(u.tid!) ? e => onGrab?.(e, u.tid!) : undefined}
       onClick={grabbable.includes(u.tid!) ? e => { e.stopPropagation(); onTap?.(u.tid!) } : undefined}>
       <TCard tid={u.tid!} card={u.card} down={false} side={u.side} selected={picked === u.tid} />
-      {atTower(u) && <span className="siege" aria-hidden><Swords /></span>}
-      {u.free && <span className="standflag" aria-hidden><Flag /></span>}
+      {u.side === 'E' && <VerdictTag v={verdicts?.[u.tid!]} />}
     </div>
   ))
   return (
@@ -260,7 +275,7 @@ function ArenaLane({ idx, units, fighting, laneLen, dragging, hint, suggested, o
       <div className="spot atk" />
       <div className="spot slot" data-anchor={`lane-${idx}`}>{here(u => u.pos === laneLen - 1 || (u.side === 'P' && u.pos >= laneLen))}</div>
       <div className="river" />
-      <div className={`spot slot mine ${dragging || hint || suggested ? 'droppable' : ''} ${dragging && over ? 'over' : ''} ${suggested ? 'suggested' : ''}`} data-lane={idx} data-anchor={`lane-${idx}`} onClick={hint || suggested ? onPlace : undefined}>
+      <div className={`spot slot mine ${blocked ? 'blocked' : ''} ${dragging || hint || suggested ? 'droppable' : ''} ${dragging && over ? 'over' : ''} ${suggested ? 'suggested' : ''}`} data-lane={idx} data-anchor={`lane-${idx}`} onClick={hint || suggested ? onPlace : undefined}>
         {here(u => u.pos === 0 || (u.side === 'E' && u.pos < 0))}
         {(dragging || hint || suggested) && <span className="droptag">{suggested && '★ '}{idx === 0 ? 'LEFT' : 'RIGHT'}</span>}
       </div>
@@ -372,18 +387,48 @@ function Logo({ small }: { small?: boolean }) {
 
 // Every rule is drawn as a real fight between cards. Suits: same rank, so only the wheel decides (the winner counts double).
 const WHEEL: [number, number][] = [[0, 1], [1, 2], [2, 3], [3, 0]]
-const mini = (rank: number, suit: number) => <CardView card={{ id: `m${rank}-${suit}`, rank, suit }} big small />
 const Beats = ({ win, lose, winText, loseText }: { win: ReactNode; lose: ReactNode; winText?: ReactNode; loseText?: ReactNode }) => (
   <div className="fight">
     <span className="side win">{win}{winText && <em>{winText}</em>}</span><i>&gt;</i><span className="side"><span className="lose">{lose}</span>{loseText && <em>{loseText}</em>}</span>
   </div>
 )
+// Examples come from the game in progress: cards on the field first, then any card seen so far, and only then an invented one.
+type Pools = Card[][]
+// each pool adds to the one before: the field, then the hand you can play, then your whole hand, then the enemy cards face-up on the table
+const gamePools = (g: GuideState): Pools => {
+  const field = g.units.map(u => u.card)
+  const playable = g.P.hand.filter((_, i) => canPlay(g, i))
+  const enemy = [...g.E.queue.slice(0, 1), ...g.E.towers.L.slice(0, 1), ...g.E.towers.R.slice(0, 1), ...g.E.towers.K.slice(0, 1)].flatMap(x => x.card ? [x.card] : [])
+  const tiers = [field, playable, g.P.hand, enemy]
+  return tiers.map((_, i) => tiers.slice(0, i + 1).flat())
+}
+// a pair where the suit bonus is what decides: the winner's plain rank is lower, doubled it is higher. Inside a pool that kind comes first, then any pair of the two suits.
+const wheelPair = (w: number, l: number, wheel: number, pools: Pools): [Card, Card] => {
+  for (const pool of pools) {
+    const ws = pool.filter(c => c.suit === w && c.rank > 1), ls = pool.filter(c => c.suit === l && c.rank > 1)
+    const pairs = ws.flatMap(a => ls.map(b => [a, b] as [Card, Card]))
+    const decisive = pairs.filter(([a, b]) => a.rank < b.rank && a.rank * wheel > b.rank)
+    if (decisive.length) return decisive.sort((x, y) => (x[0].rank * wheel - x[1].rank) - (y[0].rank * wheel - y[1].rank))[0]
+    if (pairs.length) return pairs[0]
+  }
+  return [{ id: `m6-${w}`, rank: 6, suit: w }, { id: `m11-${l}`, rank: 11, suit: l }]
+}
+const show = (c: Card) => <CardView card={c} big small />
 // the numbers are written under the cards: a 6 beating a J only makes sense once you see 6 × 2 = 12 against 11
-const SuitWheel = () => (
+const SuitWheel = ({ wheel = 2, pools = [] }: { wheel?: number; pools?: Pools }) => (
   <div className="suitwheel" role="img" aria-label="Spades beat hearts, hearts beat diamonds, diamonds beat clubs, clubs beat spades; the winning suit counts double">
-    {WHEEL.map(([w, l]) => <Beats key={w} win={mini(6, w)} lose={mini(11, l)} winText={<>6 ×2 = <b>12</b></>} loseText="J = 11" />)}
+    {WHEEL.map(([w, l]) => {
+      const [a, b] = wheelPair(w, l, wheel, pools)
+      return <Beats key={w} win={show(a)} lose={show(b)} winText={<>{a.rank} ×{wheel} = <b>{a.rank * wheel}</b></>} loseText={b.rank > 10 ? `${RANKS[b.rank]} = ${b.rank}` : `${b.rank}`} />
+    })}
   </div>
 )
+// an ace and a J, Q, K for the ace rule, seen ones first
+const acePair = (pools: Pools): [Card, Card[]] => {
+  const find = (rank: number, suit: number) => pools.flat().find(c => c.rank === rank) ?? { id: `m${rank}-${suit}`, rank, suit }
+  const field = pools[0]?.find(c => c.rank === 1)
+  return [field ?? find(1, 0), [11, 12, 13].map((r, i) => (pools[0] ?? []).find(c => c.rank === r) ?? find(r, i + 1))]
+}
 
 // The round chip on the bridge: when the round changes, the chip first glows gold with a gentle swell to catch the eye,
 // and only once the glow peaks (the old number is readable) does each digit roll like a wheel (down going forward: the
@@ -429,13 +474,13 @@ function RoundChip({ n }: { n: number }) {
 
 // the one thing you look up mid-game, without going through the menu
 const R = ({ c }: { c: string }) => <span className="rs">{c}</span>
-const CHEAT = (<div className="cheat">
+const cheatSheet = (g: GuideState) => { const pools = gamePools(g), [ace, pics] = acePair(pools); return (<div className="cheat">
   <p><b>The higher number wins.</b> <small>A=1, 2 … 10, J=11, Q=12, K=13. Same number: both cards are lost.</small></p>
   <p><b>Suit bonus:</b> <small>each suit doubles its number against the next one: ♠ beats <R c="♥" />, <R c="♥" /> beats <R c="♦" />, <R c="♦" /> beats ♣, ♣ beats ♠. Any other pair (♠ vs <R c="♦" />, <R c="♥" /> vs ♣): no bonus.</small></p>
-  <SuitWheel />
+  <SuitWheel wheel={g.rules.wheel} pools={pools} />
   <p><b>Aces beat J, Q, K</b> <small>even at towers, for the enemy too</small></p>
-  <div className="fights"><Beats win={mini(1, 0)} lose={<>{mini(11, 1)}{mini(12, 2)}{mini(13, 3)}</>} /></div>
-</div>)
+  <div className="fights"><Beats win={show(ace)} lose={<>{pics.map(c => <Fragment key={c.id}>{show(c)}</Fragment>)}</>} /></div>
+</div>) }
 
 const RULES_60 = (<>
   <p><b>Goal:</b> break the enemy's <b>king tower</b> before it breaks yours.</p>
@@ -810,8 +855,8 @@ export default function App() {
   const hitEnemy = stage === 'tower_enter'
   const flipping = stage === 'enemy_enter' || stage === 'last_stand_enter' || hitEnemy
   const standing = stage === 'my_last_stand'
-  const previewCard = standing ? undefined : g.P.hand[drag ?? sel ?? bad ?? hov ?? -1]
-  const spend = previewCard ? cost(previewCard.rank) : 0
+  const previewCard = g.P.hand[drag ?? sel ?? bad ?? hov ?? -1]
+  const spend = previewCard && !standing ? cost(previewCard.rank) : 0 // a last stand card is free
   const side = stage === 'my_play' || standing ? 'me' : stage.startsWith('enemy_') || stage === 'last_stand_enter' ? 'enemy' : null
   // with real cards, every step that moves cards on the table waits on a panel over the tray until the player taps Done;
   // after one of your own plays that is paying, placing and drawing, then the hand is free again
@@ -871,12 +916,12 @@ export default function App() {
   }
   const tapHand = (i: number) => {
     if (justDragged.current) return
-    if (standing) { quick(g.P.hand[i]?.id, 0.32); return commit(lastStandPlay(g, i)) }
     if (pick) { if (trySwitch(pick, g.P.hand[i].id)) return; setPick(null) } // a card the picked one can't switch with: pick it instead
     const off = sel === i || bad === i
-    sfx(off ? 'unpick' : canPlay(g, i) ? 'pick' : 'deny')
+    const ok = standing || canPlay(g, i)
+    sfx(off ? 'unpick' : ok ? 'pick' : 'deny')
     if (off) setHov(null)
-    setSel(!off && canPlay(g, i) ? i : null); setBad(!off && !canPlay(g, i) ? i : null)
+    setSel(!off && ok ? i : null); setBad(!off && !ok ? i : null)
   }
   // the suggestion is shown on the board itself: the card and its lane glow, or the ✓ button does
   const suggested = advice?.kind === 'play' ? advice : null
@@ -935,7 +980,7 @@ export default function App() {
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
   const cheat = (
-    <RulesSheet title="Who beats who" rules={CHEAT}>
+    <RulesSheet title="Who beats who" rules={cheatSheet(g)}>
       <Button variant="secondary" size="icon-lg" aria-label="Who beats who" title="Who beats who"><Swords /></Button>
     </RulesSheet>
   )
@@ -1028,7 +1073,7 @@ export default function App() {
       ? `★ ${label(g.P.hand[advice.handIndex])}${standing ? '' : ` in the ${advice.lane === 0 ? 'left' : 'right'} lane`}: ${advice.short}.`
       : `★ End your turn: ${advice.short}.`)
     const standSide = g.lastStand?.lane === 0 ? 'left' : 'right'
-    const standMsg = `Your ${standSide} tower fell: tap a card, it joins that lane free.`
+    const standMsg = `Your ${standSide} tower fell: drag a card onto the ${standSide} lane, it joins free.`
     const stoodMsg = stood ? `Enemy ${label(stood.card)} came in free (its ${stood.lane === 0 ? 'left' : 'right'} tower fell).` : ''
     // at most two lines: one sentence, or the suggestion when suggestions are on
     const lines = standing ? [suggestion ?? standMsg] : stood ? [suggestion ?? stoodMsg]
@@ -1044,13 +1089,26 @@ export default function App() {
     const grabbable = mode === 'play' && stage === 'my_play' ? (g.turn ?? []).map(p => p.id) : []
     const lane = (l: 0 | 1) => ({
       grabbable, lifted: lift, picked: pick, onGrab: (e: React.PointerEvent<HTMLElement>, tid: string) => startDrag(e, null, tid), onTap: tapUnit,
-      dragging: (drag !== null && (!standing || g.lastStand?.lane === l)) || (lift !== null && g.units.find(u => u.tid === lift)?.lane !== l), hint: standing ? g.lastStand?.lane === l : sel !== null || pick !== null,
+      dragging: (drag !== null && (!standing || g.lastStand?.lane === l)) || (lift !== null && g.units.find(u => u.tid === lift)?.lane !== l), hint: standing ? g.lastStand?.lane === l : sel !== null || pick !== null, blocked: standing && g.lastStand?.lane !== l,
       suggested: suggested?.lane === l && (drag ?? sel ?? suggested.handIndex) === suggested.handIndex,
       over: overLane === l, onPlace: () => {
-        if (standing) return
+        if (standing) { const i = sel ?? suggested?.handIndex; if (i !== undefined && g.lastStand?.lane === l) { quick(g.P.hand[i].id, 0.32); commit(lastStandPlay(g, i)) } return }
         if (pick) { const n = takeBack(g, pick, l); if (n === g) { sfx('unpick'); setPick(null) } else { quick(pick, 0.26); commit(n) } return }
         const i = sel ?? suggested?.handIndex; if (i !== undefined) { quick(g.P.hand[i].id, 0.32); commit(playCard(g, i, l)) } },
     })
+    // what the card in your hand (picked, dragged or hovered) is worth against every enemy card on the table
+    const verdicts: Verdicts = {}
+    if (previewCard) {
+      const add = (tid: string | undefined, c: Card | null | undefined) => {
+        if (!tid || !c) return
+        const w = g.rules.wheel, mv = effective(previewCard, c, w), tv = effective(c, previewCard, w)
+        const mineAce = aceWins(previewCard, c, g.rules), theirAce = aceWins(c, previewCard, g.rules)
+        verdicts[tid] = { mine: mineAce ? '∞' : String(mv), theirs: theirAce ? '∞' : String(tv), mineBonus: mineAce || mv > previewCard.rank, theirsBonus: theirAce || tv > c.rank, rank: RANKS[c.rank] }
+      }
+      for (const u of g.units) if (u.side === 'E') add(u.tid, u.card)
+      add(g.E.queue[0]?.tid, g.E.queue[0]?.card) // the card the enemy plays next
+      for (const k of ['L', 'R', 'K'] as const) add(g.E.towers[k][0]?.tid, g.E.towers[k][0]?.card)
+    }
     const eNext = g.E.queue[0]
     const undoRedo = <>
       <Button variant="secondary" size="icon-lg" aria-label="Undo" title="Undo" onClick={undo} disabled={!history.length}><Undo2 /></Button>
@@ -1071,15 +1129,15 @@ export default function App() {
         <div className="tbar"><span className="undoredo">{undoRedo}</span>{cheat}<span className="modechip">Real cards</span><span className="tmenu">{menu}</span></div>
         <div className={`cardtable ${shake}`}>
           <div className="trow theirs">
-            <TablePile top={eNext} down={!eNext?.card} side="E" n={g.E.queue.length} name="Pile" flip={stage === 'enemy_enter' || stage === 'last_stand_enter'} />
-            {(['L', 'K', 'R'] as const).map(k => <TowerFan key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} flip={flipTower === k} shake={fighting.includes(`tower-E-${k}`)} />)}
+            <TablePile top={eNext} down={!eNext?.card} side="E" n={g.E.queue.length} name="Pile" verdict={eNext && verdicts[eNext.tid]} flip={stage === 'enemy_enter' || stage === 'last_stand_enter'} />
+            {(['L', 'K', 'R'] as const).map(k => <TowerFan key={k} k={k} items={g.E.towers[k]} own={false} verdicts={verdicts} cracked={g.cracked ?? []} flip={flipTower === k} shake={fighting.includes(`tower-E-${k}`)} />)}
             {discard('E')}
           </div>
           <div className="lanes">
             <span />
-            <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} />
+            <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} verdicts={verdicts} />
             <div className="mid">{round}</div>
-            <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} />
+            <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} verdicts={verdicts} />
             <span />
           </div>
           <div className="trow mine">
@@ -1099,20 +1157,20 @@ export default function App() {
         <span className="corner left undoredo">{cheat}{DEBUG && undoRedo}</span> {/* undo/redo: debugging aid, dev server or any build opened with ?debug=1 */}
         <span className="corner right">{menu}</span>
         <div className="castles theirs">
-          {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} fx={towerFx('E', k)} shake={fighting.includes(`tower-E-${k}`)} />)}
+          {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={g.E.towers[k]} own={false} verdicts={verdicts} cracked={g.cracked ?? []} fx={towerFx('E', k)} shake={fighting.includes(`tower-E-${k}`)} />)}
         </div>
         <div className="lanes">
-          <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} />
+          <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} verdicts={verdicts} />
           <div className="mid rows">
             <div className="sidechip enemy" title="The next card of the enemy pile (face-down until you have seen it). The enemy plays one card per round.">
-              {eNext && <div className="nextcard"><TCard key={eNext.tid} tid={eNext.tid} card={eNext.card} down={!eNext.card} side="E" /><span>Next</span></div>}
+              {eNext && <div className="nextcard"><div className="ncard"><TCard key={eNext.tid} tid={eNext.tid} card={eNext.card} down={!eNext.card} side="E" /><VerdictTag v={verdicts[eNext.tid]} /></div><span>Next</span></div>}
             </div>
             {round}
             <div className="sidechip mine" title="Your next card: it comes into your hand when you play one">
               {g.P.queue[0] && <div className="nextcard"><span>Next</span><TCard key={g.P.queue[0].id} tid={g.P.queue[0].id} card={g.P.queue[0]} down={false} side="P" showCost /></div>}
             </div>
           </div>
-          <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} />
+          <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} verdicts={verdicts} />
         </div>
         <div className="castles mine">
           {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={mineSlots(k)} own cracked={g.cracked ?? []} fx={towerFx('P', k)} shake={fighting.includes(`tower-P-${k}`)} />)}
