@@ -4,10 +4,12 @@ import confetti from 'canvas-confetti'
 import { DEFAULT_RULES, RANKS, SUITS, cost, deal, freshDeck, isRed, label, randomSetup, shuffle } from './engine'
 import type { Card, Unit } from './engine'
 import {
-  advise, adviseLastStand, autoReveal, canPlay, describe, endMyTurn, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary,
+  advise, adviseLastStand, autoReveal, canPlay, describe, endMyTurn, fightingNext, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary,
 } from './guide'
 import type { ESlot, GuideState } from './guide'
 import { useFx } from './fx'
+import { AnimatePresence, motion } from 'framer-motion'
+import type { Variants } from 'framer-motion'
 import type { Pop } from './fx'
 import { isMuted, setMuted, sfx } from './sfx'
 import { Lightbulb, Redo2, Undo2 } from 'lucide-react'
@@ -113,18 +115,30 @@ function FxLayer({ pops }: { pops: Pop[] }) {
 // ---------- the arena (on-screen play): upright like Clash, enemy on top, you at the bottom ----------
 const STACK_NAME = { L: 'Left', R: 'Right', K: 'King' } as const
 
+// What just happened to a tower's top card: turned face-up, or hit (it breaks and falls to the discard, or cracks and goes under).
+type TowerFx = 'reveal' | 'break' | 'crack' | undefined
+const CHIP: Variants = {
+  enter: (fx: TowerFx) => ({ rotateY: 90, scale: fx === 'reveal' ? 1.8 : 1 }),
+  show: (fx: TowerFx) => ({ rotateY: 0, scale: 1, transition: { duration: fx === 'reveal' ? 0.5 : 0.3, ease: 'easeOut' } }),
+  leave: (fx: TowerFx) => fx === 'break' ? { y: 34, rotate: 40, opacity: 0, transition: { duration: 0.7, delay: 0.2, ease: 'easeIn' } }
+    : fx === 'crack' ? { rotate: 90, scale: 0.4, opacity: 0, transition: { duration: 0.5, delay: 0.2 } }
+    : { opacity: 0, transition: { duration: 0 } },
+}
+
 // A tower drawn as a castle: one armor pip per card left (a cracked card shows cracked), and the armor to beat on its top card when it is known (an empty slot until then).
-function Castle({ k, items, own, cracked }: { k: 'L' | 'R' | 'K'; items: ESlot[]; own: boolean; cracked: string[] }) {
+function Castle({ k, items, own, cracked, fx }: { k: 'L' | 'R' | 'K'; items: ESlot[]; own: boolean; cracked: string[]; fx?: TowerFx }) {
   const top = items[0]
   const known = top?.card
   return (
     <div className={`castle ${own ? 'mine' : 'theirs'} ${k === 'K' ? 'king' : ''} ${items.length ? '' : 'fallen'}`} data-anchor={`tower-${own ? 'P' : 'E'}-${k}`}
       title={`${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower: ${items.length} card${items.length === 1 ? '' : 's'} of armor${known ? `; a soldier needs rank ${RANKS[known.rank]} or more to break the top one` : ''}`}>
       <CastleArt king={k === 'K'} />
-      <div className="armor">{items.map(it => <i key={it.tid} className={cracked.includes(it.tid) ? 'crk' : ''} />)}</div>
-      <div className="tslot">{known
-        ? <div className={`topcard ${isRed(known) ? 'red' : ''}`}>{RANKS[known.rank]}{SUITS[known.suit]}</div>
-        : items.length ? <div className="topcard empty" /> : <div className="cname">Fallen</div>}</div>
+      <div className="armor"><AnimatePresence initial={false}>{items.map(it => <motion.i key={it.tid} layout className={cracked.includes(it.tid) ? 'crk' : ''}
+        exit={{ scale: 0, opacity: 0, transition: { duration: 0.3, delay: 0.2 } }} />)}</AnimatePresence></div>
+      <div className="tslot"><AnimatePresence initial={false} mode="popLayout" custom={fx}>{top
+        ? <motion.div key={top.tid + (known ? '' : '?')} custom={fx} variants={CHIP} initial="enter" animate="show" exit="leave"
+          className={`topcard ${known ? (isRed(known) ? 'red' : '') : 'empty'}`}>{known && <>{RANKS[known.rank]}{SUITS[known.suit]}</>}</motion.div>
+        : <div key="fallen" className="cname">Fallen</div>}</AnimatePresence></div>
     </div>
   )
 }
@@ -194,9 +208,10 @@ function ElixirBar({ n, spend }: { n: number; spend: number }) {
 }
 
 // One lane, top to bottom: your soldiers hitting the enemy tower, the enemy's slot, the river, your slot, enemy soldiers hitting your tower.
-function ArenaLane({ idx, units, laneLen, dragging, hint, suggested, over, onPlace }: { idx: 0 | 1; units: Unit[]; laneLen: number; dragging: boolean; hint: boolean; suggested: boolean; over: boolean; onPlace: () => void }) {
+// The two cards that fight next tremble a little, so you see who meets whom before one of them is gone.
+function ArenaLane({ idx, units, fighting, laneLen, dragging, hint, suggested, over, onPlace }: { idx: 0 | 1; units: Unit[]; fighting: string[]; laneLen: number; dragging: boolean; hint: boolean; suggested: boolean; over: boolean; onPlace: () => void }) {
   const here = (pred: (u: Unit) => boolean) => units.filter(u => u.lane === idx && pred(u)).map(u => (
-    <div key={u.uid} className={`unit ${u.side}`}><TCard tid={u.tid!} card={u.card} down={false} /></div>
+    <div key={u.uid} className={`unit ${u.side} ${fighting.includes(u.tid!) ? 'tremble' : ''}`}><TCard tid={u.tid!} card={u.card} down={false} /></div>
   ))
   return (
     <div className="alane">
@@ -344,7 +359,7 @@ const PULSES = ['droppulse', 'suggestglow', 'suggestring', 'flipglow']
 const readJSON = <T,>(key: string, fallback: T): T => { try { const v = localStorage.getItem(key); return v ? (JSON.parse(v) as T) : fallback } catch { return fallback } }
 const writeJSON = (key: string, v: unknown) => { try { localStorage.setItem(key, JSON.stringify(v)) } catch { /* storage full or blocked */ } }
 
-const AUTO_STAGES = ['round_start', 'enemy_play', 'enemy_stop', 'move', 'fight', 'tower_result']
+const AUTO_STAGES = ['round_start', 'enemy_play', 'enemy_stop', 'move', 'fight', 'tower_enter', 'tower_result']
 // hold each step longer the more it shows (one line per event), so busy fights can be followed
 const autoDelay = (events: number) => Math.min(4000, 700 + 600 * events)
 
@@ -754,6 +769,13 @@ export default function App() {
     const prompt = stage === 'my_play' ? 'Your turn: drag a card onto a lane, then tap ✓.' : standing ? TITLES[stage] : stage === 'round_start' ? `Round ${g.round}: you get ${g.rules.regen} more elixir.` : 'Enemy turn…'
     const lines = note ? [note] : said.length ? said : [prompt]
     // the suggested lane glows only while no other card is picked up; tapping it with nothing picked plays the suggestion
+    const fighting = fightingNext(g)
+    const towerFx = (side: 'P' | 'E', k: 'L' | 'R' | 'K'): TowerFx => {
+      for (const e of g.events ?? []) {
+        if (e.type === 'tower' && e.side !== side && e.stack === k) return e.result
+        if (e.type === 'reveal' && side === 'E' && e.stack === k) return 'reveal'
+      }
+    }
     const lane = (l: 0 | 1) => ({
       dragging: drag !== null && (!standing || g.lastStand?.lane === l), hint: standing ? g.lastStand?.lane === l : sel !== null,
       suggested: suggested?.lane === l && (drag ?? sel ?? suggested.handIndex) === suggested.handIndex,
@@ -787,9 +809,9 @@ export default function App() {
           </div>
           <div className="lanes">
             <span />
-            <ArenaLane idx={0} units={g.units} laneLen={g.rules.laneLen} {...lane(0)} />
+            <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} />
             <div className="mid">{rules}</div>
-            <ArenaLane idx={1} units={g.units} laneLen={g.rules.laneLen} {...lane(1)} />
+            <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} />
             <span />
           </div>
           <div className="trow mine">
@@ -806,10 +828,10 @@ export default function App() {
         <span className="undoredo corner left">{undoRedo}</span>
         <span className="corner right">{menu}</span>
         <div className="castles theirs">
-          {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} />)}
+          {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} fx={towerFx('E', k)} />)}
         </div>
         <div className="lanes">
-          <ArenaLane idx={0} units={g.units} laneLen={g.rules.laneLen} {...lane(0)} />
+          <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} />
           <div className="mid">
             <div className="sidechip enemy" title="Enemy elixir and the next card of its pile (face-down until you have seen it)">
               <span className="edrop">{g.E.elixir}</span>
@@ -817,10 +839,10 @@ export default function App() {
             </div>
             {rules}
           </div>
-          <ArenaLane idx={1} units={g.units} laneLen={g.rules.laneLen} {...lane(1)} />
+          <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} />
         </div>
         <div className="castles mine">
-          {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={mineSlots(k)} own cracked={g.cracked ?? []} />)}
+          {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={mineSlots(k)} own cracked={g.cracked ?? []} fx={towerFx('P', k)} />)}
         </div>
       </div>
     )

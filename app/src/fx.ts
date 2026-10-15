@@ -75,7 +75,15 @@ export function useFx(game: GuideState | null, fresh: GuideState | null, root: R
           n++
           break
         }
+        case 'reveal': sfx('tap', ms, { pan: pan(`tower-E-${e.stack}`) }); n++; break
         case 'tower': {
+          // the card at the tower lunges at it as it hits (if it is still on the board: one the tower shot back is gone)
+          const unit = el.querySelector(`[data-tid="${e.tid}"]`)?.closest('.unit')
+          if (unit && !calm) {
+            const cls = e.side === 'P' ? 'lunge-up' : 'lunge-down'
+            later(ms, () => { unit.classList.remove(cls); void (unit as HTMLElement).offsetWidth; unit.classList.add(cls) })
+            later(ms + 500, () => unit.classList.remove(cls))
+          }
           const p = at(`tower-${e.side === 'P' ? 'E' : 'P'}-${e.stack}`)
           const good = e.side === 'P' ? 'good' : 'bad'
           const sound = { mood: good, pan: pan(`tower-${e.side === 'P' ? 'E' : 'P'}-${e.stack}`) } as const

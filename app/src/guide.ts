@@ -19,6 +19,7 @@ export type GameEvent =
   | { type: 'move'; held: (0 | 1)[] } // lanes where the front cards stand face to face and don't move
   | { type: 'fight'; lane: 0 | 1; mine: { tid: string; card: Card; value: number }; theirs: { tid: string; card: Card; value: number }
       double: 'P' | 'E' | null; ace: 'P' | 'E' | null; winner: 'P' | 'E' | 'tie' }
+  | { type: 'reveal'; tid: string; card: Card; stack: StackKey } // an enemy tower card turned face-up before a hit
   | { type: 'tower'; side: 'P' | 'E'; tid: string; card: Card; stack: StackKey; top: { tid: string; card: Card }; result: 'break' | 'crack'; wasCracked: boolean; destroyed: boolean }
   | { type: 'over'; winner: 'P' | 'E' | 'draw' }
 
@@ -132,6 +133,7 @@ export function next(g0: GuideState): GuideState {
     case 'enemy_stop': return goMove(g)
     case 'move': return resolveNext(g)
     case 'fight': return resolveNext(g)
+    case 'tower_enter': return processHit(g) // its top card was revealed as a step of its own: now the hit lands
     case 'tower_result': return g.lastStand ? lastStandStep(g) : processHit(g)
     default: return g
   }
@@ -278,6 +280,19 @@ function engaged(g: GuideState, lane: 0 | 1) {
   return clash(ps.reduce((a, b) => (b.pos > a.pos ? b : a)), es.reduce((a, b) => (b.pos < a.pos ? b : a)))
 }
 
+/** The two cards that fight on the very next step (one fight per step, left lane first, as resolveNext does), so the screen can show them squaring up first. */
+export function fightingNext(g: GuideState): string[] {
+  if (g.stage !== 'move' && g.stage !== 'fight') return []
+  for (const lane of [0, 1] as const) {
+    const ps = g.units.filter(u => u.lane === lane && u.side === 'P')
+    const es = g.units.filter(u => u.lane === lane && u.side === 'E')
+    if (!ps.length || !es.length) continue
+    const p = ps.reduce((a, b) => (b.pos > a.pos ? b : a)), e = es.reduce((a, b) => (b.pos < a.pos ? b : a))
+    if (clash(p, e)) return [p.tid!, e.tid!]
+  }
+  return []
+}
+
 /** Held units advance into the slot the fight cleared. */
 function advance(g: GuideState, lane: 0 | 1, side: 'P' | 'E') {
   for (const u of g.units) {
@@ -388,6 +403,19 @@ export function enterTowerCard(g0: GuideState, card: Card): GuideState {
   g.E.towers[k][0].card = card
   g.enemySeen.push(card)
   return resolveHit(g, u, k)
+}
+
+/** On screen, the tower card the hit is about to land on is turned face-up first, as a step of its own, so you see it before it breaks or cracks. */
+export function revealTowerCard(g0: GuideState, card: Card): GuideState {
+  const g = step(g0)
+  const u = g.units.find(x => x.uid === g.hitQueue[0])!
+  const k = hitTarget(g, u)
+  const top = g.E.towers[k][0]
+  top.card = card
+  g.enemySeen.push(card)
+  emit(g, { type: 'reveal', tid: top.tid, card, stack: k })
+  g.lines = [`Your ${label(u.card)} is at the enemy ${stackName(k)}.`, `Its top card is ${label(card)}.`]
+  return g
 }
 
 function resolveHit(g: GuideState, u: Unit, k: StackKey): GuideState {
@@ -645,6 +673,7 @@ export function describe(e: GameEvent): string | null {
       const how = e.wasCracked ? `breaks the cracked ${label(e.top.card)}` : `breaks ${label(e.top.card)}`
       return `${who} ${how} on the ${where}${e.destroyed ? `. The ${where} is DESTROYED!` : '.'}`
     }
+    case 'reveal': return `The enemy ${stackName(e.stack).toLowerCase()}'s top card is ${label(e.card)}.`
     default: return null
   }
 }
@@ -673,7 +702,9 @@ export function autoReveal(g0: GuideState, secret: Record<string, Card>): GuideS
     if (g.stage === 'enemy_enter' || g.stage === 'last_stand_enter') g = enterEnemyCard(g, secret[g.E.queue[0].tid])
     else if (g.stage === 'tower_enter') {
       const u = g.units.find(x => x.uid === g.hitQueue[0])!
-      g = enterTowerCard(g, secret[g.E.towers[hitTarget(g, u)][0].tid])
+      g = revealTowerCard(g, secret[g.E.towers[hitTarget(g, u)][0].tid])
+      events.push(...(g.events ?? []))
+      break // the hit lands on the next step
     } else break
     events.push(...(g.events ?? []))
   }

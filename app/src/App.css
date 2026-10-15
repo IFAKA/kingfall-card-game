@@ -594,6 +594,17 @@ button.linkish:active { transform: none; }
 .castle .armor { min-height: calc(max(9px, var(--cw) * .28) + 3px); }
 .castle .tslot { height: calc(max(12px, var(--cw) * .27) + 4px); display: flex; align-items: center; }
 .castle .topcard.empty { width: 2.2em; height: 100%; box-sizing: border-box; padding: 0; background: none; box-shadow: none; border: 1.5px dashed rgba(255,255,255,.5); }
+/* the two cards that fight next tremble, leaning toward each other; a card at a tower lunges at it when it hits */
+.unit.tremble { animation: tremble .3s linear infinite; }
+.unit.P.tremble { --lean: -1.5px; } .unit.E.tremble { --lean: 1.5px; }
+@keyframes tremble { 0%, 50%, 100% { translate: 0 0; rotate: 0deg; } 25% { translate: -1px var(--lean); rotate: -1.8deg; } 75% { translate: 1px var(--lean); rotate: 1.8deg; } }
+.unit.lunge-up { animation: lunge .45s ease-out; --to: -14px; } .unit.lunge-down { animation: lunge .45s ease-out; --to: 14px; }
+@keyframes lunge { 35% { translate: 0 var(--to); scale: 1.08; } }
+.castle .tslot { position: relative; perspective: 200px; }
+@media (prefers-reduced-motion: reduce) {
+  .unit.tremble { animation: none; filter: drop-shadow(0 0 5px var(--gold)); }
+  .unit.lunge-up, .unit.lunge-down { animation: none; }
+}
 /* each slot sits halfway between its towers and the bridge: tower, gap, slot, gap, bridge, gap, slot, gap, tower */
 .alane { grid-template-rows: 1fr calc(var(--ch) + 8px) minmax(var(--rgap), 1fr) 18px minmax(var(--rgap), 1fr) calc(var(--ch) + 8px) 1fr; }
 .alane > :nth-child(1) { grid-row: 1; } .alane > :nth-child(2) { grid-row: 2; } .alane > :nth-child(4) { grid-row: 6; } .alane > :nth-child(5) { grid-row: 7; }
