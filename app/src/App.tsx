@@ -1099,8 +1099,8 @@ export default function App() {
     const stood = stage === 'my_play' && g.units.find(u => u.side === 'E' && u.free)
     // with suggestions on, your turn's line says what they suggest and, in a few words, why (the whole reason is in Menu → Hints)
     const suggestion = advice && (advice.kind === 'play'
-      ? `★ ${label(g.P.hand[advice.handIndex])}${standing ? '' : ` in the ${advice.lane === 0 ? 'left' : 'right'} lane`}: ${advice.short}.`
-      : `★ End your turn: ${advice.short}.`)
+      ? `${label(g.P.hand[advice.handIndex])}${standing ? '' : ` in the ${advice.lane === 0 ? 'left' : 'right'} lane`}: ${advice.short}.`
+      : `End your turn: ${advice.short}.`)
     const standSide = g.lastStand?.lane === 0 ? 'left' : 'right'
     const standMsg = `Your ${standSide} tower fell: drag a card onto the ${standSide} lane, it joins free.`
     const stoodMsg = stood ? `Enemy ${label(stood.card)} came in free (its ${stood.lane === 0 ? 'left' : 'right'} tower fell).` : ''
