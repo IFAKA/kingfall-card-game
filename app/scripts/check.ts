@@ -184,6 +184,21 @@ check(cost(1) === 1 && cost(5) === 4 && cost(9) === 7 && cost(13) === 10, 'cost 
 }
 
 {
+  // both kings fall in the same round: more tower cards left wins, equal is a draw
+  const c = (rank: number, suit = 0): Card => ({ id: `t${rank}-${suit}`, rank, suit })
+  const d = freshDeck()
+  const end = (mine: number, theirs: number) => {
+    const g = newGame(d.slice(0, DECK_SIZE), d.slice(DECK_SIZE, PER_SIDE), d.slice(PER_SIDE, 2 * PER_SIDE), DEFAULT_RULES, mulberry(8))
+    g.E.towers = { L: [], R: [c(9, 2), c(10, 2)].slice(0, theirs), K: [c(2, 2)] }
+    g.P.towers = { L: [c(9, 1), c(10, 1)].slice(0, mine), R: [], K: [c(2, 1)] }
+    g.E.queue = []
+    g.units = [{ uid: 98, card: c(13, 0), side: 'P', lane: 0, pos: DEFAULT_RULES.laneLen }, { uid: 99, card: c(13, 3), side: 'E', lane: 1, pos: -1 }]
+    return endRound(g).winner
+  }
+  check(end(1, 0) === 'P' && end(1, 2) === 'E' && end(2, 2) === 'draw', 'both kings fall in one round: more tower cards left wins (1 to 0 wins, 1 to 2 loses, 2 to 2 draws)')
+}
+
+{
   // a tower hit is a fight: the wheel and aces count against towers too
   const c = (rank: number, suit = 0): Card => ({ id: `t${rank}-${suit}`, rank, suit })
   const R = DEFAULT_RULES

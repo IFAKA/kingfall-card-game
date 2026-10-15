@@ -475,7 +475,7 @@ const RULES_60 = (<>
   <p><b>Fights:</b> your cards are soldiers. Send them down a lane: when two cards meet, the higher rank wins.</p>
   <p><b>Elixir</b> pays for cards: stronger cards cost more, and you get 3 more each round.</p>
   <details className="help"><summary>All the rules</summary><ul>
-    <li><b>Goal:</b> destroy the enemy's <b>king tower</b> (a stack of 2 cards) before it destroys yours.</li>
+    <li><b>Goal:</b> destroy the enemy's <b>king tower</b> (a stack of 2 cards) before it destroys yours. If both fall in the same round, the side with more tower cards left wins.</li>
     <li><b>Cards</b> are soldiers. Higher rank wins a fight (A=1 … K=13). A card of the suit that beats the other counts <b>double</b>: ♠→♥, ♥→♦, ♦→♣, ♣→♠.<SuitWheel /></li>
     <li><b>Aces beat Kings</b> in a fight, whatever the suits, and against towers too. Watch out: it works for the enemy as well.</li>
     <li><b>Elixir</b> pays for your soldiers: a card costs about its rank (A=1, 5=4, 8=6, K=10). You get 3 more each round, max 10. The enemy has no elixir: it plays <b>one card per round</b>, the top of its pile.</li>

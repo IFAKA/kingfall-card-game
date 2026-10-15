@@ -50,7 +50,7 @@ It works both ways: an enemy ace kills your king. It counts against towers too: 
    - The unit **loses**: the tower holds and **shoots it back**: the unit goes to the bottom of its owner's pile, and the tower card **cracks**: turn it **sideways** and move it to the **bottom of that tower** (face-up if it is an enemy card). The next card is now on top. Any later hit breaks a cracked card, so every tower can be worn down, even by small cards.
    - The enemy hits your towers the same way. You know your own cards.
    - **Last stand:** when a left or right tower loses its last card, its owner immediately places **one card in that lane for free** (the marker doesn't move). You pick any card from your hand, put it in slot 1 and refill your hand. The enemy puts its face-up top card in slot 2, then turns its next top card face-up. The king has no last stand.
-7. **End.** Enemy king stack empty = **you win**. Yours empty = **you lose**. Both in the same round = draw. Otherwise start the next round.
+7. **End.** Enemy king stack empty = **you win**. Yours empty = **you lose**. Both in the same round: count the cards left in your left and right towers against the enemy's; **more cards left wins**, equal is a draw. Otherwise start the next round.
 
 ## Designer's notes (from thousands of simulated games)
 - Expect to lose some of your first games. Measured over thousands of simulated games: random play wins about 11%, following the companion app's suggestions about 72%, and a player who thinks several moves ahead about 90%. Thoughtless play mostly loses; thinking wins, and thinking harder keeps winning more.

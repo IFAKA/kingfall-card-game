@@ -269,8 +269,11 @@ function lastStand(g: GameState, side: Side, lane: 0 | 1) {
 function checkWinner(g: GameState) {
   const pk = g.P.towers.K.length === 0
   const ek = g.E.towers.K.length === 0
-  if (pk && ek) g.winner = 'draw'
-  else if (ek) g.winner = 'P'
+  if (pk && ek) {
+    // both kings in the same round: more tower cards left wins, equal is a draw
+    const mine = g.P.towers.L.length + g.P.towers.R.length, theirs = g.E.towers.L.length + g.E.towers.R.length
+    g.winner = mine > theirs ? 'P' : mine < theirs ? 'E' : 'draw'
+  } else if (ek) g.winner = 'P'
   else if (pk) g.winner = 'E'
 }
 
@@ -286,7 +289,8 @@ export function endRound(g0: GameState): GameState {
   checkWinner(g)
   g.tick++
   if (g.winner) {
-    g.log.push(g.winner === 'P' ? 'You destroyed the enemy king. YOU WIN.' : g.winner === 'E' ? 'Your king fell. You lose.' : 'Both kings fell. Draw.')
+    if (!g.P.towers.K.length && !g.E.towers.K.length) g.log.push(g.winner === 'P' ? 'Both kings fell; you have more tower cards left. YOU WIN.' : g.winner === 'E' ? 'Both kings fell; the enemy has more tower cards left. You lose.' : 'Both kings fell with the same tower cards left. Draw.')
+    else g.log.push(g.winner === 'P' ? 'You destroyed the enemy king. YOU WIN.' : 'Your king fell. You lose.')
     return g
   }
   g.P.elixir = Math.min(g.rules.cap, g.P.elixir + g.rules.regen)

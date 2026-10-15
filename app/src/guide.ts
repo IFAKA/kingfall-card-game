@@ -718,9 +718,13 @@ function finishRound(g: GuideState): GuideState {
   const pk = g.P.towers.K.length === 0
   const ek = g.E.towers.K.length === 0
   if (pk || ek) {
-    g.winner = pk && ek ? 'draw' : ek ? 'P' : 'E'
+    // both kings in the same round: more tower cards left wins, equal is a draw
+    const mine = g.P.towers.L.length + g.P.towers.R.length, theirs = g.E.towers.L.length + g.E.towers.R.length
+    const cards = (n: number) => `${n} tower card${n === 1 ? '' : 's'}`
+    g.winner = !(pk && ek) ? (ek ? 'P' : 'E') : mine > theirs ? 'P' : mine < theirs ? 'E' : 'draw'
     g.stage = 'over'
-    g.lines = [g.winner === 'P' ? 'The enemy KING tower was destroyed.' : g.winner === 'E' ? 'Your KING tower is destroyed.' : 'Both king towers are gone.']
+    g.lines = [!(pk && ek) ? (ek ? 'The enemy KING tower was destroyed.' : 'Your KING tower is destroyed.')
+      : `Both king towers fell. You have ${cards(mine)} left, the enemy ${theirs}${g.winner === 'draw' ? ': a draw.' : '.'}`]
     g.why = []
     emit(g, { type: 'over', winner: g.winner })
     return g
