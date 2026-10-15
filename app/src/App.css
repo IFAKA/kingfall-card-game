@@ -6,7 +6,9 @@
   --gold: #ffcf3a; --gold-d: #e39a00; --gold-ink: #6e4300;
   --green: #4cc263; --green-d: #2a8a3e; --green-ink: #13471d;
   --red: #ef5350; --red-d: #b8262a; --red-ink: #5c1013;
-  --elixir: #c254f0;
+  --elixir: #b445e8; --elixir-glow: #b06bff;
+  /* the elixir drop's shading, shared by the bar's drop and every card's cost badge */
+  --elixir-fill: radial-gradient(circle at 35% 30%, #f3b6ff, var(--elixir) 45%, #6d17b0);
   /* motion: ease-out for anything answering the player, ease-in-out for things travelling across the table */
   --ease-out: cubic-bezier(.23, 1, .32, 1); --ease-in-out: cubic-bezier(.77, 0, .175, 1);
 }
@@ -71,7 +73,7 @@ select { padding: 6px; }
 .card.small .corner { font-size: 12px; left: 3px; }
 .card .pip { position: absolute; right: 6px; bottom: 4px; font-size: 26px; }
 .card.small .pip { font-size: 18px; }
-.card .cost { position: absolute; right: -6px; top: -6px; background: #7a3fd1; color: #fff; border-radius: 50%; width: 22px; height: 22px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
+.card .cost { position: absolute; right: -6px; top: -6px; background: var(--elixir-fill); text-shadow: 0 1px 0 #2a0f4d; color: #fff; border-radius: 50%; width: 22px; height: 22px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
 .card.clickable { cursor: pointer; }
 @media (hover: hover) { .card.clickable:hover { transform: translateY(-4px); } }
 .card.selected { outline: 3px solid #ffd36b; transform: translateY(-8px); }
@@ -85,7 +87,7 @@ select { padding: 6px; }
 .muted { opacity: .65; font-size: 13px; }
 .bar { display: inline-flex; gap: 3px; align-items: center; }
 .pip { width: 14px; height: 18px; border-radius: 3px; background: #223; border: 1px solid #667; display: inline-block; }
-.pip.on { background: #b06bff; border-color: #e0c8ff; }
+.pip.on { background: var(--elixir-glow); border-color: #e0c8ff; }
 .trow { display: flex; gap: 34px; justify-content: center; }
 .tower { text-align: center; }
 .stack { position: relative; width: 46px; height: 120px; margin: 0 auto; }
@@ -141,10 +143,10 @@ select { padding: 6px; }
 .cf.backside { transform: rotateY(180deg); background: repeating-linear-gradient(45deg, #263a8c, #263a8c 5px, #3150b8 5px, #3150b8 10px); border: 2px solid #fff; }
 .tcard .corner { position: absolute; top: 3px; left: 4px; font-weight: 700; line-height: 1; font-size: 13px; }
 .tcard .pip { position: absolute; right: 4px; bottom: 3px; font-size: 20px; width: auto; height: auto; background: none; border: none; }
-.tcard .cost { position: absolute; right: -6px; top: -6px; background: #7a3fd1; color: #fff; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; z-index: 3; }
+.tcard .cost { position: absolute; right: -6px; top: -6px; background: var(--elixir-fill); text-shadow: 0 1px 0 #2a0f4d; color: #fff; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; z-index: 3; }
 .mini { display: inline-block; width: 14px; height: 20px; perspective: 200px; }
 .mini .cf { border-radius: 3px; box-shadow: none; }
-.mini .cf.front { background: #b06bff; border: 1px solid #e0c8ff; }
+.mini .cf.front { background: var(--elixir-glow); border: 1px solid #e0c8ff; }
 .mini .cf.backside { border: 1px solid #fff; background: #263a8c; }
 .discard { margin-left: 24px; text-align: center; } .dpile { position: relative; width: 120px; height: 76px; }
 .dcard { position: absolute; top: 0; }
@@ -254,10 +256,10 @@ h3 { margin: 18px 0 8px; }
 .hlabel { font-size: 12px; opacity: .9; margin-right: 6px; white-space: nowrap; min-width: 110px; }
 .play { --cw: min(calc(((100 * var(--vw)) - 28px) / 15.5), calc(((52 * var(--vh)) - 70px) / 3 * .714)); }
 .bslot { width: calc(var(--cw) * .4); height: calc(var(--ch) * .36); flex: none; box-sizing: border-box; border-radius: 3px; border: 1px solid #fff; background: repeating-linear-gradient(45deg, #263a8c, #263a8c 3px, #3150b8 3px, #3150b8 6px); color: rgba(255,255,255,.45); font-size: calc(var(--cw) * .18); font-weight: 700; display: flex; align-items: center; justify-content: center; transition: transform .4s ease-in-out, box-shadow .4s, margin .4s; }
-.bslot.marker { transform: rotate(90deg); color: #fff; box-shadow: 0 0 0 2px #b06bff, 0 0 8px #b06bff; margin: 0 calc(var(--cw) * .06); }
+.bslot.marker { transform: rotate(90deg); color: #fff; box-shadow: 0 0 0 2px var(--elixir-glow), 0 0 8px var(--elixir-glow); margin: 0 calc(var(--cw) * .06); }
 .bslot.gap { margin-left: calc(var(--cw) * .25); }
 .crk { transform: rotate(90deg); transition: transform .35s var(--ease-in-out); }
-.crk .tcard { box-shadow: 0 0 0 2px #b06bff, 0 0 8px #b06bff; border-radius: 6px; }
+.crk .tcard { box-shadow: 0 0 0 2px var(--elixir-glow), 0 0 8px var(--elixir-glow); border-radius: 6px; }
 
 /* setup screens on phones */
 @media (max-width: 760px) {
@@ -273,7 +275,7 @@ h3 { margin: 18px 0 8px; }
 .ecell { padding-top: 16px; display: flex; justify-content: center; }
 .ecell .clabel { left: 2px; }
 .bslot { width: var(--cw); height: var(--ch); border-radius: 6px; border-width: 2px; font-size: calc(var(--cw) * .3); }
-.bslot.marker { transform: none; margin: 0; background: #f3e8ff; border: 2px solid #7a3fd1; color: #7a3fd1; box-shadow: 0 0 0 2px #b06bff, 0 0 8px #b06bff; }
+.bslot.marker { transform: none; margin: 0; background: #f3e8ff; border: 2px solid #7a3fd1; color: #7a3fd1; box-shadow: 0 0 0 2px var(--elixir-glow), 0 0 8px var(--elixir-glow); }
 .epilecell.open { z-index: 20; }
 .hand { position: relative; justify-content: center; align-items: flex-end; padding-top: 16px; margin: 0; }
 .hand .clabel { left: calc(50% - var(--cw) * 2.4); }
@@ -298,7 +300,7 @@ h3 { margin: 18px 0 8px; }
 .eflip { display: block; width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform .45s var(--ease-in-out); transform: rotateY(180deg); }
 .eflip.up { transform: none; }
 .ef { position: absolute; inset: 0; box-sizing: border-box; border-radius: 6px; border: 2px solid #fff; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: flex; align-items: center; justify-content: center; font-size: calc(var(--cw) * .3); font-weight: 700; }
-.efront { background: #f3e8ff; border-color: #7a3fd1; color: #7a3fd1; box-shadow: 0 0 0 2px #b06bff, 0 0 8px #b06bff; }
+.efront { background: #f3e8ff; border-color: #7a3fd1; color: #7a3fd1; box-shadow: 0 0 0 2px var(--elixir-glow), 0 0 8px var(--elixir-glow); }
 .eback { transform: rotateY(180deg); background: repeating-linear-gradient(45deg, #263a8c, #263a8c 3px, #3150b8 3px, #3150b8 6px); color: rgba(255,255,255,.45); }
 
 /* suit wheel reminder at the end of the hand row: high-contrast suit chips, each one beats the next (clubs loop back to spades) */
@@ -472,7 +474,7 @@ details.help[open] > summary { margin-bottom: 8px; }
 .sidechip { display: flex; align-items: center; gap: 6px; }
 
 /* elixir drop shared by the bar and the enemy chip */
-.edrop, .ebar .drop { display: grid; place-items: center; flex: none; width: 28px; height: 30px; border-radius: 50% 50% 50% 50% / 60% 60% 42% 42%; background: radial-gradient(circle at 35% 30%, #f3b6ff, #b445e8 45%, #6d17b0);
+.edrop, .ebar .drop { display: grid; place-items: center; flex: none; width: 28px; height: 30px; border-radius: 50% 50% 50% 50% / 60% 60% 42% 42%; background: var(--elixir-fill);
   border: 2px solid #2a0f4d; color: #fff; font-family: var(--display); font-size: 16px; text-shadow: 0 1px 0 #2a0f4d; }
 .edrop { width: 24px; height: 26px; font-size: 14px; }
 
@@ -628,7 +630,7 @@ button.linkish:active { transform: none; }
 .unit.E .siege { background: #d23c3c; }
 /* wounded: it broke a tower card and has one hit left, drawn like a cracked tower card (sideways at the table) */
 .unit.wounded > .tcard { rotate: 12deg; } /* on the card, so the trembling (which turns the unit) keeps the lean */
-.unit.wounded .cf.front { box-shadow: 0 0 0 3px #b06bff, 0 0 10px #b06bff; }
+.unit.wounded .cf.front { box-shadow: 0 0 0 3px var(--elixir-glow), 0 0 10px var(--elixir-glow); }
 /* the two cards that fight next tremble, leaning toward each other (or the next card to hit a tower, and that tower);
    a card at a tower lunges at it when it hits */
 .spot > .unit { position: relative; z-index: 1; } /* every lane card is its own layer, so a trembling one keeps its place in the stack */
@@ -669,7 +671,7 @@ button.linkish:active { transform: none; }
 .fancards { position: relative; height: var(--ch); }
 .fancards .fc { position: absolute; top: 0; transition: transform .3s var(--ease-out); }
 .tfan .fc.cracked { transform: rotate(10deg) translateY(2px); }
-.tfan .fc.cracked .cf { box-shadow: 0 0 0 2px #b06bff, 0 0 8px #b06bff; }
+.tfan .fc.cracked .cf { box-shadow: 0 0 0 2px var(--elixir-glow), 0 0 8px var(--elixir-glow); }
 .tfan.fallen .fancards, .pcards:not(:has(.tcard)) { box-sizing: border-box; border: 2px dashed rgba(255,255,255,.3); border-radius: 8px; background: rgba(0,0,0,.1); }
 
 /* piles squared up: a few cards peek out under the top one */
@@ -701,7 +703,7 @@ button.linkish:active { transform: none; }
 
 /* an elixir bar: 10 face-down cards overlapping so each number shows, the marker turned sideways; a picked card colours the cards it would spend */
 .cbar { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.cbar .drop { display: grid; place-items: center; flex: none; width: 28px; height: 30px; border-radius: 50% 50% 50% 50% / 60% 60% 42% 42%; background: radial-gradient(circle at 35% 30%, #f3b6ff, #b445e8 45%, #6d17b0);
+.cbar .drop { display: grid; place-items: center; flex: none; width: 28px; height: 30px; border-radius: 50% 50% 50% 50% / 60% 60% 42% 42%; background: var(--elixir-fill);
   border: 2px solid #2a0f4d; color: #fff; font-family: var(--display); font-size: 16px; text-shadow: 0 1px 0 #2a0f4d; }
 .cslots { flex: 1; min-width: 0; height: var(--ch); display: flex; align-items: center; justify-content: center;
   --step: min(calc(var(--cw) + 4px), calc((100% - var(--ch) - var(--cw) - 8px) / 8)); --m: calc((var(--ch) - var(--cw)) / 2); }
@@ -711,7 +713,7 @@ button.linkish:active { transform: none; }
 .bc:first-child { margin-left: 0; }
 .bc:nth-child(6) { margin-left: calc(var(--step) - var(--cw) + 8px); }
 .bc span { position: absolute; top: 3px; left: 4px; font-size: max(11px, calc(var(--cw) * .26)); font-weight: 800; line-height: 1; color: rgba(255,255,255,.85); text-shadow: 0 1px 0 rgba(0,0,0,.7); }
-.bc.mark { z-index: 2; transform: rotate(90deg); margin-left: calc(var(--step) - var(--cw) + var(--m)); margin-right: var(--m); box-shadow: 0 0 0 2px #b06bff, 0 0 12px #c35cff; }
+.bc.mark { z-index: 2; transform: rotate(90deg); margin-left: calc(var(--step) - var(--cw) + var(--m)); margin-right: var(--m); box-shadow: 0 0 0 2px var(--elixir-glow), 0 0 12px #c35cff; }
 .bc.mark:first-child { margin-left: var(--m); }
 .bc.mark:nth-child(6) { margin-left: calc(var(--step) - var(--cw) + var(--m) + 8px); }
 .bc.mark + .bc { margin-left: 2px; }
