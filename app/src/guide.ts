@@ -357,7 +357,11 @@ function enemyDecide(g: GuideState): GuideState {
     `ENEMY PLAYS ${label(c)}.`,
     `Place ${label(c)} in the ${laneName(lane)} lane, slot nearest the ENEMY. That is its one card this round.`,
   ]
-  g.why = [`The enemy has no elixir: every round it plays the top card of its pile, whatever it costs. It defends: the card goes into the lane where you have MORE units (on a tie, the lane with your highest-ranked card; still tied, left). You have ${mine[0]} on the left and ${mine[1]} on the right.`]
+  const rk = (r: number) => ['', 'ace', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'jack', 'queen', 'king'][r]
+  const tieNote = mine[0] !== mine[1] ? '' : best[0] !== best[1]
+    ? ` Tied, so it goes where your best card ranks higher: ${rk(best[0])} on the left, ${rk(best[1])} on the right (an ace counts as the lowest rank here).`
+    : ' Still tied on rank, so it goes left.'
+  g.why = [`The enemy has no elixir: every round it plays the top card of its pile, whatever it costs. It defends: the card goes into the lane where you have MORE units (on a tie, the lane with your highest-ranked card; still tied, left). You have ${mine[0]} on the left and ${mine[1]} on the right.${tieNote}`]
   g.log.push(`Enemy plays ${label(c)} in the ${laneName(lane).toLowerCase()} lane.`)
   emit(g, { type: 'play', side: 'E', tid: slot.tid, card: c, lane, cost: 0 })
   return g
