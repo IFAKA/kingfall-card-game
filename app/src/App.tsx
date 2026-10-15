@@ -1085,7 +1085,7 @@ export default function App() {
       <p>{(mode === 'guide' && TABLE_TIPS[tip]) || TIPS[tip]}</p>
       <div className="row">
         <button className="big" onClick={() => seeTip([tip])}>Got it</button>
-        <button className="linkish" onClick={() => seeTip(Object.keys(TIPS) as TipId[])}>Skip all tips</button>
+        <button className="linkish" onClick={() => { seeTip(Object.keys(TIPS) as TipId[]); setSuggestOn(false); setExplainOn(false) }}>Skip all tips</button>
       </div>
     </div>
   )
