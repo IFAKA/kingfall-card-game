@@ -322,7 +322,7 @@ function enemyDecide(g: GuideState): GuideState {
   const c = slot.card!
   const { count: mine, best } = playerLaneInfo(g)
   const lane = defendLane(mine, best)
-  g.units.push({ uid: g.nextUid++, card: c, side: 'E', lane, pos: g.rules.laneLen - 1, tid: slot.tid, free: true })
+  g.units.push({ uid: g.nextUid++, card: c, side: 'E', lane, pos: g.rules.laneLen - 1, tid: slot.tid })
   g.stage = 'enemy_play'
   g.lines = [
     `ENEMY PLAYS ${label(c)}.`,
