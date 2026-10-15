@@ -482,6 +482,8 @@ details.help[open] > summary { margin-bottom: 8px; }
 .ebar .spend { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(45deg, rgba(255,255,255,.75) 0 4px, rgba(255,255,255,.15) 4px 8px); }
 .ebar .spend.short { background: repeating-linear-gradient(45deg, rgba(255,80,80,.9) 0 4px, rgba(255,80,80,.3) 4px 8px); }
 .ebar .segs i { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(0,0,0,.4); }
+/* the hand and your elixir bar share one width: the bar runs from Next to Done */
+.handwrap { align-self: center; display: flex; flex-direction: column; gap: 5px; max-width: 100%; }
 .handrow { display: flex; align-items: flex-end; justify-content: center; gap: 6px; padding-top: 8px; min-height: var(--ch); }
 .handrow .hdrag { flex: none; }
 .arena.turn-enemy .handrow { opacity: .6; }
