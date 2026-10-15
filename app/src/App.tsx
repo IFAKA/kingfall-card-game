@@ -462,13 +462,32 @@ function RoundChip({ n }: { n: number }) {
 
 // the one thing you look up mid-game, without going through the menu
 const R = ({ c }: { c: string }) => <span className="rs">{c}</span>
-const cheatSheet = (g: GuideState) => { const pools = gamePools(g), [ace, pics] = acePair(pools); return (<div className="cheat">
-  <p><b>The higher number wins.</b> <small>A=1, 2 … 10, J=11, Q=12, K=13. Same number: both cards are lost.</small></p>
-  <p><b>Suit bonus:</b> <small>each suit doubles its number against the next one: ♠ beats <R c="♥" />, <R c="♥" /> beats <R c="♦" />, <R c="♦" /> beats ♣, ♣ beats ♠. Any other pair (♠ vs <R c="♦" />, <R c="♥" /> vs ♣): no bonus.</small></p>
-  <SuitWheel wheel={g.rules.wheel} pools={pools} />
-  <p><b>Aces beat Kings</b> <small>even at towers, for the enemy too</small></p>
-  <div className="fights"><Beats win={show(ace)} lose={<>{pics.map(c => <Fragment key={c.id}>{show(c)}</Fragment>)}</>} /></div>
-</div>) }
+// three short pages, one rule each: the cards say it, the words only name it
+const CHEAT_PAGES = ['Suit ×2', 'Higher', 'Ace'] as const
+function Cheat({ g }: { g: GuideState }) {
+  const [page, setPage] = useState(0)
+  const pools = gamePools(g), [ace, pics] = acePair(pools)
+  const [x, y] = [0, 1].map(i => wheelPair(WHEEL[i][0], WHEEL[i][1], g.rules.wheel, pools))
+  return (<div className="cheat">
+    <div className="cheat-tabs" role="tablist">{CHEAT_PAGES.map((t, i) => <button key={t} role="tab" aria-selected={page === i} onClick={() => setPage(i)}>{t}</button>)}</div>
+    {page === 1 && <>
+      <p><b>Higher number wins.</b></p>
+      <div className="fights"><Beats win={show({ id: 'h9', rank: 9, suit: 0 })} lose={show({ id: 'h4', rank: 4, suit: 3 })} winText="9" loseText="4" /></div>
+      <p><small>A=1 · J=11 · Q=12 · K=13. Same number: both lost.</small></p>
+    </>}
+    {page === 0 && <>
+      <p className="loop" role="img" aria-label="Spades beat hearts, hearts beat diamonds, diamonds beat clubs, clubs beat spades">♠ → <R c="♥" /> → <R c="♦" /> → ♣ ↺</p>
+      <p><b>The winning suit counts ×2.</b></p>
+      <div className="suitwheel">{[x, y].map(([p, q], i) => <Beats key={i} win={show(p)} lose={show(q)} winText={<>{p.rank} ×{g.rules.wheel} = <b>{p.rank * g.rules.wheel}</b></>} loseText={q.rank} />)}</div>
+    </>}
+    {page === 2 && <>
+      <p><b>Ace beats King.</b></p>
+      <div className="fights"><Beats win={show(ace)} lose={<>{pics.map(c => <Fragment key={c.id}>{show(c)}</Fragment>)}</>} /></div>
+      <p><small>Even at towers, and for the enemy too.</small></p>
+    </>}
+  </div>)
+}
+const cheatSheet = (g: GuideState) => <Cheat g={g} />
 
 const RULES_60 = (<>
   <p><b>Goal:</b> break the enemy's <b>king tower</b> before it breaks yours.</p>

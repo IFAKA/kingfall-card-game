@@ -749,6 +749,11 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .cheat b { color: var(--gold); }
 .fights, .suitwheel { display: grid; gap: 6px 10px; justify-items: center; }
 .fights { grid-template-columns: 1fr; } .suitwheel { grid-template-columns: 1fr 1fr; }
+.cheat-tabs { display: flex; gap: 6px; justify-content: center; margin-bottom: 6px; }
+.cheat-tabs button { flex: 1; padding: 8px 6px; border-radius: 10px; border: 2px solid transparent; background: rgba(255,255,255,.08); color: inherit; font: inherit; font-weight: 800; font-size: 14px; }
+.cheat-tabs button[aria-selected=true] { border-color: #ffd36b; color: #ffd36b; background: rgba(255,211,107,.12); }
+.cheat p.loop { font-size: 28px; font-weight: 900; letter-spacing: .04em; margin: 2px 0; }
+.cheat { min-height: 280px; }
 .cheat .rs { color: #ff6b78; }
 .fight em { font-style: normal; font-size: 12px; white-space: nowrap; }
 .fight .side { display: flex; flex-direction: column; align-items: center; gap: 2px; }
