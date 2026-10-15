@@ -590,7 +590,6 @@ button.linkish:active { transform: none; }
 .castles { height: calc(var(--cw) * 1.49 + max(9px, var(--cw) * .28) + max(12px, var(--cw) * .27) * 1.3 + 24px); flex: none; }
 .castles .castle { height: 100%; justify-content: flex-start; }
 .castles.theirs { align-items: stretch; } .castles.mine { align-items: stretch; }
-.castle.fallen .cname { margin-top: 2px; }
 
 /* tighter castles so the field is balanced: castle rows and lanes share the height with no overlap */
 .castles { height: calc(var(--cw) * 1.2 + max(9px, var(--cw) * .28) + max(12px, var(--cw) * .27) + 20px); }
@@ -776,6 +775,8 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .castle.theirs .topcard:not(.empty) { background: #fbfbf6; box-shadow: 0 0 0 3px #e24a4a, 0 0 0 4px #fff, 0 2px 0 4px rgba(0,0,0,.4); }
 /* the ring is drawn outside the card, so the slot keeps clear of the armor pips above it */
 .castle .tslot { margin-top: 5px; }
+/* a fallen tower's label sits just under its castle, over the empty armor row, instead of down in the top-card slot; the row keeps its height */
+.castle.fallen .cname { transform: translateY(calc(-1 * (max(9px, var(--cw) * .28) + 3px) - 9px)); }
 /* the rules page draws the suit order as a loop: each suit beats the next one clockwise, the winner counts double */
 .suitwheel { display: grid; grid-template: repeat(3, 1.6em) / repeat(3, 1.6em); place-items: center; width: max-content; margin: 8px auto 2px; font-size: 22px; line-height: 1; }
 .suitwheel i { font-style: normal; } .suitwheel i.r { color: #ff6b78; }
