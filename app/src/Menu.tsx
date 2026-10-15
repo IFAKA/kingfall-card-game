@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ComponentProps, ReactElement, ReactNode, Ref } from 'react'
-import { BookOpen, Castle, ChevronRight, Download, Hand, Lightbulb, LogOut, Menu as MenuIcon, ScrollText, Share, Shield, SquarePlus, Swords, Volume2, VolumeX } from 'lucide-react'
+import { BookOpen, Download as SaveIcon, Castle, ChevronRight, Download, Hand, Lightbulb, LogOut, Menu as MenuIcon, ScrollText, Share, Shield, SquarePlus, Swords, Volume2, VolumeX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from '@/components/ui/item'
@@ -139,8 +139,8 @@ type PageId = 'rules' | 'log' | 'hints' | 'install' | 'leave'
 // One menu for every screen, behind the ☰ button: rules, the log and hints while playing, sound, and leaving the game.
 // Its pages open inside the same drawer: Back (or Escape, or the phone's back gesture) returns to the menu.
 // settings: the switches that belong to this kind of game (on screen, fast enemy turns; with real cards, the fights in one list)
-export function GameMenu({ rules, log, hints, settings, muted, toggleMute, onLeave }: {
-  rules: ReactNode; log?: string[]; hints?: (close: () => void) => ReactNode; settings?: ReactNode; muted: boolean; toggleMute: () => void; onLeave?: () => void
+export function GameMenu({ rules, log, onExport, hints, settings, muted, toggleMute, onLeave }: {
+  rules: ReactNode; log?: string[]; onExport?: () => void; hints?: (close: () => void) => ReactNode; settings?: ReactNode; muted: boolean; toggleMute: () => void; onLeave?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [leaving, setLeaving] = useState(false) // leave only once the menu has slid away, so the screen doesn't change under it
@@ -169,7 +169,7 @@ export function GameMenu({ rules, log, hints, settings, muted, toggleMute, onLea
   const back = <Button variant="secondary" size="xl" onClick={() => go(null)}>Back</Button>
   const pages: Record<PageId, { title: string; description?: string; body?: ReactNode; footer: ReactNode }> = {
     rules: { title: 'How to play', body: <Rules rules={rules} />, footer: back },
-    log: { title: 'What happened', body: <LogView log={log ?? []} />, footer: back },
+    log: { title: 'What happened', body: <LogView log={log ?? []} />, footer: <>{onExport && <Button variant="success" size="xl" onClick={onExport}><SaveIcon /> Save log as a file</Button>}{back}</> },
     hints: { title: 'Hints', body: hints?.(close), footer: back },
     install: { title: 'Install the app', body: iosSteps, footer: back },
     leave: { title: 'Leave this game?', description: 'The game will be discarded and you go back to the title screen.', footer: <>

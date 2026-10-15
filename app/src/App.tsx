@@ -420,6 +420,16 @@ function RoundChip({ n }: { n: number }) {
   )
 }
 
+// the one thing you look up mid-game, without going through the menu
+const CHEAT = (<>
+  <SuitWheel />
+  <ul>
+    <li><b>Higher rank wins</b> (A=1 … K=13).</li>
+    <li>The suit that beats the other counts <b>×2</b>: ♠→♥→♦→♣→♠.</li>
+    <li><b>Aces beat J, Q, K</b>, even at towers (for the enemy too).</li>
+  </ul>
+</>)
+
 const RULES_60 = (<>
   <p><b>Goal:</b> break the enemy's <b>king tower</b> before it breaks yours.</p>
   <p><b>Fights:</b> your cards are soldiers. Send them down a lane: when two cards meet, the higher rank wins.</p>
@@ -438,27 +448,28 @@ const RULES_60 = (<>
 
 // First games teach by playing: one tip at a time, each shown the first time its situation comes up (on screen, the enemy waits while it is open).
 // The goal comes first, so every rule after it has something to serve; each tip says one thing.
-type TipId = 'goal' | 'drag' | 'elixir' | 'change' | 'enemy' | 'fight' | 'tower' | 'crack' | 'next'
+type TipId = 'goal' | 'drag' | 'elixir' | 'change' | 'enemy' | 'fight' | 'tower' | 'crack' | 'next' | 'stand'
 const TIPS: Record<TipId, string> = {
-  goal: "Your goal: break the enemy's king, the big crowned castle at the top, before it breaks yours. Your cards are soldiers: send them up the lanes to reach its towers.",
-  drag: 'Drag a card from your hand onto one of your lane slots, the bottom half of the field. The purple number is its elixir cost.',
-  elixir: 'Elixir pays for cards. You get 3 more every round, up to 10. Play another card, or press the ✓ button next to your hand to end your turn and let the enemy move.',
-  change: 'Changed your mind? Until you press ✓, drag a card you placed back to your hand or onto the other lane, or tap two cards to switch them.',
-  enemy: "The enemy defends: it plays into the lane where you have more cards. The card marked Next, between its lanes, is the one it plays next round. Tap the field to skip ahead while it plays.",
-  fight: 'When two cards meet, the higher rank wins. A card of the suit that beats the other counts double (♠ › ♥ › ♦ › ♣ › ♠), and aces beat J, Q and K.',
-  tower: 'A card that reaches a tower fights its top card, shown under the castle (the suit wheel and aces count). Win or tie and the tower card breaks, and the attacker stays, wounded, for one more hit. The king can only be hit once the tower in its lane has fallen.',
-  crack: 'A card that loses at a tower is shot back to its pile, but the tower card cracks, and any later hit breaks it. So even small cards wear towers down.',
-  next: 'The card marked Next, between your lanes, comes into your hand when you play one. A card of yours that dies goes to the bottom of your pile, so your 8 cards keep coming back.',
+  goal: "Goal: break the enemy's king, the crowned castle at the top. Your cards are soldiers.",
+  drag: 'Drag a card onto a lane at the bottom. The purple number is its cost.',
+  elixir: 'Elixir pays for cards: +3 every round. Done? Press ✓ and the enemy moves.',
+  change: 'Changed your mind? Before ✓, drag a placed card back to your hand or to the other lane.',
+  enemy: 'The enemy defends the lane where you have more cards. Its Next card is what it plays next.',
+  fight: 'Higher rank wins. The suit that beats the other counts ×2. Aces beat J, Q, K. Need it again? Tap the ⚔ button, top left.',
+  tower: 'A card at a tower fights its top card. Win or tie: the tower card breaks. The king is safe until its side tower falls.',
+  crack: 'Lost at a tower? The card goes back to its pile, but the tower card cracks: the next hit breaks it.',
+  next: 'The Next card, between your lanes, joins your hand when you play. Cards that die come back later.',
+  stand: 'LAST STAND! When a side tower falls, its owner puts one card into that lane for free.',
 }
 // with real cards the towers are the fanned cards on the table, not castles
 const TABLE_TIPS: Partial<Record<TipId, string>> = {
-  goal: "Your goal: break the enemy's king, the middle tower across the table, before it breaks yours. Your cards are soldiers: send them down the lanes to reach its towers.",
-  drag: 'Drag a card from your hand onto one of your lane slots, the bottom half of the field. The purple number is its elixir cost.',
-  enemy: 'The enemy defends: it plays into the lane where you have more cards.',
-  change: 'Put down the wrong card? Undo, at the top left, takes back any step.',
-  tower: 'A card that reaches a tower fights its front card (the suit wheel and aces count). Win or tie and the tower card breaks, and the attacker stays, turned sideways (wounded), for one more hit. The king can only be hit once the tower in its lane has fallen.',
-  crack: 'A card that loses at a tower goes back to its pile, but the tower card cracks: turn it sideways and move it to the bottom of that tower. Any later hit breaks it, so even small cards wear towers down.',
-  next: 'When you play a card, draw the top of your queue into your hand. A card of yours that dies goes to the bottom of your queue, so your 8 cards keep coming back.',
+  goal: "Goal: break the enemy's king, the middle tower across the table. Your cards are soldiers.",
+  drag: 'Drag a card onto a lane at the bottom. The purple number is its cost.',
+  enemy: 'The enemy defends the lane where you have more cards.',
+  change: 'Wrong card? Undo, top left, takes back any step.',
+  tower: 'A card at a tower fights its front card. Win or tie: the tower card breaks. The king is safe until its side tower falls.',
+  crack: 'Lost at a tower? The card goes back to its pile; turn the tower card sideways and move it to the bottom. The next hit breaks it.',
+  next: 'When you play a card, draw the top of your queue. Cards that die go to the bottom of it.',
 }
 const DEBUG = import.meta.env.DEV || new URLSearchParams(location.search).has('debug')
 const TIPS_KEY = 'kingfall-tips-seen'
@@ -559,6 +570,7 @@ export default function App() {
     const happened = (f: (e: NonNullable<GuideState['events']>[number]) => boolean) => isFresh && ev.some(f)
     const firstPlay = game.stage === 'my_play' && game.stats.placed === 0
     const next: TipId | undefined = ([
+      ['stand', game.stage === 'my_last_stand' || happened(e => e.type === 'play' && !!e.free)],
       ['goal', firstPlay],
       ['drag', firstPlay],
       ['elixir', happened(e => e.type === 'play' && e.side === 'P')],
@@ -906,8 +918,21 @@ export default function App() {
         </ul>
       )}
       {help !== 'off' && g.why.length > 0 && <p className="m-0 text-sm text-muted-foreground"><b className="text-foreground">Why:</b> <CardText text={g.why.join(' ')} /></p>}
-      <Button variant="link" className="mt-2 self-center text-base text-muted-foreground" onClick={() => { setTipsSeen([]); writeJSON(TIPS_KEY, []); close() }}>Show the first-game tips again</Button>
+      <Button variant="secondary" size="xl" className="mt-2" onClick={() => { setTipsSeen([]); writeJSON(TIPS_KEY, []); close() }}><Lightbulb /> Show the first-game tips again</Button>
     </>
+  )
+  // the whole log as a text file, to keep or send
+  const exportLog = () => {
+    const head = ['Kingfall game log', new Date().toLocaleString(), `Mode: ${mode === 'guide' ? 'real cards' : 'on screen'}`, stage === 'over' ? `Result: ${g.winner === 'P' ? 'you won' : g.winner === 'E' ? 'you lost' : 'draw'} after ${g.round} rounds` : `Unfinished: round ${g.round}`, '']
+    const url = URL.createObjectURL(new Blob([[...head, ...g.log].join('\n') + '\n'], { type: 'text/plain' }))
+    const a = Object.assign(document.createElement('a'), { href: url, download: `kingfall-log-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.txt` })
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+  const cheat = (
+    <RulesSheet title="Who beats who" rules={CHEAT}>
+      <Button variant="secondary" size="icon-lg" aria-label="Who beats who" title="Who beats who"><Swords /></Button>
+    </RulesSheet>
   )
   const sum = stage === 'over' ? summary(g) : null
   const gameSummary = sum && (
@@ -943,6 +968,7 @@ export default function App() {
             <div className="row">
               <button className="big" onClick={playAgain}>Play again</button>
               <button onClick={() => { setResultViewed(true); setOverSeen(true) }}>View board</button>
+              <button onClick={exportLog}>Save log</button>
             </div>
           </div>
         </div>
@@ -996,7 +1022,9 @@ export default function App() {
     const suggestion = advice && (advice.kind === 'play'
       ? `★ ${label(g.P.hand[advice.handIndex])}${standing ? '' : ` in the ${advice.lane === 0 ? 'left' : 'right'} lane`}: ${advice.short}.`
       : `★ End your turn: ${advice.short}.`)
-    const lines = note ? [note] : stood ? [`Enemy last stand: its ${stood.lane === 0 ? 'left' : 'right'} tower fell, so ${label(stood.card)} came in free.`, suggestion ?? prompt]
+    const standSide = g.lastStand?.lane === 0 ? 'left' : 'right'
+    const standMsg = `LAST STAND! Your ${standSide} tower fell. Tap a card: it joins the ${standSide} lane for free.`
+    const lines = note ? [note] : standing ? [standMsg, ...(suggestion ? [suggestion] : [])] : stood ? [`LAST STAND! Enemy's ${stood.lane === 0 ? 'left' : 'right'} tower fell: ${label(stood.card)} came in free.`, suggestion ?? prompt]
       : suggestion ? [suggestion] : said.length ? said : [prompt]
     // the suggested lane glows only while no other card is picked up; tapping it with nothing picked plays the suggestion
     const fighting = fightingNext(g)
@@ -1024,7 +1052,7 @@ export default function App() {
     const settings = mode === 'play'
       ? <Choice id="fast" icon={<FastForward />} title="Fast enemy turns" description="Its steps go by twice as quickly. Tapping the field skips ahead any time." checked={fast} onChange={setFast} />
       : <Choice id="batch" icon={<ListChecks />} title="Fights in one list" description="A round's fights, moves and tower hits as one checklist with one Done" checked={batchOn} onChange={setBatch} />
-    const menu = <GameMenu rules={RULES_60} muted={muted} toggleMute={toggleMute} onLeave={reset} log={g.log} hints={hints} settings={settings} />
+    const menu = <GameMenu rules={RULES_60} muted={muted} toggleMute={toggleMute} onLeave={reset} log={g.log} onExport={exportLog} hints={hints} settings={settings} />
     const round = <RoundChip n={g.round} />
     const discard = (owner: 'P' | 'E') => {
       const d = g.discard.filter(x => x.owner === owner)
@@ -1033,7 +1061,7 @@ export default function App() {
     // with real cards the screen is the table as you sit at it: every card where it lies, all the same size
     const table = (
       <>
-        <div className="tbar"><span className="undoredo">{undoRedo}</span><span className="modechip">Real cards</span><span className="tmenu">{menu}</span></div>
+        <div className="tbar"><span className="undoredo">{undoRedo}</span>{cheat}<span className="modechip">Real cards</span><span className="tmenu">{menu}</span></div>
         <div className={`cardtable ${shake}`}>
           <div className="trow theirs">
             <TablePile top={eNext} down={!eNext?.card} side="E" n={g.E.queue.length} name="Pile" flip={stage === 'enemy_enter' || stage === 'last_stand_enter'} />
@@ -1061,7 +1089,7 @@ export default function App() {
     const skip = (e: React.PointerEvent) => { if (!(e.target as Element).closest('button')) advance(settle(next(g))) }
     const field = (
       <div className={`field ${shake}${skippable ? ' skippable' : ''}`} onPointerDown={skippable ? skip : undefined}>
-        {DEBUG && <span className="corner left undoredo">{undoRedo}</span>} {/* debugging aid: dev server, or any build opened with ?debug=1 */}
+        <span className="corner left undoredo">{cheat}{DEBUG && undoRedo}</span> {/* undo/redo: debugging aid, dev server or any build opened with ?debug=1 */}
         <span className="corner right">{menu}</span>
         <div className="castles theirs">
           {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} fx={towerFx('E', k)} shake={fighting.includes(`tower-E-${k}`)} />)}
@@ -1090,7 +1118,7 @@ export default function App() {
         <div className="tray">
           {stage === 'over' && overSeen
             ? <div className="overbtns"><button className="big" onClick={playAgain}>Play again</button><button onClick={() => setOverSeen(false)}>Result</button></div>
-            : <div className={`feed ${note ? 'warn' : ''}`} aria-live="polite">
+            : <div className={`feed ${note ? 'warn' : standing || stood ? 'stand' : ''}`} aria-live="polite">
               {lines.map((l, i) => <div key={i}>{l}</div>)}
             </div>}
           <div className="handwrap">
