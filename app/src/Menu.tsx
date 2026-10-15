@@ -9,7 +9,8 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { useInstall } from './pwa'
 
 // every drawer of the menu: up from the bottom on phones, in from the right on wide screens
-function Sheet(props: ComponentProps<typeof Drawer>) {
+type SheetProps = ComponentProps<typeof Drawer>
+function Sheet(props: SheetProps) {
   const mobile = useIsMobile()
   return <Drawer swipeDirection={mobile ? 'down' : 'right'} showSwipeHandle={mobile} {...props} />
 }
@@ -96,7 +97,27 @@ function LogView({ log }: { log: string[] }) {
 
 const Rules = ({ rules }: { rules: ReactNode }) => <div className="leading-relaxed [&_li]:my-2 [&_ul]:list-disc [&_ul]:pl-5">{rules}</div>
 
-// one page of reading on its own, opened by any button: the title screen's "How to play", the deck screen's guide
+// one rule of the game: its row in How to play says it in a line (all the rows together are the whole game), its page says the rest
+export type Topic = { id: string; icon: ReactNode; title: string; line: string; body: ReactNode }
+const HOW_TO_PLAY = 'The whole game, one rule per line. Tap a rule for the details.'
+function TopicList({ topics, onOpen }: { topics: Topic[]; onOpen: (id: string) => void }) {
+  return <ItemGroup className="gap-3">{topics.map(t => <PageRow key={t.id} icon={t.icon} title={t.title} description={t.line} onOpen={() => onOpen(t.id)} />)}</ItemGroup>
+}
+
+// How to play on its own, opened by any button (the title screen's, the table setup's): the rules' rows, each opening its page
+export function HowToPlay({ topics, children }: { topics: Topic[]; children: ReactElement }) {
+  const { open, page, go, panel, onOpenChange, reset } = usePages(() => null)
+  const t = topics.find(t => t.id === page)
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange} onOpenChangeComplete={o => { if (!o) reset() }}>
+      <DrawerTrigger render={children} />
+      {t ? <Panel title={t.title} {...panel} footer={<Button variant="secondary" size="xl" onClick={() => go(null)}>Back</Button>}><Rules rules={t.body} /></Panel>
+        : <Panel title="How to play" description={HOW_TO_PLAY} {...panel} footer={<DrawerClose render={<Button variant="secondary" size="xl" />}>Close</DrawerClose>}><TopicList topics={topics} onOpen={go} /></Panel>}
+    </Sheet>
+  )
+}
+
+// one page of reading on its own, opened by any button: the deck screen's guide, who beats who
 export function RulesSheet({ title = 'How to play', rules, children }: { title?: string; rules: ReactNode; children: ReactElement }) {
   return (
     <Sheet>
@@ -134,22 +155,15 @@ export function InstallLink() {
   return null
 }
 
-type PageId = 'rules' | 'log' | 'hints' | 'install' | 'leave'
-
-// One menu for every screen, behind the ☰ button: rules, the log and hints while playing, sound, and leaving the game.
-// Its pages open inside the same drawer: Back (or Escape, or the phone's back gesture) returns to the menu.
-// settings: the switches that belong to this kind of game (on screen, fast enemy turns; with real cards, the fights in one list)
-export function GameMenu({ rules, log, onExport, hints, settings, muted, toggleMute, onLeave }: {
-  rules: ReactNode; log?: string[]; onExport?: () => void; hints?: (close: () => void) => ReactNode; settings?: ReactNode; muted: boolean; toggleMute: () => void; onLeave?: () => void
-}) {
+// a drawer that turns pages: the new page fades in, and the drawer eases from the old page's height to the new one's.
+// up: the page that Back, Escape or the phone's back gesture return to (null: the first page)
+function usePages(up: (page: string) => string | null) {
   const [open, setOpen] = useState(false)
-  const [leaving, setLeaving] = useState(false) // leave only once the menu has slid away, so the screen doesn't change under it
-  const [page, setPage] = useState<PageId | null>(null)
-  const [turn, setTurn] = useState<{ key: string; from?: number }>() // unset until the first page turn, so opening the menu doesn't fade
+  const [page, setPage] = useState<string | null>(null)
+  const [turn, setTurn] = useState<{ key: string; from?: number }>() // unset until the first page turn, so opening the drawer doesn't fade
   const pageRef = useRef<HTMLDivElement>(null)
   const sheet = () => pageRef.current?.closest<HTMLElement>('[data-slot=drawer-popup]')
-  const close = () => setOpen(false)
-  const go = (p: PageId | null) => { setPage(p); setTurn({ key: p ?? 'menu', from: sheet()?.offsetHeight }) }
+  const go = (p: string | null) => { setPage(p); setTurn({ key: p ?? 'menu', from: sheet()?.offsetHeight }) }
   // the row that was tapped is gone after a turn: put focus on the new page
   useEffect(() => { if (turn) pageRef.current?.focus({ preventScroll: true }) }, [turn])
   // the sheet fits its page (height auto), which CSS can't animate: grow or shrink it from the old page's height to the new one's
@@ -166,9 +180,26 @@ export function GameMenu({ rules, log, onExport, hints, settings, muted, toggleM
     const t = setTimeout(() => { el.style.height = '' }, 500)
     return () => clearTimeout(t)
   }, [turn])
+  const onOpenChange: SheetProps['onOpenChange'] = (o, d) => {
+    if (!o && page && (d.reason === 'escape-key' || d.reason === 'close-watcher')) { d.cancel(); go(up(page)); return }
+    setOpen(o)
+  }
+  const reset = () => { setPage(null); setTurn(undefined) } // once the drawer has slid away: it opens on its first page next time
+  return { open, close: () => setOpen(false), page, go, panel: { turn, pageRef }, onOpenChange, reset }
+}
+
+// One menu for every screen, behind the ☰ button: rules, the log and hints while playing, sound, and leaving the game.
+// Its pages open inside the same drawer: Back (or Escape, or the phone's back gesture) returns to the page above.
+// settings: the switches that belong to this kind of game (on screen, fast enemy turns; with real cards, the fights in one list)
+export function GameMenu({ topics, log, onExport, hints, settings, muted, toggleMute, onLeave }: {
+  topics: Topic[]; log?: string[]; onExport?: () => void; hints?: (close: () => void) => ReactNode; settings?: ReactNode; muted: boolean; toggleMute: () => void; onLeave?: () => void
+}) {
+  const { open, close, page, go, panel, onOpenChange, reset } = usePages(p => p.startsWith('rule:') ? 'rules' : null)
+  const [leaving, setLeaving] = useState(false) // leave only once the menu has slid away, so the screen doesn't change under it
   const back = <Button variant="secondary" size="xl" onClick={() => go(null)}>Back</Button>
-  const pages: Record<PageId, { title: string; description?: string; body?: ReactNode; footer: ReactNode }> = {
-    rules: { title: 'How to play', body: <Rules rules={rules} />, footer: back },
+  const pages: Record<string, { title: string; description?: string; body?: ReactNode; footer: ReactNode }> = {
+    rules: { title: 'How to play', description: HOW_TO_PLAY, body: <TopicList topics={topics} onOpen={id => go(`rule:${id}`)} />, footer: back },
+    ...Object.fromEntries(topics.map(t => [`rule:${t.id}`, { title: t.title, body: <Rules rules={t.body} />, footer: <Button variant="secondary" size="xl" onClick={() => go('rules')}>Back</Button> }])),
     log: { title: 'What happened', body: <LogView log={log ?? []} />, footer: <>{onExport && <Button variant="success" size="xl" onClick={onExport}><SaveIcon /> Save log as a file</Button>}{back}</> },
     hints: { title: 'Hints', body: hints?.(close), footer: back },
     install: { title: 'Install the app', body: iosSteps, footer: back },
@@ -179,22 +210,17 @@ export function GameMenu({ rules, log, onExport, hints, settings, muted, toggleM
   }
   const shown = page && pages[page]
   return (
-    <Sheet open={open}
-      onOpenChange={(o, d) => {
-        if (!o && page && (d.reason === 'escape-key' || d.reason === 'close-watcher')) { d.cancel(); go(null); return }
-        setOpen(o)
-      }}
+    <Sheet open={open} onOpenChange={onOpenChange}
       onOpenChangeComplete={o => {
         if (o) return
-        setPage(null)
-        setTurn(undefined)
+        reset()
         if (leaving) { setLeaving(false); onLeave?.() }
       }}>
       <DrawerTrigger render={<Button variant="secondary" size="icon-lg" aria-label="Menu" title="Menu" />}><MenuIcon /></DrawerTrigger>
-      {shown ? <Panel title={shown.title} description={shown.description} footer={shown.footer} turn={turn} pageRef={pageRef}>{shown.body}</Panel> : (
-        <Panel title="Menu" turn={turn} pageRef={pageRef} footer={onLeave && <Button variant="destructive" size="xl" onClick={() => go('leave')}><LogOut /> Leave game</Button>}>
+      {shown ? <Panel title={shown.title} description={shown.description} footer={shown.footer} {...panel}>{shown.body}</Panel> : (
+        <Panel title="Menu" {...panel} footer={onLeave && <Button variant="destructive" size="xl" onClick={() => go('leave')}><LogOut /> Leave game</Button>}>
           <ItemGroup className="gap-3">
-            <PageRow icon={<BookOpen />} title="How to play" description="The rules in 60 seconds" onOpen={() => go('rules')} />
+            <PageRow icon={<BookOpen />} title="How to play" description="The whole game, one rule per line" onOpen={() => go('rules')} />
             {log && <PageRow icon={<ScrollText />} title="What happened" description="Every play and fight so far" onOpen={() => go('log')} />}
             {hints && <PageRow icon={<Lightbulb />} title="Hints" description="Explain options, suggest moves, tips" onOpen={() => go('hints')} />}
           </ItemGroup>

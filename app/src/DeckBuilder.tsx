@@ -23,30 +23,15 @@ const PEEK = 0.5
 // dealing again, timed to watch but not to wait for: the 14 cards gather into a pile, then fly out one by one
 const GATHER_MS = 420, DEAL_MS = 55, FLY = 0.35
 
+// the rules of thumb, and the one thing worth knowing before you worry about them; how cards fight is in How to play
 const GUIDE = <>
-  <p><b>Three rules of thumb</b></p>
   <ul>
-    <li><b>Mix your costs:</b> a few strong cards to break towers, and enough cheap ones (cost 1 to 3) to play something every round.</li>
+    <li><b>Mix your costs.</b> Strong cards break towers but cost a lot, and you get only 3 elixir a round: keep enough cheap ones (cost 1 to 3) to play something every round.</li>
     <li><b>Put an ace on top of a tower:</b> it beats any King that reaches it.</li>
     <li><b>Mix your suits,</b> so the suit wheel can work for you whatever the enemy plays.</li>
+    <li><b>Leave some strong cards out.</b> The 6 cards that aren't in your deck are your towers' armor.</li>
   </ul>
-  <details className="help"><summary>Everything about cards and decks</summary>
-  <p><b>What a card is.</b> Cards have <u>no special abilities</u>: a card is a soldier with one number, its <b>rank</b> (2 … 10, J=11, Q=12, K=13, A=1). Higher rank wins fights. The only extra rules:</p>
-  <ul>
-    <li><b>Cost:</b> stronger cards cost more elixir to play (the purple number: 2→2, 6→5, 10→8, K→10).</li>
-    <li><b>Suit wheel:</b> ♠ beats ♥, ♥ beats ♦, ♦ beats ♣, ♣ beats ♠ — a card of the winning suit counts double in that fight (a 6♠ fights a J♥ as 12).</li>
-    <li><b>Aces beat Kings:</b> an ace wins any fight against a K, whatever the suits, and towers count too.</li>
-    <li><b>Towers:</b> a tower card fights back. A soldier must win or tie a fight against the tower's front card to break it (the wheel and aces count), so an ace on top of a tower stops a King. A failed hit cracks that card, and any later hit breaks a cracked card.</li>
-  </ul>
-  <p><b>Building a good deck.</b></p>
-  <ul>
-    <li>Your 8 deck cards are the soldiers you play; the other 6 are your towers. Swap cards between them until you like both.</li>
-    <li>It's a trade-off: <b>strong cards are great soldiers but cost a lot</b>. You get only 3 elixir per round, so a deck of all kings can barely play anything.</li>
-    <li><b>Any kind of deck can win.</b> In thousands of simulated games, most mixes of cheap and strong cards win within about 10 points of each other: what decides the game is how you play it. Cheap cards answer big ones through aces (they kill a King for 1 elixir) and the wheel (a mid card can beat a big one); heavy cards break towers and stay there. Watch out: an enemy ace can kill your K.</li>
-    <li>Don't put <i>all</i> your best cards in the deck: the cards you leave out are your tower armor. A mix of suits helps the wheel work for you.</li>
-    <li>Your cards arrive split at random: building the deck is up to you. Stuck? "Suggest" sets a good split and says why; change it from there. On screen, "Deal" shuffles all 52 cards and deals you (and the enemy) new cards, again split at random.</li>
-  </ul>
-  </details>
+  <p><b>Any kind of deck can win.</b> In thousands of simulated games, most mixes of cheap and strong cards win within about 10 points of each other: how you play decides the game.</p>
 </>
 
 type Spot = { zone: 'deck'; id: string } | { zone: 'tower'; i: number }
@@ -59,6 +44,7 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
   const [pick, setPick] = useState<Spot | null>(null)
   // a deal in progress: 'gather' while the old cards fly into the pile, then 'deal' with n new cards already placed
   const [dealing, setDealing] = useState<{ phase: 'gather' | 'deal'; n: number } | null>(null)
+  const [gotIt, setGotIt] = useState(false) // the suggestion's why is closed until the next Suggest
   useEffect(() => {
     if (!dealing) return
     if (dealing.phase === 'deal' && dealing.n >= PER_SIDE) return setDealing(null)
@@ -96,7 +82,7 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
     onChange(ids, slots)
     sfx('place', 0, { mood: 'good' }); setPick(null)
   }
-  const suggest = () => { setPick(null); onChange(suggested.deckIds, suggested.slotIds) }
+  const suggest = () => { setPick(null); setGotIt(false); onChange(suggested.deckIds, suggested.slotIds) }
   const deal = () => { setPick(null); sfx('unpick'); setDealing({ phase: 'gather', n: 0 }) }
   // the dealing order: the deck slots, then each tower from its back card to its front card, as you'd stack them
   const order = [...deck.map(c => c.id), ...TOWERS.flatMap(t => [...t.slots].reverse().map(i => slotIds[i]))]
@@ -111,7 +97,7 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
   const byWidth = (w - 24 - 10 * (cols - 1)) / cols / 0.714
   // the towers row is as tall as its tallest column: every tower has two cards, so it's the king's bigger castle;
   // each deck row also leaves room under it for the cards' elixir balls
-  const byHeight = (view.sh - 302 - (onSuggestion ? 44 : 0)) / (rows + 0.84 + 1 + PEEK + rows * 0.23) // (the suggestion's why takes a line or two)
+  const byHeight = (view.sh - 302) / (rows + 0.84 + 1 + PEEK + rows * 0.23)
   const ch = Math.max(60, Math.min(byWidth, byHeight, 150))
   const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px`, '--peek': `${ch * PEEK}px` } as CSSProperties
 
@@ -128,6 +114,12 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
         <h1>{title}</h1>
         <RulesSheet title="Building a deck" rules={GUIDE}><Button variant="secondary" size="icon-lg" aria-label="How to build a good deck" title="How to build a good deck"><CircleHelp /></Button></RulesSheet>
       </>)}
+      {onSuggestion && !dealing && !gotIt && (
+        <div className="coach dcoach" role="dialog" aria-label="Why this split">
+          <p>Your 3 strongest cards break towers, your 5 cheapest let you play every round. The towers get the rest, the 2 strongest on the king, each tower's stronger card in front.</p>
+          <div className="row"><button className="big" onClick={() => setGotIt(true)}>Got it</button></div>
+        </div>
+      )}
       <div className="dbody">
         {/* the pile in the middle while dealing: cards fly in face-down and out to their places, turning face-up */}
         {pile.length > 0 && <div className="dpile" aria-hidden>{pile.map((id, j) => (
@@ -139,7 +131,6 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
             {onRedeal && <Button variant="secondary" size="sm" disabled={!!dealing} onClick={deal} title="Shuffle all 52 cards and deal new hands to you and the enemy"><Shuffle /> Deal</Button>}
             <Button variant="secondary" size="sm" disabled={onSuggestion || !!dealing} onClick={suggest} title={onSuggestion ? 'This is the suggested split' : 'Set a good deck and towers for these cards'}><Sparkles /> Suggest</Button>
           </header>
-          {onSuggestion && !dealing && <p className="dwhy"><Sparkles aria-hidden /> Suggested: your 3 strongest cards break towers, your 5 cheapest let you play every round. The towers get the rest, the 2 strongest on the king, each tower's stronger card in front.</p>}
           <div className="dcards">
             {deck.map(c => {
               const on = pick?.zone === 'deck' && pick.id === c.id

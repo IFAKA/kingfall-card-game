@@ -12,10 +12,11 @@ import { AnimatePresence, motion, useAnimate, useReducedMotion } from 'framer-mo
 import type { Variants } from 'framer-motion'
 import type { Pop } from './fx'
 import { isMuted, setMuted, sfx } from './sfx'
-import { FastForward, Lightbulb, ListChecks, Redo2, Swords, Undo2 } from 'lucide-react'
+import { BookOpen, Castle as CastleIcon, Crown, Droplet, FastForward, Layers, Lightbulb, ListChecks, Redo2, Repeat, Shield, Swords, Undo2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { CardText, Choice, GameMenu, InstallLink, RulesSheet } from './Menu'
+import { CardText, Choice, GameMenu, HowToPlay, InstallLink, RulesSheet } from './Menu'
+import type { Topic } from './Menu'
 import { CastleArt, PlayingCard, TCard } from './Pieces'
 import { useViewport } from '@/hooks/use-viewport'
 import DeckBuilder from './DeckBuilder'
@@ -409,15 +410,6 @@ const wheelPair = (w: number, l: number, wheel: number, pools: Pools): [Card, Ca
   return [{ id: `m6-${w}`, rank: 6, suit: w }, { id: `m11-${l}`, rank: 11, suit: l }]
 }
 const show = (c: Card) => <PlayingCard card={c} />
-// the numbers are written under the cards: a 6 beating a J only makes sense once you see 6 × 2 = 12 against 11
-const SuitWheel = ({ wheel = 2, pools = [] }: { wheel?: number; pools?: Pools }) => (
-  <div className="suitwheel" role="img" aria-label="Spades beat hearts, hearts beat diamonds, diamonds beat clubs, clubs beat spades; the winning suit counts double">
-    {WHEEL.map(([w, l]) => {
-      const [a, b] = wheelPair(w, l, wheel, pools)
-      return <Beats key={w} win={show(a)} lose={show(b)} winText={<>{a.rank} ×{wheel} = <b>{a.rank * wheel}</b></>} loseText={b.rank > 10 ? `${RANKS[b.rank]} = ${b.rank}` : `${b.rank}`} />
-    })}
-  </div>
-)
 // an ace and a king for the ace rule, seen ones first
 const acePair = (pools: Pools): [Card, Card[]] => {
   const find = (rank: number, suit: number) => pools.flat().find(c => c.rank === rank) ?? { id: `m${rank}-${suit}`, rank, suit }
@@ -471,10 +463,11 @@ function RoundChip({ n }: { n: number }) {
 const R = ({ c }: { c: string }) => <span className="rs">{c}</span>
 // three short pages, one rule each: the cards say it, the words only name it
 const CHEAT_PAGES = ['Suit ×2', 'Higher', 'Ace'] as const
-function Cheat({ g }: { g: GuideState }) {
+// g: the game in progress, for examples from its cards; without one (How to play on the title screen), invented ones
+function Cheat({ g }: { g?: GuideState }) {
   const [page, setPage] = useState(0)
-  const pools = gamePools(g), [ace, pics] = acePair(pools)
-  const [x, y] = [0, 1].map(i => wheelPair(WHEEL[i][0], WHEEL[i][1], g.rules.wheel, pools))
+  const pools = g ? gamePools(g) : [], [ace, pics] = acePair(pools), wheel = g?.rules.wheel ?? DEFAULT_RULES.wheel
+  const [x, y] = [0, 1].map(i => wheelPair(WHEEL[i][0], WHEEL[i][1], wheel, pools))
   return (<div className="cheat">
     <div className="cheat-tabs" role="tablist">{CHEAT_PAGES.map((t, i) => <button key={t} role="tab" aria-selected={page === i} onClick={() => setPage(i)}>{t}</button>)}</div>
     {page === 1 && <>
@@ -485,7 +478,7 @@ function Cheat({ g }: { g: GuideState }) {
     {page === 0 && <>
       <p className="loop" role="img" aria-label="Spades beat hearts, hearts beat diamonds, diamonds beat clubs, clubs beat spades">♠ → <R c="♥" /> → <R c="♦" /> → ♣ ↺</p>
       <p><b>The winning suit counts ×2.</b></p>
-      <div className="suitwheel">{[x, y].map(([p, q], i) => <Beats key={i} win={show(p)} lose={show(q)} winText={<>{p.rank} ×{g.rules.wheel} = <b>{p.rank * g.rules.wheel}</b></>} loseText={q.rank} />)}</div>
+      <div className="suitwheel">{[x, y].map(([p, q], i) => <Beats key={i} win={show(p)} lose={show(q)} winText={<>{p.rank} ×{wheel} = <b>{p.rank * wheel}</b></>} loseText={q.rank} />)}</div>
     </>}
     {page === 2 && <>
       <p><b>Ace beats King.</b></p>
@@ -496,21 +489,45 @@ function Cheat({ g }: { g: GuideState }) {
 }
 const cheatSheet = (g: GuideState) => <Cheat g={g} />
 
-const RULES_60 = (<>
-  <p><b>Goal:</b> break the enemy's <b>king tower</b> before it breaks yours.</p>
-  <p><b>Fights:</b> your cards are soldiers. Send them down a lane: when two cards meet, the higher rank wins.</p>
-  <p><b>Elixir</b> pays for cards: stronger cards cost more, and you get 3 more each round.</p>
-  <details className="help"><summary>All the rules</summary><ul>
-    <li><b>Goal:</b> destroy the enemy's <b>king tower</b> (a stack of 2 cards) before it destroys yours. If both fall in the same round, the side with more tower cards left wins.</li>
-    <li><b>Cards</b> are soldiers. Higher rank wins a fight (A=1 … K=13). A card of the suit that beats the other counts <b>double</b>: ♠→♥, ♥→♦, ♦→♣, ♣→♠.<SuitWheel /></li>
-    <li><b>Aces beat Kings</b> in a fight, whatever the suits, and against towers too. Watch out: it works for the enemy as well.</li>
-    <li><b>Elixir</b> pays for your soldiers: a card costs about its rank (A=1, 5=4, 8=6, K=10). You get 3 more each round, max 10. The enemy has no elixir: it plays <b>one card per round</b>, the top of its pile.</li>
-    <li>Each round: <b>you play</b> cards into a lane, then the <b>enemy</b> plays its top card into the lane where you have <b>more</b> cards (it defends; on a tie, where your highest-ranked card is, then left), then the front cards <b>fight</b> where they stand. When one falls, the card behind it <b>steps up</b> one slot and fights the winner. Then every card that hasn't moved <b>moves</b> one slot. Survivors reaching the other end hit a tower.</li>
-    <li><b>A tower hit is a fight</b> against the tower's top card (the wheel and aces count). Win or tie, and the tower card <b>breaks</b>: your soldier stays, turned sideways (<b>wounded</b>), hits <b>once more</b> next round, then goes back to its pile. Lose, and the tower shoots it back: it goes back to its pile and the tower card <b>cracks</b> (turn it sideways, move it to the bottom of that tower). Any later hit breaks a cracked card. Each tower has 2 cards. The king can only be hit after the princess tower in that lane is gone.</li>
-    <li><b>Last stand:</b> when a left or right tower is destroyed, its owner immediately places one card in that lane for free (the enemy uses the top card of its pile).</li>
-    <li>A fighting card that dies goes to the <b>bottom of its owner's pile</b>, and you draw it again later. So your 8 cards just keep cycling.</li>
-  </ul></details>
-</>)
+// How to play: one topic per rule. The lines alone are the whole game in short; each page says the rest, with cards where it can.
+const towerFight = (win: Card, winText: string, lose: Card, loseText: string) => <div className="fights"><Beats win={show(win)} lose={show(lose)} winText={winText} loseText={loseText} /></div>
+const RULES: Topic[] = [
+  { id: 'goal', icon: <Crown />, title: 'Goal', line: "Break the enemy's king tower before it breaks yours.", body: <>
+    <p>Each side has three towers of 2 cards: one on the left, one on the right, and the <b>king</b> in the middle, the crowned one.</p>
+    <p>The king can only be hit through a lane whose side tower is gone.</p>
+    <p>If both kings fall in the same round, the side with more tower cards left wins. It's a draw only when that's equal too.</p>
+  </> },
+  { id: 'fights', icon: <Swords />, title: 'Fights', line: 'Higher rank wins, the winning suit counts ×2, aces beat Kings.', body: <>
+    <p>Your cards are soldiers. When two meet in a lane, they fight, and the loser goes back to its pile.</p>
+    <Cheat />
+  </> },
+  { id: 'elixir', icon: <Droplet />, title: 'Elixir', line: 'Pays for your cards: stronger ones cost more. +3 each round.', body: <>
+    <p>A card costs about its rank, the purple number: A=1, 5=4, 8=6, K=10.</p>
+    <p>You start with {DEFAULT_RULES.startElixir} and get {DEFAULT_RULES.regen} more each round, up to {DEFAULT_RULES.cap}.</p>
+    <p>The enemy has no elixir: it plays <b>one card per round</b>, the top of its pile.</p>
+  </> },
+  { id: 'round', icon: <Repeat />, title: 'A round', line: 'You play, the enemy defends, the front cards fight, all move up.', body: <ol className="m-0 list-decimal pl-5">
+    <li><b>You play</b> cards into a lane.</li>
+    <li>The <b>enemy</b> plays its top card into the lane where you have <b>more</b> cards. On a tie, where your highest card is, then left.</li>
+    <li>The front cards <b>fight</b> where they stand. When one falls, the card behind it steps up and fights the winner.</li>
+    <li>Every card that hasn't moved <b>moves</b> one slot. A card that reaches the other end hits a tower.</li>
+  </ol> },
+  { id: 'towers', icon: <CastleIcon />, title: 'Towers', line: 'A hit is a fight: win or tie, and the tower card breaks.', body: <>
+    <p>A soldier at a tower fights its top card. Suit ×2 and aces count here too.</p>
+    {towerFight({ id: 't9-0', rank: 9, suit: 0 }, 'soldier', { id: 't7-2', rank: 7, suit: 2 }, 'tower: breaks')}
+    <p><b>Win or tie:</b> the tower card breaks. Your soldier stays, turned sideways (wounded), hits once more next round, then goes back to its pile.</p>
+    {towerFight({ id: 't12-3', rank: 12, suit: 3 }, 'tower: cracks', { id: 't5-1', rank: 5, suit: 1 }, 'soldier')}
+    <p><b>Lose:</b> the soldier goes back to its pile, and the tower card <b>cracks</b>: turn it sideways and move it to the bottom of that tower. Any later hit breaks a cracked card.</p>
+  </> },
+  { id: 'stand', icon: <Shield />, title: 'Last stand', line: 'Lose a side tower, and you place one card there for free.', body: <>
+    <p>When a left or right tower falls, its owner immediately places one card in that lane, free of elixir.</p>
+    <p>The enemy uses the top card of its pile.</p>
+  </> },
+  { id: 'pile', icon: <Layers />, title: 'Your pile', line: 'Cards that die come back later: your 8 keep cycling.', body: <>
+    <p>A card that dies goes to the <b>bottom of its owner's pile</b>, and comes back to the hand later.</p>
+    <p>Nothing is lost for good: a cheap card you lose now is back in a few rounds.</p>
+  </> },
+]
 
 // First games teach by playing: one tip at a time, each shown the first time its situation comes up (on screen, the enemy waits while it is open).
 // The goal comes first, so every rule after it has something to serve; each tip says one thing. The fight rules come one at a time,
@@ -759,7 +776,7 @@ export default function App() {
       <span className="modechip">{mode === 'play' ? 'On screen' : 'Real cards'}</span>
       {mid}
       <span className="spacer" />
-      <GameMenu rules={RULES_60} muted={muted} toggleMute={toggleMute} onLeave={reset} />
+      <GameMenu topics={RULES} muted={muted} toggleMute={toggleMute} onLeave={reset} />
     </div>
   )
 
@@ -775,7 +792,7 @@ export default function App() {
         <div className="menu">
           <button className="big xl" onClick={startOnScreen}>Play<small>the app deals and plays the enemy</small></button>
           <button className="xl" onClick={() => { setMode('guide'); setScreen('deal') }}>Play with real cards<small>you play at the table, the app guides you</small></button>
-          <RulesSheet rules={RULES_60}><Button variant="success" size="xl">How to play</Button></RulesSheet>
+          <HowToPlay topics={RULES}><Button variant="success" size="xl">How to play</Button></HowToPlay>
           <InstallLink />
         </div>
       </div>
@@ -795,7 +812,7 @@ export default function App() {
       { title: 'Set the marker at 5', pic: <div className="mbars"><span className="mlbl">Your elixir: 5</span><div className="mrow">{backs(10, 5, 4)}</div></div>,
         body: <>
           <p>Turn the <b>5th card sideways</b>, still face-down. That's the <b>marker</b>: its position is your elixir, so you start at 5. Spending or gaining just moves the marker left or right.</p>
-          <details className="help"><summary>The rules in 60 seconds</summary>{RULES_60}</details>
+          <HowToPlay topics={RULES}><Button variant="secondary" className="mt-2"><BookOpen /> How to play</Button></HowToPlay>
         </> },
     ]
     return (
@@ -1153,7 +1170,7 @@ export default function App() {
     const settings = mode === 'play'
       ? <Choice id="fast" icon={<FastForward />} title="Fast enemy turns" description="Its steps go by twice as quickly. Tapping the field skips ahead any time." checked={fast} onChange={setFast} />
       : <Choice id="batch" icon={<ListChecks />} title="Fights in one list" description="A round's fights, moves and tower hits as one checklist with one Done" checked={batchOn} onChange={setBatch} />
-    const menu = <GameMenu rules={RULES_60} muted={muted} toggleMute={toggleMute} onLeave={reset} log={g.log} onExport={exportLog} hints={hints} settings={settings} />
+    const menu = <GameMenu topics={RULES} muted={muted} toggleMute={toggleMute} onLeave={reset} log={g.log} onExport={exportLog} hints={hints} settings={settings} />
     const round = <RoundChip n={g.round} />
     const discard = (owner: 'P' | 'E') => {
       const d = g.discard.filter(x => x.owner === owner)

@@ -346,8 +346,6 @@ h3 { margin: 18px 0 8px; }
 .topbar { gap: 12px; padding: 4px 0 10px; }
 
 /* a folded help box (the rules in the setup steps) */
-details.help > summary { cursor: pointer; font-family: var(--display); color: var(--gold); letter-spacing: .02em; }
-details.help[open] > summary { margin-bottom: 8px; }
 
 @keyframes stepin { from { opacity: 0; transform: translate(-50%, 10px); } }
 /* .pbtn.red means a red suit, not the red "leave" button */
