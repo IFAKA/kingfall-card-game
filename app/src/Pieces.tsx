@@ -10,8 +10,9 @@ import type { Card } from './engine'
 // A card that is revealed (face-down -> face-up) FLIPS while it moves.
 const faceMemory = new Map<string, boolean>()
 // fly: seconds a move takes (the board's moves are slow enough to follow; the deck screen's quicker)
-export function TCard({ tid, card, down, selected, dim, showCost, fly = 0.5, onClick }: {
-  tid: string; card: Card | null; down: boolean; selected?: boolean; dim?: boolean; showCost?: boolean; fly?: number; onClick?: () => void
+// side: whose card it is ('P' you, 'E' the enemy), drawn as a ring and a wash of that side's colour
+export function TCard({ tid, card, down, side, selected, dim, showCost, fly = 0.5, onClick }: {
+  tid: string; card: Card | null; down: boolean; side?: 'P' | 'E'; selected?: boolean; dim?: boolean; showCost?: boolean; fly?: number; onClick?: () => void
 }) {
   const [shown, setShown] = useState<boolean>(faceMemory.get(tid) ?? down)
   useEffect(() => {
@@ -24,7 +25,7 @@ export function TCard({ tid, card, down, selected, dim, showCost, fly = 0.5, onC
     <motion.div
       layoutId={tid} layout
       transition={{ layout: landing.has(tid) ? { duration: landing.get(tid), ease: [0.23, 1, 0.32, 1] } : { duration: fly, ease: [0.77, 0, 0.175, 1] } }}
-      className={`tcard ${selected ? 'selected' : ''} ${dim ? 'dim' : ''} ${onClick ? 'clickable' : ''}`}
+      className={`tcard ${side ?? ''} ${selected ? 'selected' : ''} ${dim ? 'dim' : ''} ${onClick ? 'clickable' : ''}`}
       style={{ zIndex: 5 }} onClick={onClick} data-tid={tid}
     >
       <div className={`flip ${shown ? 'down' : ''}`}>

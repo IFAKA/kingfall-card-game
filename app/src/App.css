@@ -174,7 +174,7 @@ h3 { margin: 18px 0 8px; }
 .brow { display: flex; gap: 14px; align-items: flex-end; min-height: var(--ch); flex-wrap: nowrap; }
 .lbl { width: 84px; font-size: 12px; line-height: 1.25; opacity: .9; flex: none; align-self: center; }
 .tcard, .mini { width: var(--cw); height: var(--ch); flex: none; font-size: calc(var(--cw) * .27); }
-.tcard .corner { font-size: 1em; left: 4px; top: 3px; }
+.tcard .corner { font-size: 1em; left: 4px; top: 3px; text-align: center; }
 .tcard .pip { font-size: 1.7em; right: 4px; bottom: 2px; }
 .tcard .cost { width: 1.7em; height: 1.7em; font-size: .9em; right: -.5em; top: -.5em; }
 .mini { display: block; perspective: 700px; }
@@ -192,10 +192,10 @@ h3 { margin: 18px 0 8px; }
 .slot, .slot.attack { min-height: var(--ch); padding: 2px 0; align-items: center; gap: 6px; }
 .slot.attack { background: #3a1a1a22; }
 .unit .who { display: none; }
-/* whose card it is: a ring and a wash of the side's colour over the face */
-.unit.P .cf.front { background: linear-gradient(rgba(79,209,197,.38), rgba(79,209,197,.38)), #fbfbf6; box-shadow: 0 0 0 3px #4fd1c5; }
-.unit.E .cf.front { background: linear-gradient(rgba(245,101,101,.34), rgba(245,101,101,.34)), #fbfbf6; box-shadow: 0 0 0 3px #f56565; }
-.unit.E .cf.backside { background: linear-gradient(rgba(245,101,101,.5), rgba(245,101,101,.5)), repeating-linear-gradient(45deg, #263a8c, #263a8c 5px, #3150b8 5px, #3150b8 10px); box-shadow: 0 0 0 3px #f56565; }
+/* whose card it is: a ring in the colour of that side's towers */
+.tcard.P .cf.front, .tcard.P .cf.backside { box-shadow: 0 0 0 3px #3d78f0; }
+.tcard.E .cf.front, .tcard.E .cf.backside { box-shadow: 0 0 0 3px #e24a4a; }
+.tcard.selected.P .cf.front { box-shadow: 0 0 0 3px #3d78f0, 0 0 12px #ffd36b; } .tcard.selected.E .cf.front { box-shadow: 0 0 0 3px #e24a4a, 0 0 12px #ffd36b; }
 .hand { display: flex; gap: 8px; margin: 0 10px 0 0; min-height: var(--ch); }
 .mini .cf.front { font-size: 1.1em; }
 .play { --ch: max(54px, calc(((100 * var(--vh)) - 200px) / 8.9)); }
@@ -443,6 +443,12 @@ details.help[open] > summary { margin-bottom: 8px; }
 .castle .armor i.crk { background: linear-gradient(135deg, #c9a8ff 45%, #3b1d6e 45% 55%, #c9a8ff 55%); border-color: #3b1d6e; }
 .castle .topcard { font-weight: 800; font-size: max(12px, calc(var(--cw) * .27)); background: #fbfbf6; color: #1b1b1b; border-radius: 5px; padding: 1px 5px; box-shadow: 0 2px 0 rgba(0,0,0,.4); }
 .castle .topcard.red { color: #c0262d; }
+/* rank and suit side by side, centred on one line (the suit glyph sits higher than the digits otherwise) */
+.castle .topcard:not(.empty) { display: inline-flex; align-items: center; gap: 1px; line-height: 1; padding: 2px 5px; }
+.castle .topcard span { display: block; line-height: 1; }
+/* a tower's top card wears its side's ring too */
+.castle.mine .topcard:not(.empty) { box-shadow: 0 0 0 2px #3d78f0, 0 2px 0 2px rgba(0,0,0,.4); }
+.castle.theirs .topcard:not(.empty) { box-shadow: 0 0 0 2px #e24a4a, 0 2px 0 2px rgba(0,0,0,.4); }
 .castle .cname { font-family: var(--display); font-size: max(11px, calc(var(--cw) * .22)); color: rgba(255,255,255,.85); text-shadow: 0 1px 0 rgba(0,0,0,.6); text-transform: uppercase; letter-spacing: .04em; }
 
 /* lanes */

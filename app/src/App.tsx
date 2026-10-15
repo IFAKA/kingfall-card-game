@@ -165,7 +165,7 @@ function Castle({ k, items, own, cracked, fx, shake }: { k: 'L' | 'R' | 'K'; ite
         exit={{ scale: 0, opacity: 0, transition: { duration: 0.3, delay: 0.2 } }} />)}</AnimatePresence></div>
       <div className="tslot"><AnimatePresence initial={false} mode="popLayout" custom={fx}>{top
         ? <motion.div key={top.tid + (known ? '' : '?')} custom={fx} variants={CHIP} initial="enter" animate="show" exit="leave"
-          className={`topcard ${known ? (isRed(known) ? 'red' : '') : 'empty'}`}>{known && <>{RANKS[known.rank]}{SUITS[known.suit]}</>}</motion.div>
+          className={`topcard ${known ? (isRed(known) ? 'red' : '') : 'empty'}`}>{known && <><span>{RANKS[known.rank]}</span><span>{SUITS[known.suit]}</span></>}</motion.div>
         : <div key="fallen" className="cname">Fallen</div>}</AnimatePresence></div>
     </div>
   )
@@ -180,7 +180,7 @@ function TowerFan({ k, items, own, cracked, flip, shake }: { k: 'L' | 'R' | 'K';
       <div className="fancards" style={{ width: `calc(var(--cw) + ${Math.max(0, n - 1)} * var(--toff))` }}>
         {items.map((it, i) => (
           <div key={it.tid} className={`fc ${cracked.includes(it.tid) ? 'cracked' : ''}`} style={{ left: `calc(${i} * var(--toff))`, zIndex: n - i }}>
-            <TCard tid={it.tid} card={it.card} down={!it.card} />
+            <TCard tid={it.tid} card={it.card} down={!it.card} side={own ? 'P' : 'E'} />
           </div>
         ))}
       </div>
@@ -207,12 +207,12 @@ function CardBar({ n, spend = 0 }: { n: number; spend?: number }) {
 
 // A pile squared up on the table: the top card shows face-up only where it is face-up at the table, with the count under it.
 // The top card keeps its id, so a card played from the pile, drawn from it or thrown on it slides there.
-function TablePile({ top, down, n, name, flip, discard }: { top?: ESlot; down: boolean; n: number; name: string; flip?: boolean; discard?: boolean }) {
+function TablePile({ top, down, side, n, name, flip, discard }: { top?: ESlot; down: boolean; side?: 'P' | 'E'; n: number; name: string; flip?: boolean; discard?: boolean }) {
   return (
     <div className={`tpile ${flip ? 'flipme' : ''}`}>
       <div className="pcards">
         {Array.from({ length: Math.min(3, Math.max(0, n - 1)) }, (_, i) => <div key={i} className={`pback ${discard ? 'face' : ''}`} style={{ translate: `${(i + 1) * 2}px ${(i + 1) * 2}px` }} />)}
-        {top && <TCard key={top.tid} tid={top.tid} card={top.card} down={down} />}
+        {top && <TCard key={top.tid} tid={top.tid} card={top.card} down={down} side={side} />}
         <span className="pcount" aria-label={`${n} cards`}>{n}</span>
       </div>
       <div className="cname">{name}</div>
@@ -249,7 +249,7 @@ function ArenaLane({ idx, units, fighting, laneLen, dragging, hint, suggested, o
       title={atTower(u) ? `${u.side === 'P' ? 'Your' : 'Enemy'} card at the tower: ${u.wounded ? 'wounded, it hits once more, then goes back to its pile' : 'it hits the tower this round'}` : grabbable.includes(u.tid!) ? 'Changed your mind? Drag it back to your hand or onto the other lane, or tap it, then tap another card to switch them' : undefined}
       onPointerDown={grabbable.includes(u.tid!) ? e => onGrab?.(e, u.tid!) : undefined}
       onClick={grabbable.includes(u.tid!) ? e => { e.stopPropagation(); onTap?.(u.tid!) } : undefined}>
-      <TCard tid={u.tid!} card={u.card} down={false} selected={picked === u.tid} />
+      <TCard tid={u.tid!} card={u.card} down={false} side={u.side} selected={picked === u.tid} />
       {atTower(u) && <span className="siege" aria-hidden><Swords /></span>}
     </div>
   ))
@@ -887,7 +887,7 @@ export default function App() {
         <div className="tbar"><span className="undoredo">{undoRedo}</span><span className="modechip">Real cards</span><span className="tmenu">{menu}</span></div>
         <div className={`cardtable ${shake}`}>
           <div className="trow theirs">
-            <TablePile top={eNext} down={!eNext?.card} n={g.E.queue.length} name="Pile" flip={stage === 'enemy_enter' || stage === 'last_stand_enter'} />
+            <TablePile top={eNext} down={!eNext?.card} side="E" n={g.E.queue.length} name="Pile" flip={stage === 'enemy_enter' || stage === 'last_stand_enter'} />
             {(['L', 'K', 'R'] as const).map(k => <TowerFan key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} flip={flipTower === k} shake={fighting.includes(`tower-E-${k}`)} />)}
             {discard('E')}
           </div>
@@ -899,7 +899,7 @@ export default function App() {
             <span />
           </div>
           <div className="trow mine">
-            <TablePile top={g.P.queue[0] && { tid: g.P.queue[0].id, card: g.P.queue[0] }} down n={g.P.queue.length} name="Queue" />
+            <TablePile top={g.P.queue[0] && { tid: g.P.queue[0].id, card: g.P.queue[0] }} down side="P" n={g.P.queue.length} name="Queue" />
             {(['L', 'K', 'R'] as const).map(k => <TowerFan key={k} k={k} items={mineSlots(k)} own cracked={g.cracked ?? []} shake={fighting.includes(`tower-P-${k}`)} />)}
             {discard('P')}
           </div>
@@ -917,7 +917,7 @@ export default function App() {
           <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} />
           <div className="mid">
             <div className="sidechip enemy" title="The next card of the enemy pile (face-down until you have seen it). The enemy plays one card per round.">
-              {eNext && <div className="nextcard"><TCard key={eNext.tid} tid={eNext.tid} card={eNext.card} down={!eNext.card} /></div>}
+              {eNext && <div className="nextcard"><TCard key={eNext.tid} tid={eNext.tid} card={eNext.card} down={!eNext.card} side="E" /></div>}
             </div>
             {rules}
           </div>
