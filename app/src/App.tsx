@@ -19,6 +19,7 @@ import { CardText, Choice, GameMenu, InstallLink, RulesSheet } from './Menu'
 import { CastleArt, PlayingCard, TCard } from './Pieces'
 import { useViewport } from '@/hooks/use-viewport'
 import DeckBuilder from './DeckBuilder'
+import { tutorialCards, tutorialSecret } from './tutorial'
 
 type Help = 'off' | 'explain' | 'suggest'
 type Screen = 'title' | 'deal' | 'enter' | 'draft' | 'table' | 'play'
@@ -486,15 +487,18 @@ const RULES_60 = (<>
 </>)
 
 // First games teach by playing: one tip at a time, each shown the first time its situation comes up (on screen, the enemy waits while it is open).
-// The goal comes first, so every rule after it has something to serve; each tip says one thing.
-type TipId = 'goal' | 'drag' | 'elixir' | 'change' | 'enemy' | 'fight' | 'tower' | 'crack' | 'next' | 'stand'
+// The goal comes first, so every rule after it has something to serve; each tip says one thing. The fight rules come one at a time,
+// each when it first decides a fight (the first game's fixed deal shows them in this order: rank, then suit, then ace).
+type TipId = 'goal' | 'drag' | 'elixir' | 'change' | 'enemy' | 'rank' | 'suit' | 'ace' | 'tower' | 'crack' | 'next' | 'stand'
 const TIPS: Record<TipId, string> = {
   goal: "Goal: break the enemy's king, the crowned castle at the top. Your cards are soldiers.",
   drag: 'Drag a card onto a lane at the bottom. The purple number is its cost.',
   elixir: 'Elixir pays for cards: +3 every round. Done? Press ✓ and the enemy moves.',
   change: 'Changed your mind? Before ✓, drag a placed card back to your hand or to the other lane.',
   enemy: 'The enemy defends the lane where you have more cards. Its Next card is what it plays next.',
-  fight: 'Higher rank wins. The suit that beats the other counts ×2. Aces beat Kings. Need it again? Tap the ⚔ button, top left.',
+  rank: 'Cards fight where they meet: the higher rank wins. The loser goes back to its pile.',
+  suit: 'Suits beat each other in a circle: ♠ beats ♥ beats ♦ beats ♣ beats ♠. The winning suit counts ×2. The ⚔ button, top left, shows it again.',
+  ace: 'Aces beat Kings! A 1-elixir ace kills a 10-elixir King.',
   tower: 'A card at a tower fights its top card. Win or tie: the tower card breaks. The king is safe until its side tower falls.',
   crack: 'Lost at a tower? The card goes back to its pile, but the tower card cracks: the next hit breaks it.',
   next: 'The Next card, between your lanes, joins your hand when you play. Cards that die come back later.',
@@ -605,7 +609,8 @@ export default function App() {
     if (doneNow.length) seeTip(doneNow)
     else if (tip) return
     const ev = game.events ?? [], isFresh = game === fresh.current
-    const wants = (id: TipId) => !tipsSeen.includes(seenId(id)) && !doneNow.includes(id)
+    // 'fight' was one tip for all three fight rules: whoever saw it has seen them
+    const wants = (id: TipId) => !tipsSeen.includes(seenId(id)) && !doneNow.includes(id) && !(['rank', 'suit', 'ace'].includes(id) && tipsSeen.includes('fight'))
     const happened = (f: (e: NonNullable<GuideState['events']>[number]) => boolean) => isFresh && ev.some(f)
     const firstPlay = game.stage === 'my_play' && game.stats.placed === 0
     const next: TipId | undefined = ([
@@ -615,7 +620,9 @@ export default function App() {
       ['elixir', happened(e => e.type === 'play' && e.side === 'P')],
       ['change', happened(e => e.type === 'play' && e.side === 'P') && game.stats.placed >= 2],
       ['enemy', happened(e => e.type === 'play' && e.side === 'E')],
-      ['fight', happened(e => e.type === 'fight')],
+      ['rank', happened(e => e.type === 'fight')],
+      ['suit', happened(e => e.type === 'fight' && !!e.double)],
+      ['ace', happened(e => e.type === 'fight' && !!e.ace)],
       ['tower', happened(e => e.type === 'tower')],
       ['crack', happened(e => e.type === 'tower' && e.result === 'crack')],
       ['next', game.stage === 'my_play' && game.round >= 2],
@@ -693,14 +700,21 @@ export default function App() {
   const setSplit = ({ deckIds, slotIds }: { deckIds: string[]; slotIds: string[] }) => { setDeckIds(deckIds); setSlotIds(slotIds) }
   // on-screen play: deal both hands at random; the enemy's cards stay hidden inside the app (tid ep0-7 = pile, et0-5 = towers)
   const startOnScreen = () => {
+    if (novice) return startTutorial()
     const d = deal()
     const enemy = shuffle(d.theirs)
     setSecret(Object.fromEntries(enemy.map((c, i) => [i < DECK_SIZE ? `ep${i}` : `et${i - DECK_SIZE}`, c])))
     setMode('play'); setDealt(d.mine.map(c => c.id))
-    if (!novice) { setSplit(randomSetup(d.mine)); setScreen('draft'); return }
-    // a first game skips the deck screen, whose choices mean nothing before you know the rules: it starts on a good split
-    const s = suggestSetup(d.mine)
-    setSplit(s); begin(makeGame(deckOf(d.mine, s.deckIds), s.slotIds.map(byId), d.mine, DEFAULT_RULES), 'play')
+    setSplit(randomSetup(d.mine)); setScreen('draft')
+  }
+  // a first game on screen is always the same deal (src/tutorial.ts), so the tips teach the rules in the same order for everyone.
+  // It skips the deck screen, whose choices mean nothing before you know the rules: it starts on the suggested split.
+  const startTutorial = () => {
+    const { mine, deck } = tutorialCards()
+    setSecret(tutorialSecret())
+    setMode('play'); setDealt(mine.map(c => c.id))
+    const s = suggestSetup(mine)
+    setSplit(s); begin(makeGame(deck, s.slotIds.map(byId), mine, DEFAULT_RULES, true), 'play')
   }
   // straight into the next game of the same kind, skipping the title screen
   const playAgain = () => {
@@ -990,7 +1004,7 @@ export default function App() {
       </div>
       {sum.close && <p className="goclose">So close! Their king had one card left.</p>}
       <p className="gorecord">{newBest ? `Your fastest win yet: ${sum.rounds} rounds! ` : ''}{record.wins} {record.wins === 1 ? 'win' : 'wins'} in {record.games} {record.games === 1 ? 'game' : 'games'}.</p>
-      {intro?.deck && g.winner !== 'P' && <p className="goclose">Most first games are lost: this one was for learning the rules.</p>}
+      {intro?.deck && g.winner !== 'P' && <p className="goclose">This first game was for learning the rules. Following the glowing suggestions wins it.</p>}
       <div className="gotip"><Lightbulb aria-hidden /><p>{sum.tip ? <CardText text={sum.tip} /> : 'Clean game: no elixir wasted and no expensive cards spent on cheap enemies.'}</p></div>
       {intro && (
         <p className="gonext">

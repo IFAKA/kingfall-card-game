@@ -1,9 +1,11 @@
 // Automated checks for the guided app's rules engine. Run with `npm test` (Node 22+ runs TypeScript directly).
 // Plays full games through the same code the app uses and fails if a rule invariant breaks or balance drifts.
-import { autoTowers, breaksTower, canPlay as engineCanPlay, compare, cost, DECK_SIZE, DEFAULT_RULES, endRound, freshDeck, newGame, PER_SIDE, playCard as enginePlay, shuffle, suggestDeck } from '../src/engine.ts'
+import { autoTowers, breaksTower, canPlay as engineCanPlay, compare, cost, DECK_SIZE, DEFAULT_RULES, endRound, freshDeck, newGame, PER_SIDE, playCard as enginePlay, shuffle, suggestDeck, suggestSetup } from '../src/engine.ts'
 import type { Card } from '../src/engine.ts'
 import { advise, canPlay, describe, endMyTurn, enterEnemyCard, enterTowerCard, extendBatch, fightingNext, lastStandPlay, makeGame, next, playCard, startRound, summary, switchCards, takeBack } from '../src/guide.ts'
 import type { Advice, GuideState } from '../src/guide.ts'
+import { TUTORIAL } from '../src/tutorial.ts'
+import { current, judge } from './tutorial.ts'
 
 function mulberry(a: number) {
   return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296 }
@@ -260,6 +262,14 @@ check(cost(1) === 1 && cost(5) === 4 && cost(9) === 7 && cost(13) === 10, 'cost 
   }
   check(seen.slice(0, 3).join(' | ') === 'fight A0 Q1 | step_up Q1 A1 | fight A1',
     `J♥ and K♥ fight first, then A♠ steps up behind the fallen J♥ (to the end of the slot), then A♠ fights K♥ (got: ${seen.join(' | ')})`)
+}
+
+// The first game's fixed deal still teaches in order: rules or advice changes can quietly break it (re-pick with scripts/tutorial.ts).
+{
+  const mine = TUTORIAL.mine, all = [...mine, ...TUTORIAL.enemyPile, ...TUTORIAL.enemyTowers]
+  check(new Set(all).size === 2 * PER_SIDE && TUTORIAL.enemyPile.length === DECK_SIZE && [...TUTORIAL.deck].sort().join() === [...suggestSetup(current.mine).deckIds].sort().join(),
+    'first game: 28 different cards, and its deck is the suggested split of its 14')
+  check(judge(current) !== null, 'first game: following the suggestions shows a plain fight, then suit ×2, then an ace beating a king, and wins a close game in 8 to 12 rounds')
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nall checks passed')

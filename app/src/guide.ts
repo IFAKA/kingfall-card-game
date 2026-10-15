@@ -67,8 +67,9 @@ const emit = (g: GuideState, e: GameEvent) => { (g.events ??= []).push(e) }
 const bonusNote = (a: Card, b: Card, r: Rules) =>
   aceWins(a, b, r) ? ' (ace: beats a king)' : effective(a, b, r.wheel) > a.rank ? ` (winning suit: counts double, ${effective(a, b, r.wheel)})` : ''
 
-export function makeGame(deck: Card[], towerSlots: Card[], dealt: Card[], rules: Rules = DEFAULT_RULES): GuideState {
-  const d = shuffle(deck)
+// inOrder: the deck is already in draw order (the first game's fixed deal), so it isn't shuffled
+export function makeGame(deck: Card[], towerSlots: Card[], dealt: Card[], rules: Rules = DEFAULT_RULES, inOrder = false): GuideState {
+  const d = inOrder ? [...deck] : shuffle(deck)
   return {
     rules,
     stage: 'round_start',
