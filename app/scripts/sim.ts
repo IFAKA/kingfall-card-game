@@ -28,9 +28,14 @@ export const naive: Player = g => {
   return play(ok[0], e[1] > e[0] ? 1 : 0)
 }
 
-export type EnemySetup = 'random' | 'best-towers'
+export type EnemySetup = 'random' | 'best-towers' | 'swarm' | 'heavy' | 'balanced' // swarm: its 8 cheapest cards play, the 6 best are towers; heavy: the reverse; balanced: 4 strongest + 4 cheapest play
 // the enemy's 14 cards split into its pile (8) and its towers (6, in slot order L0 L1 R0 R1 K0 K1)
 function enemySplit(theirs: Card[], how: EnemySetup) {
+  if (how === 'swarm' || how === 'heavy' || how === 'balanced') {
+    const s = [...theirs].sort((a, b) => b.rank - a.rank)
+    const pile = how === 'heavy' ? s.slice(0, DECK_SIZE) : how === 'swarm' ? s.slice(-DECK_SIZE) : [...s.slice(0, 4), ...s.slice(-4)]
+    return { pile: shuffle(pile), towers: autoTowers(s.filter(c => !pile.includes(c))) }
+  }
   const s = shuffle(theirs), pile = s.slice(0, DECK_SIZE), t = s.slice(DECK_SIZE)
   return { pile, towers: how === 'best-towers' ? autoTowers(t) : t }
 }
