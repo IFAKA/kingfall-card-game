@@ -24,6 +24,7 @@ const PEEK = 0.5
 const GATHER_MS = 420, DEAL_MS = 55, FLY = 0.35
 
 // the rules of thumb, and the one thing worth knowing before you worry about them; how cards fight is in How to play
+const WHY_KEY = 'kingfall-suggest-why-seen'
 const GUIDE = <>
   <ul>
     <li><b>Mix your costs.</b> Strong cards break towers but cost a lot, and you get only 3 elixir a round: keep enough cheap ones (cost 1 to 3) to play something every round.</li>
@@ -44,7 +45,7 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
   const [pick, setPick] = useState<Spot | null>(null)
   // a deal in progress: 'gather' while the old cards fly into the pile, then 'deal' with n new cards already placed
   const [dealing, setDealing] = useState<{ phase: 'gather' | 'deal'; n: number } | null>(null)
-  const [gotIt, setGotIt] = useState(false) // the suggestion's why is closed until the next Suggest
+  const [gotIt, setGotIt] = useState(() => localStorage.getItem(WHY_KEY) === '1') // the suggestion's why is told once, the first time Suggest is used
   useEffect(() => {
     if (!dealing) return
     if (dealing.phase === 'deal' && dealing.n >= PER_SIDE) return setDealing(null)
@@ -82,7 +83,7 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
     onChange(ids, slots)
     sfx('place', 0, { mood: 'good' }); setPick(null)
   }
-  const suggest = () => { setPick(null); setGotIt(false); onChange(suggested.deckIds, suggested.slotIds) }
+  const suggest = () => { setPick(null); onChange(suggested.deckIds, suggested.slotIds) }
   const deal = () => { setPick(null); sfx('unpick'); setDealing({ phase: 'gather', n: 0 }) }
   // the dealing order: the deck slots, then each tower from its back card to its front card, as you'd stack them
   const order = [...deck.map(c => c.id), ...TOWERS.flatMap(t => [...t.slots].reverse().map(i => slotIds[i]))]
@@ -114,12 +115,6 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
         <h1>{title}</h1>
         <RulesSheet title="Building a deck" rules={GUIDE}><Button variant="secondary" size="icon-lg" aria-label="How to build a good deck" title="How to build a good deck"><CircleHelp /></Button></RulesSheet>
       </>)}
-      {onSuggestion && !dealing && !gotIt && (
-        <div className="coach dcoach" role="dialog" aria-label="Why this split">
-          <p>Your 3 strongest cards break towers, your 5 cheapest let you play every round. The towers get the rest, the 2 strongest on the king, each tower's stronger card in front.</p>
-          <div className="row"><button className="big" onClick={() => setGotIt(true)}>Got it</button></div>
-        </div>
-      )}
       <div className="dbody">
         {/* the pile in the middle while dealing: cards fly in face-down and out to their places, turning face-up */}
         {pile.length > 0 && <div className="dpile" aria-hidden>{pile.map((id, j) => (
@@ -131,6 +126,12 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
             {onRedeal && <Button variant="secondary" size="sm" disabled={!!dealing} onClick={deal} title="Shuffle all 52 cards and deal new hands to you and the enemy"><Shuffle /> Deal</Button>}
             <Button variant="secondary" size="sm" disabled={onSuggestion || !!dealing} onClick={suggest} title={onSuggestion ? 'This is the suggested split' : 'Set a good deck and towers for these cards'}><Sparkles /> Suggest</Button>
           </header>
+          {onSuggestion && !dealing && !gotIt && (
+            <div className="coach dcoach" role="dialog" aria-label="Why this split">
+              <p>Your 3 strongest cards break towers, your 5 cheapest let you play every round. The towers get the rest, the 2 strongest on the king, each tower's stronger card in front.</p>
+              <div className="row"><button className="big" onClick={() => { localStorage.setItem(WHY_KEY, '1'); setGotIt(true) }}>Got it</button></div>
+            </div>
+          )}
           <div className="dcards">
             {deck.map(c => {
               const on = pick?.zone === 'deck' && pick.id === c.id
