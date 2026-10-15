@@ -24,7 +24,7 @@ import { tutorialCards, tutorialSecret } from './tutorial'
 
 type Help = 'off' | 'explain' | 'suggest'
 type Screen = 'title' | 'deal' | 'enter' | 'draft' | 'table' | 'play'
-interface Saved { mode?: 'guide' | 'play'; secret?: Record<string, Card>; screen: Screen; dealt: string[]; deckIds: string[]; slotIds: string[]; help: Help; pre: GuideState | null; game: GuideState | null; history: GuideState[]; intro?: Intro | null; counted?: boolean }
+interface Saved { mode?: 'guide' | 'play'; secret?: Record<string, Card>; screen: Screen; dealt: string[]; deckIds: string[]; slotIds: string[]; help: Help; order?: string[]; game: GuideState | null; history: GuideState[]; intro?: Intro | null; counted?: boolean }
 
 const ALL = freshDeck()
 const byId = (id: string) => ALL.find(c => c.id === id)!
@@ -210,11 +210,11 @@ function CardBar({ n, spend = 0 }: { n: number; spend?: number }) {
 
 // A pile squared up on the table: the top card shows face-up only where it is face-up at the table, with the count under it.
 // The top card keeps its id, so a card played from the pile, drawn from it or thrown on it slides there.
-function TablePile({ top, down, side, n, name, flip, discard }: { top?: ESlot; down: boolean; side?: 'P' | 'E'; n: number; name: string; flip?: boolean; discard?: boolean }) {
+function TablePile({ top, down, side, n, name, flip, faces }: { top?: ESlot; down: boolean; side?: 'P' | 'E'; n: number; name: string; flip?: boolean; faces?: boolean }) {
   return (
     <div className={`tpile ${flip ? 'flipme' : ''}`}>
       <div className="pcards">
-        {Array.from({ length: Math.min(3, Math.max(0, n - 1)) }, (_, i) => <div key={i} className={`pback ${discard ? 'face' : ''}`} style={{ translate: `${(i + 1) * 2}px ${(i + 1) * 2}px` }} />)}
+        {Array.from({ length: Math.min(3, Math.max(0, n - 1)) }, (_, i) => <div key={i} className={`pback ${faces ? 'face' : ''}`} style={{ translate: `${(i + 1) * 2}px ${(i + 1) * 2}px` }} />)}
         {top && <TCard key={top.tid} tid={top.tid} card={top.card} down={down} side={side} />}
         <span className="pcount" aria-label={`${n} cards`}>{n}</span>
       </div>
@@ -288,7 +288,7 @@ function Mc({ card, side, hot }: { card?: Card; side?: boolean; hot?: boolean })
 }
 const backs = (n: number, gapAfter?: number, sideAt?: number) => Array.from({ length: n }, (_, i) => <Fragment key={i}>{i === gapAfter && <span className="mgap" />}<Mc side={i === sideAt} hot={i === sideAt} /></Fragment>)
 
-interface SetupStep { title: string; pic: ReactNode; body: ReactNode }
+interface SetupStep { title: string; pic: ReactNode; body: ReactNode; ready?: boolean }
 function Stepper({ steps, at, setAt, done }: { steps: SetupStep[]; at: number; setAt: (n: number) => void; done: ReactNode }) {
   const st = steps[Math.min(at, steps.length - 1)]
   return (
@@ -299,7 +299,7 @@ function Stepper({ steps, at, setAt, done }: { steps: SetupStep[]; at: number; s
       <div className="stepbody">{st.body}</div>
       <div className="row">
         {at > 0 && <button onClick={() => setAt(at - 1)}>Back</button>}
-        {at < steps.length - 1 ? <button className="big" onClick={() => setAt(at + 1)}>Next</button> : done}
+        {at < steps.length - 1 ? <button className="big" disabled={st.ready === false} onClick={() => setAt(at + 1)}>Next</button> : done}
       </div>
     </div>
   )
@@ -589,7 +589,8 @@ export default function App() {
   const [explainOn, setExplainOn] = useState(saved ? saved.help === 'explain' : false)
   const [suggestOn, setSuggestOn] = useState(saved ? saved.help === 'suggest' : false)
   const help: Help = suggestOn ? 'suggest' : explainOn ? 'explain' : 'off'
-  const [pre, setPre] = useState<GuideState | null>(saved?.pre ?? null)
+  // with real cards the player shuffles their own deck and taps its 8 cards here as they come: 4 hand cards, then the queue top first
+  const [order, setOrder] = useState<string[]>(saved?.order ?? [])
   const [game, setGame] = useState<GuideState | null>(saved?.game ?? null)
   const [history, setHistory] = useState<GuideState[]>(saved?.history ?? [])
   // (a player from before games were counted, who has seen tips past the first turn, has played: count one game)
@@ -695,9 +696,9 @@ export default function App() {
   useEffect(() => { if (game?.stage !== 'over' && !browsing.current) { setOverSeen(false); setResultViewed(false) } browsing.current = false }, [game?.stage])
 
   useEffect(() => {
-    const s: Saved = { mode, secret, screen, dealt, deckIds, slotIds, help, pre, game, history: history.slice(-60), intro, counted }
+    const s: Saved = { mode, secret, screen, dealt, deckIds, slotIds, help, order, game, history: history.slice(-60), intro, counted }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)) } catch { /* storage full: ignore */ }
-  }, [mode, secret, screen, dealt, deckIds, slotIds, help, pre, game, history, intro, counted])
+  }, [mode, secret, screen, dealt, deckIds, slotIds, help, order, game, history, intro, counted])
   // a finished game counts once (not again when undo and redo pass the end)
   useEffect(() => {
     if (screen !== 'play' || game?.stage !== 'over' || counted) return
@@ -734,7 +735,7 @@ export default function App() {
   const reset = () => {
     fx.land()
     setTip(null)
-    setScreen('title'); setDealt([]); setDeckIds([]); setSlotIds([]); setPre(null); setGame(null); setHistory([]); setFuture([]); setSel(null); setMode('guide'); setSecret({}); setIntro(null)
+    setScreen('title'); setDealt([]); setDeckIds([]); setSlotIds([]); setOrder([]); setGame(null); setHistory([]); setFuture([]); setSel(null); setMode('guide'); setSecret({}); setIntro(null)
   }
   // the game begins. A player's first game: on screen, suggestions are on (a first game is hard to win, and each suggestion says
   // why); with real cards for the first time, every step says why. Their next game turns that off again.
@@ -743,9 +744,8 @@ export default function App() {
     if (help) { if (m === 'play') setSuggestOn(true); else setExplainOn(true) }
     setIntro(novice || help ? { deck: novice, help } : null)
     fx.land()
-    advance(startRound(g)); setHistory([]); setFuture([]); setPre(null); setCounted(false); setScreen('play')
+    advance(startRound(g)); setHistory([]); setFuture([]); setOrder([]); setCounted(false); setScreen('play')
   }
-  const deckOf = (cards: Card[], ids: string[]) => cards.filter(c => ids.includes(c.id))
   const settle = (g: GuideState) => (mode === 'play' ? autoReveal(g, secret) : g)
   const commit = (g: GuideState) => { if (fx.striking()) return fx.land(); setHistory(h => [...h, game!]); setFuture([]); advance(settle(g)); setSel(null); setBad(null); setPick(null) }
   const undo = () => { if (fx.striking()) return fx.land(); if (!history.length || !game) return; browsing.current = true; setFuture(f => [...f, game]); setGame(history[history.length - 1]); setHistory(h => h.slice(0, -1)); setSel(null); setBad(null) }
@@ -778,7 +778,6 @@ export default function App() {
     if (m === 'play') startOnScreen()
     else { setMode('guide'); setScreen('deal') }
   }
-  const reshuffle = () => setPre(makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES))
 
   // the setup pages' top bar: where you are and one menu for everything else (in a game, the field's corners hold these)
   const bar = (mid?: ReactNode) => (
@@ -856,7 +855,7 @@ export default function App() {
             if (!novice) { setSplit(randomSetup(mine, secureRandom)); setScreen('draft'); return }
             // a first game skips the deck screen: the app picks a good split, and the table steps say which card goes where
             const s = suggestSetup(mine)
-            setSplit(s); setPre(makeGame(deckOf(mine, s.deckIds), s.slotIds.map(byId), mine, DEFAULT_RULES)); setScreen('table')
+            setSplit(s); setOrder([]); setScreen('table')
           }}>{novice ? 'Next: set up the table' : 'Next: build my deck'}</button>
           <button onClick={() => setDealt([])}>Clear</button>
         </div>
@@ -867,22 +866,33 @@ export default function App() {
   if (screen === 'draft') {
     const go = mode === 'play'
       ? <button className="big" onClick={() => begin(makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES), 'play')}>Start the game</button>
-      : <button className="big" onClick={() => { reshuffle(); setScreen('table') }}>Next: set up the table</button>
+      : <button className="big" onClick={() => { setOrder([]); setScreen('table') }}>Next: set up the table</button>
     return <DeckBuilder mine={mine} deckIds={deckIds} slotIds={slotIds} onChange={(d, t) => { setDeckIds(d); setSlotIds(t) }} onRedeal={mode === 'play' ? startOnScreen : undefined}
       title={mode === 'play' ? 'Build your deck' : '3. Build your deck'} bar={bar} start={go} />
   }
 
   if (screen === 'table') {
-    const g = pre ?? makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES)
+    const g = makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES, true)
+    const tapped = order.filter(id => deckIds.includes(id))
+    const n = tapped.length
+    const tap = (id: string) => setOrder(tapped.includes(id) ? tapped.filter(x => x !== id) : n < DECK_SIZE ? [...tapped, id] : tapped)
     const stack = (name: string, cards: Card[]) => <div className="mtower"><div className="mrow">{cards.map((c, i) => <Mc key={c.id} card={c} hot={i === 0} />)}</div><span className="mlbl">{name}</span></div>
     const eStack = (name: string, n: number) => <div className="mtower"><div className="mrow">{backs(n)}</div><span className="mlbl">{name}</span></div>
     const steps: SetupStep[] = [
       { title: 'Build your three towers', pic: <div className="mcols">{stack('Left', g.P.towers.L)}{stack('King', g.P.towers.K)}{stack('Right', g.P.towers.R)}</div>,
         body: <p>{novice && <>For your first game I picked your deck and towers; next game you build your own. </>}Make three stacks <b>face-up</b> in a row in front of you, the <b>top card first</b> (gold above): <b>Left</b> {g.P.towers.L.map(label).join(' · ')}, <b>King</b> {g.P.towers.K.map(label).join(' · ')} in the middle, <b>Right</b> {g.P.towers.R.map(label).join(' · ')}. Fan each stack so you can see every card.</p> },
-      { title: 'Your hand and your queue', pic: <div className="mbars"><span className="mlbl">Hand, face-up</span><div className="row">{g.P.hand.map(c => <PlayingCard key={c.id} card={c} showCost />)}</div><span className="mlbl">Queue, face-down, top card first</span><div className="mrow">{g.P.queue.map(c => <Mc key={c.id} card={c} />)}</div></div>,
+      { title: 'Your hand and your queue', ready: n === DECK_SIZE,
+        pic: <div className="mbars"><span className="mlbl">Hand, face-up</span><div className="row">{[0, 1, 2, 3].map(i => <PlayingCard key={i} card={tapped[i] ? byId(tapped[i]) : undefined} showCost={!!tapped[i]} className={tapped[i] ? '' : 'mtodo'} />)}</div>
+          <span className="mlbl">Queue, face-up stack, top card first</span><div className="mrow">{[4, 5, 6, 7].map(i => <PlayingCard key={i} card={tapped[i] ? byId(tapped[i]) : undefined} className={`mc${tapped[i] ? '' : ' mtodo'}`} />)}</div></div>,
         body: <>
-          <p>I shuffled your 8 deck cards. Take the <b>4 hand cards</b> into your hand and stack the other <b>4 face-down</b> as your queue, in this order, top card first.</p>
-          <button onClick={reshuffle}>Shuffle again</button>
+          <p><b>Shuffle your 8 deck cards</b> and take the top <b>4 into your hand</b>. Put the other <b>4 face-up</b> in a stack: that's your queue, and its top card is the one you draw next.</p>
+          <p>{n < 4 ? <>Tap your <b>4 hand cards</b> here ({n}/4).</>
+            : n < DECK_SIZE ? <>Now fan your queue and tap its cards, <b>top card first</b> ({n - 4}/4). Then square it again.</>
+            : <>Got it: I know your hand and the order of your queue.</>}</p>
+          <div className="picker"><div className="prow">{deck.map(c => (
+            <button key={c.id} disabled={!tapped.includes(c.id) && n >= DECK_SIZE} className={`pbtn ${isRed(c) ? 'red' : ''} ${tapped.includes(c.id) ? 'sel' : ''}`} onClick={() => tap(c.id)}>{RANKS[c.rank]}{SUITS[c.suit]}</button>
+          ))}</div></div>
+          {n > 0 && <button onClick={() => setOrder([])}>Start over</button>}
         </> },
       { title: "The enemy's side", pic: <div className="mcols"><div className="mtower"><div className="mstack">{backs(6)}</div><span className="mlbl">Pile: 8</span></div>{eStack('Left', 2)}{eStack('King', 2)}{eStack('Right', 2)}</div>,
         body: <p>Shuffle the enemy's 14 cards <b>without looking</b>. Put <b>8</b> face-down as its <b>pile</b>. With the other 6, make its towers across the table, all <b>face-down</b>: <b>Left 2</b>, <b>King 2</b>, <b>Right 2</b>.</p> },
@@ -898,7 +908,7 @@ export default function App() {
     return (
       <div className="page">{bar()}
         <h1>{novice ? 3 : 4}. Set up the table</h1>
-        <Stepper steps={steps} at={setupStep} setAt={setSetupStep} done={<button className="big" onClick={() => begin(g, 'guide')}>Start the game</button>} />
+        <Stepper steps={steps} at={setupStep} setAt={setSetupStep} done={<button className="big" disabled={n !== DECK_SIZE} onClick={() => begin(makeGame(tapped.map(byId), slotIds.map(byId), mine, DEFAULT_RULES, true), 'guide')}>Start the game</button>} />
       </div>
     )
   }
@@ -1185,7 +1195,7 @@ export default function App() {
     const round = <RoundChip n={g.round} />
     const discard = (owner: 'P' | 'E') => {
       const d = g.discard.filter(x => x.owner === owner)
-      return <TablePile top={d.at(-1)} down={false} n={d.length} name="Discard" discard />
+      return <TablePile top={d.at(-1)} down={false} n={d.length} name="Discard" faces />
     }
     // with real cards the screen is the table as you sit at it: every card where it lies, all the same size
     const table = (
@@ -1205,7 +1215,7 @@ export default function App() {
             <span />
           </div>
           <div className="trow mine">
-            <TablePile top={g.P.queue[0] && { tid: g.P.queue[0].id, card: g.P.queue[0] }} down side="P" n={g.P.queue.length} name="Queue" />
+            <TablePile top={g.P.queue[0] && { tid: g.P.queue[0].id, card: g.P.queue[0] }} down={false} side="P" n={g.P.queue.length} name="Queue" faces />
             {(['L', 'K', 'R'] as const).map(k => <TowerFan key={k} k={k} items={mineSlots(k)} own cracked={g.cracked ?? []} shake={fighting.includes(`tower-P-${k}`)} />)}
             {discard('P')}
           </div>

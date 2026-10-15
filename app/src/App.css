@@ -512,6 +512,7 @@ button.linkish:active { transform: none; }
 .stepper > .row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
 .mc.side { transform: rotate(90deg); margin: 0 6px; }
 .mc.hot .cf { box-shadow: 0 0 0 3px var(--gold); }
+.mtodo { opacity: .3; } /* a card the player has not tapped in yet */
 .mgap { width: 10px; flex: none; }
 .mrow { display: flex; gap: 3px; align-items: center; }
 .mstack { position: relative; width: 44px; height: 52px; }

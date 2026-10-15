@@ -39,7 +39,7 @@ The enemy has **no elixir**: it plays exactly one card per round, whatever it co
 1. Shuffle. Deal **14 to you**, **14 to the enemy** (face-down, don't look), then **10 face-down in a row for your elixir bar**. Put the **other 14 back in the box without looking**: they sit this game out, so you can never be sure which cards the enemy has.
 2. **Your 14:** look at them. Choose **8 as your deck**; the other 6 are your **towers**: **left princess (2 cards)**, **right princess (2)**, **king (2)**. You choose the order of each stack; the top card is hit first.
    - Tip: any kind of deck can win. In testing, all-cheap, mixed and all-heavy decks win about as often; how you play decides the game.
-3. Shuffle your 8 deck cards. Take 4 as your **hand**; the other 4 are your **queue** (face-down pile).
+3. Shuffle your 8 deck cards. Take 4 as your **hand**; the other 4 are your **queue**, a face-up stack: its top card is the next one you draw.
 4. **Enemy 14:** without looking, shuffle them. 8 form its **pile** (face-down); 6 form its towers (**2 / 2 / 2**), face-down. Turn the **top card of its pile face-up**: the enemy's top card is always face-up, so you always know its next play.
 5. **Elixir:** lay your bar as a row of 10 face-down cards with a small gap after the 5th, so positions read at a glance. Turn the **5th card sideways** (still face-down). That sideways card is the **marker**: elixir = its position, counted from the left (1–10). No card sideways = 0 elixir.
    - To gain or spend elixir, straighten the marker and turn the card that many places right or left sideways instead. Never past 10.
