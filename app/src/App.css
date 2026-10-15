@@ -634,8 +634,8 @@ button.linkish:active { transform: none; }
 /* the two cards that fight next tremble, leaning toward each other (or the next card to hit a tower, and that tower);
    a card at a tower lunges at it when it hits */
 .spot > .unit { position: relative; z-index: 1; } /* every lane card is its own layer, so a trembling one keeps its place in the stack */
-.unit.tremble { animation: tremble .3s linear infinite; }
-.castle.tremble, .tfan.tremble { animation: tremble .3s linear infinite; --lean: 0px; }
+.unit.tremble { animation: tremble .3s linear .55s infinite; } /* starts once the step's moves (.5s) are over: first the cards move, then they square up */
+.castle.tremble, .tfan.tremble { animation: tremble .3s linear .55s infinite; --lean: 0px; }
 .unit.P.tremble { --lean: -1.5px; } .unit.E.tremble { --lean: 1.5px; }
 @keyframes tremble { 0%, 50%, 100% { translate: 0 0; rotate: 0deg; } 25% { translate: -1px var(--lean); rotate: -1.8deg; } 75% { translate: 1px var(--lean); rotate: 1.8deg; } }
 .unit.lunge-up { animation: lunge .45s ease-out; --to: -14px; } .unit.lunge-down { animation: lunge .45s ease-out; --to: 14px; }

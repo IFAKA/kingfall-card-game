@@ -4,7 +4,7 @@ import { DECK_SIZE, DEFAULT_RULES, RANKS, SUITS, atTower, breaksTower, compare, 
 import type { Card, Rules, StackKey, Towers, Unit } from './engine.ts'
 
 export type Stage =
-  | 'round_start' | 'my_play' | 'enemy_enter' | 'enemy_play' | 'enemy_stop'
+  | 'round_start' | 'my_play' | 'enemy_enter' | 'enemy_play' | 'enemy_peek' | 'enemy_stop'
   | 'move' | 'fight' | 'tower_enter' | 'tower_result' | 'my_last_stand' | 'last_stand_enter' | 'over'
 
 // Every physical card has a stable tracking id (tid) so the board can animate it. Enemy cards are unknown until flipped.
@@ -126,6 +126,7 @@ export function next(g0: GuideState): GuideState {
   switch (g.stage) {
     case 'round_start': return peekOr(g, 'play')
     case 'enemy_play': return peekOr(g, 'move') // one card per round: the enemy turn is over
+    case 'enemy_peek': return goMove(g)
     case 'enemy_stop': return goMove(g)
     case 'move': return resolveNext(g)
     case 'fight': return resolveNext(g)
@@ -301,6 +302,18 @@ export function enterEnemyCard(g0: GuideState, card: Card): GuideState {
   return g.stage === 'last_stand_enter' ? enemyLastStand(g) : enemyDecide(g)
 }
 
+/** On screen, the enemy's next card is flipped after its play as a step of its own, so the cards move on the step after it. */
+function peekEnemyCard(g0: GuideState, card: Card): GuideState {
+  const g = step(g0)
+  g.E.queue[0].card = card
+  g.enemySeen.push(card)
+  g.peek = undefined
+  g.stage = 'enemy_peek'
+  g.lines = [`The enemy's next card is ${label(card)}. It plays that card next round.`]
+  g.why = []
+  return g
+}
+
 /** The enemy has no elixir: it plays the top card of its pile, one card per round, whatever it costs. */
 function enemyDecide(g: GuideState): GuideState {
   const slot = g.E.queue.shift()!
@@ -339,10 +352,12 @@ function goMove(g: GuideState): GuideState {
     holdSlots.push({ lane, side: 'P', pos: c.p.pos }, { lane, side: 'E', pos: c.e.pos })
     lines.push(`${laneName(lane)} lane: your ${label(c.p.card)} and the enemy ${label(c.e.card)} are face to face, so they do NOT move. They clash next. Don't move them.`)
   }
+  const moved: Unit[] = []
   for (const u of g.units) {
     if (holdSlots.some(h => h.lane === u.lane && h.side === u.side && h.pos === u.pos)) u.held = true
-    else if (!atTower(g, u)) u.pos += u.side === 'P' ? 1 : -1
+    else if (!atTower(g, u)) { u.pos += u.side === 'P' ? 1 : -1; moved.push(u) }
   }
+  toBack(g, moved)
   g.stage = 'move'
   g.lines = [
     'MOVE every other card one slot toward the other side: your cards go away from you, enemy cards come toward you.',
@@ -388,14 +403,22 @@ export function fightingNext(g: GuideState): string[] {
   return hit(g.units.find(u => atTower(g, u)))
 }
 
+/** Cards that just stepped into a slot go to the back of it: they arrived last, so they fight after the cards already there and are
+ *  drawn after them. (Among a side's cards in one slot, the first in g.units is the front one.) */
+function toBack(g: GuideState, moved: Unit[]) {
+  g.units = [...g.units.filter(u => !moved.includes(u)), ...moved]
+}
+
 /** Held units advance into the slot the fight cleared. */
 function advance(g: GuideState, lane: 0 | 1, side: 'P' | 'E') {
+  const moved: Unit[] = []
   for (const u of g.units) {
     if (u.lane !== lane || u.side !== side || !u.held) continue
     // enemies still sharing this slot (or behind it) block the step: cards never pass through each other
     const blocked = g.units.some(x => x.lane === lane && x.side !== side && (side === 'P' ? x.pos <= u.pos : x.pos >= u.pos))
-    if (!blocked) { u.held = false; if (!atTower(g, u)) u.pos += side === 'P' ? 1 : -1 }
+    if (!blocked) { u.held = false; if (!atTower(g, u)) { u.pos += side === 'P' ? 1 : -1; moved.push(u) } }
   }
+  toBack(g, moved)
 }
 
 function kill(g: GuideState, u: Unit): string[] {
@@ -810,6 +833,11 @@ export function autoReveal(g0: GuideState, secret: Record<string, Card>): GuideS
   let g = g0
   const events = [...(g0.events ?? [])] // flipping is part of the same step, so keep what the step already did
   for (let n = 0; n < 8; n++) {
+    if (g.stage === 'enemy_enter' && g.peek === 'move') {
+      // after the enemy's play, its next card flips as a step of its own; the cards move on the step after, not at the same time
+      g = peekEnemyCard(g, secret[g.E.queue[0].tid])
+      break
+    }
     if (g.stage === 'enemy_enter' || g.stage === 'last_stand_enter') g = enterEnemyCard(g, secret[g.E.queue[0].tid])
     else if (g.stage === 'tower_enter') {
       const u = g.units.find(x => x.uid === g.hitQueue[0])!

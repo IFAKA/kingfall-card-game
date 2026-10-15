@@ -354,7 +354,7 @@ function CardPicker({ disabled, onPick, selected }: { disabled: Set<string>; onP
 }
 
 const TITLES: Record<string, string> = {
-  round_start: 'Start of the round', my_play: 'Your turn', enemy_enter: "Flip the enemy's top card", enemy_play: 'Enemy plays a card',
+  round_start: 'Start of the round', my_play: 'Your turn', enemy_enter: "Flip the enemy's top card", enemy_play: 'Enemy plays a card', enemy_peek: "The enemy's next card",
   enemy_stop: 'Enemy turn ends', move: 'Move the cards', fight: 'Fight', tower_enter: 'A tower is hit: flip its top card',
   tower_result: 'Tower hit', my_last_stand: 'Last stand: place a free card', last_stand_enter: 'Enemy last stand: flip its top card', over: 'Game over',
 }
@@ -400,7 +400,7 @@ const PULSES = ['droppulse', 'suggestglow', 'suggestring', 'flipglow']
 const readJSON = <T,>(key: string, fallback: T): T => { try { const v = localStorage.getItem(key); return v ? (JSON.parse(v) as T) : fallback } catch { return fallback } }
 const writeJSON = (key: string, v: unknown) => { try { localStorage.setItem(key, JSON.stringify(v)) } catch { /* storage full or blocked */ } }
 
-const AUTO_STAGES = ['round_start', 'enemy_play', 'enemy_stop', 'move', 'fight', 'tower_enter', 'tower_result']
+const AUTO_STAGES = ['round_start', 'enemy_play', 'enemy_peek', 'enemy_stop', 'move', 'fight', 'tower_enter', 'tower_result']
 // hold each step longer the more it shows (one line per event), so busy fights can be followed
 const autoDelay = (events: number) => Math.min(4000, 700 + 600 * events)
 
