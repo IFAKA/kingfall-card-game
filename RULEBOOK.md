@@ -20,9 +20,9 @@ In a fight (and a tower hit, which is a fight too), a card **counts double** aga
 ♠ beats ♥ · ♥ beats ♦ · ♦ beats ♣ · ♣ beats ♠.
 Example: 6♠ against J♥ fights as 12 and wins; against Q♥ it ties. Between ♠ and ♦ (or ♥ and ♣) nobody doubles.
 
-## Aces beat picture cards
-In a fight, an **ace beats a J, Q or K**, whatever the suits.
-It works both ways: an enemy ace kills your king. It counts against towers too: an ace on top of a tower stops any picture card.
+## Aces beat Kings
+In a fight, an **ace beats a K**, whatever the suits. (J and Q are ordinary cards: they beat an ace.)
+It works both ways: an enemy ace kills your king. It counts against towers too: an ace on top of a tower stops a K.
 
 ## Setup (52 = 14 + 14 + 10 + 14 in the box)
 1. Shuffle. Deal **14 to you**, **14 to the enemy** (face-down, don't look), then **10 face-down in a row for your elixir bar**. Put the **other 14 back in the box without looking**: they sit this game out, so you can never be sure which cards the enemy has.
@@ -53,12 +53,12 @@ It works both ways: an enemy ace kills your king. It counts against towers too: 
 7. **End.** Enemy king stack empty = **you win**. Yours empty = **you lose**. Both in the same round = draw. Otherwise start the next round.
 
 ## Designer's notes (from thousands of simulated games)
-- Expect to lose your first games. Random play wins about 10%, a simple rule-follower about 50%, the companion app's suggestions about 80%. Thoughtless play mostly loses; thinking wins.
-- What wins: clear enemy cards from your towers fast, push a lane when the enemy's face-up next card can't beat what you send, and stack your towers with care: a tower's top card fights back, so a heart on top stops diamonds and an ace on top stops picture cards.
+- Expect to lose some of your first games. Measured over thousands of simulated games: random play wins about 11%, following the companion app's suggestions about 72%, and a player who thinks several moves ahead about 90%. Thoughtless play mostly loses; thinking wins, and thinking harder keeps winning more.
+- What wins: clear enemy cards from your towers fast, push a lane when the enemy's face-up next card can't beat what you send, and stack your towers with care: a tower's top card fights back, so a heart on top stops diamonds and an ace on top stops a king.
 - No single card decides a game: towers shoot back, so even a king breaks at most 2 tower cards before it goes home. Taking a king tower always needs a second attacker.
 - Games last about 12–17 rounds; a long one runs to about 22.
 - Every game is winnable: cracked tower cards mean no deck is ever stuck against towers it can't break.
-- Skill is in the playing, not the deck: with a strong bot every deck type (all-cheap, mixed, all-heavy) wins about 70–82%, and a simple player copying the best deck wins less than a strong player with the worst one. Aces kill picture cards, and the wheel lets a mid card beat a big one.
-- No numbers to memorise: the wheel doubles, aces beat pictures.
+- Skill is in the playing, not the deck: with a strong bot most mixes of cheap and strong cards win within about 10 points of each other (about 67–77%), and the best split changes with the rules. The deal matters little: a deal with two aces wins about 10 points more than one with none. Aces kill kings, and the wheel lets a mid card beat a big one.
+- No numbers to memorise: the wheel doubles, aces beat kings.
 - Last stand makes comebacks more common: when a side tower falls, its owner gets a free card in that lane.
 - Dead cards return to the bottom of their owner's pile, so your 8 cards keep cycling and you will face the enemy's cards again. A card holding a tower is out of that cycle until it dies.

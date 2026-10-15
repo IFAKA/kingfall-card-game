@@ -13,8 +13,8 @@ Rank: A=1, 2–10 face value, J=11, Q=12, K=13. Suits only matter for the wheel.
 In a fight, a card **counts double** against the suit it beats (6♠ vs J♥ fights as 12 and wins):
 ♠ beats ♥ · ♥ beats ♦ · ♦ beats ♣ · ♣ beats ♠
 
-## Aces beat picture cards
-In a fight, an **ace beats a J, Q or K** (suits don't matter). Both sides use it, and it counts against towers too (a tower hit is a fight).
+## Aces beat Kings
+In a fight, an **ace beats a K** (suits don't matter; J and Q beat an ace). Both sides use it, and it counts against towers too (a tower hit is a fight).
 
 ## Setup (52 cards = 14 + 14 + 10 + 14 back in the box)
 1. Shuffle. Deal **14 to you**, **14 to the enemy** (face-down, do not look), then a **10 face-down row for you** (your elixir bar). Put the other **14 back in the box** without looking.
@@ -37,8 +37,8 @@ In a fight, an **ace beats a J, Q or K** (suits don't matter). Both sides use it
 Enemy moves in the same way against your towers (it hits your stacks; you know your cards).
 
 ## What to look for (from the bot simulator)
-- Bots say every deck type wins about as often (70–82% for a strong bot): skill is in the playing. Try an all-cheap and an all-heavy deck and see if that feels true.
-- Expected strength: random play ≈ 10% wins, a simple rule-follower ≈ 50%, the app's suggestions ≈ 80%. Expect to lose your first games.
+- Bots say most deck mixes win within about 10 points of each other (about 67–77% for a strong bot): skill is in the playing. Try an all-cheap and an all-heavy deck and see if that feels true.
+- Expected strength: random play ≈ 11% wins, the app's suggestions ≈ 72%, a player who thinks ahead ≈ 90%. Expect to lose some of your first games.
 - Estimated length: ~12–17 rounds (about 1 game in 10 goes past 22). Time yourself.
 
 ## Log (copy per game)
@@ -52,7 +52,7 @@ Enemy moves in the same way against your towers (it hits your stacks; you know y
 - Did the sideways elixir marker feel quick, or still like bookkeeping? Did the enemy feel fine with no bar (one card per round)? __
 - Did a last stand ever turn a game around? __
 - Did a card sitting at a tower feel exciting to push or to clear, or unfair? Did a single enemy card ever feel unstoppable? Did stacking your towers (suits, an ace on top) matter? Were there still rounds where nothing happened? __
-- Did an ace killing a picture card feel fair, or cheap? __
+- Did an ace killing a king feel fair, or cheap? __
 - Was doubling for the winning suit quick in your head, or did you have to stop and count? __
 - Did cracking (sideways tower cards) feel natural? Did any tower feel impossible? __
 - Would I play again right now? (y/n) __  One thing I'd change: __

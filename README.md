@@ -22,7 +22,7 @@ Free, no sign-up, works on phones and desktops.
 - **Goal:** destroy the enemy's king tower (a stack of 2 cards) before it destroys yours.
 - **Cards are soldiers.** Higher rank wins a fight (A=1 … K=13).
 - **Suit wheel:** a card of the suit that beats the other counts **double** in a fight: ♠ beats ♥, ♥ beats ♦, ♦ beats ♣, ♣ beats ♠.
-- **Aces beat picture cards** (J, Q, K) in a fight, whatever the suits.
+- **Aces beat Kings** in a fight, whatever the suits.
 - **Elixir** pays for cards. A card costs about its rank (A=1, 5=4, K=10), and you get 3 more each round, up to 10.
 - **The enemy** has no elixir: it plays one card per round, the top of its pile, and that card is always face-up, so you know its next play.
 - **Each round:** you play cards into a lane, the enemy defends the lane where you pushed harder, the front cards fight (when one falls, the card behind it steps up and fights next), then every card that hasn't moved steps forward. Cards that get through hit a tower.

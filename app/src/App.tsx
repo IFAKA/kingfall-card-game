@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import confetti from 'canvas-confetti'
-import { DECK_SIZE, DEFAULT_RULES, PER_SIDE, RANKS, SUITS, aceWins, compare, cost, deal, effective, freshDeck, isRed, label, randomSetup, shuffle, suggestSetup } from './engine'
+import { DECK_SIZE, DEFAULT_RULES, PER_SIDE, RANKS, SUITS, aceWins, cost, deal, effective, freshDeck, isRed, label, randomSetup, shuffle, suggestSetup } from './engine'
 import type { Card, Unit } from './engine'
 import {
   advise, adviseLastStand, autoReveal, canPlay, describe, endMyTurn, extendBatch, fightingNext, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary, switchCards, takeBack,
@@ -26,7 +26,7 @@ interface Saved { mode?: 'guide' | 'play'; secret?: Record<string, Card>; screen
 
 const ALL = freshDeck()
 const byId = (id: string) => ALL.find(c => c.id === id)!
-export const STORAGE_KEY = 'solo-clash-guide-v8' // bump when the rules change, so old saved games don't load into new rules
+export const STORAGE_KEY = 'solo-clash-guide-v9' // bump when the rules change, so old saved games don't load into new rules
 
 function load(): Saved | null {
   try { const s = localStorage.getItem(STORAGE_KEY); return s ? (JSON.parse(s) as Saved) : null } catch { return null }
@@ -155,7 +155,7 @@ const CHIP: Variants = {
 }
 
 // The numbers behind a fight between the card you hold and a card on the table: yours (blue chip) against theirs, the bigger one wins.
-// A suit bonus doubles a number (an enemy card's rank is struck out and its doubled value written beside it); an ace beating a picture card reads ∞.
+// A suit bonus doubles a number (an enemy card's rank is struck out and its doubled value written beside it); an ace beating a king reads ∞.
 type Verdict = { mine: string; theirs: string; mineBonus: boolean; theirsBonus: boolean; rank: string }
 type Verdicts = Record<string, Verdict>
 function VerdictTag({ v, compact }: { v?: Verdict; compact?: boolean }) {
@@ -423,11 +423,11 @@ const SuitWheel = ({ wheel = 2, pools = [] }: { wheel?: number; pools?: Pools })
     })}
   </div>
 )
-// an ace and a J, Q, K for the ace rule, seen ones first
+// an ace and a king for the ace rule, seen ones first
 const acePair = (pools: Pools): [Card, Card[]] => {
   const find = (rank: number, suit: number) => pools.flat().find(c => c.rank === rank) ?? { id: `m${rank}-${suit}`, rank, suit }
   const field = pools[0]?.find(c => c.rank === 1)
-  return [field ?? find(1, 0), [11, 12, 13].map((r, i) => (pools[0] ?? []).find(c => c.rank === r) ?? find(r, i + 1))]
+  return [field ?? find(1, 0), [13].map((r, i) => (pools[0] ?? []).find(c => c.rank === r) ?? find(r, i + 1))]
 }
 
 // The round chip on the bridge: when the round changes, the chip first glows gold with a gentle swell to catch the eye,
@@ -478,7 +478,7 @@ const cheatSheet = (g: GuideState) => { const pools = gamePools(g), [ace, pics] 
   <p><b>The higher number wins.</b> <small>A=1, 2 … 10, J=11, Q=12, K=13. Same number: both cards are lost.</small></p>
   <p><b>Suit bonus:</b> <small>each suit doubles its number against the next one: ♠ beats <R c="♥" />, <R c="♥" /> beats <R c="♦" />, <R c="♦" /> beats ♣, ♣ beats ♠. Any other pair (♠ vs <R c="♦" />, <R c="♥" /> vs ♣): no bonus.</small></p>
   <SuitWheel wheel={g.rules.wheel} pools={pools} />
-  <p><b>Aces beat J, Q, K</b> <small>even at towers, for the enemy too</small></p>
+  <p><b>Aces beat Kings</b> <small>even at towers, for the enemy too</small></p>
   <div className="fights"><Beats win={show(ace)} lose={<>{pics.map(c => <Fragment key={c.id}>{show(c)}</Fragment>)}</>} /></div>
 </div>) }
 
@@ -489,7 +489,7 @@ const RULES_60 = (<>
   <details className="help"><summary>All the rules</summary><ul>
     <li><b>Goal:</b> destroy the enemy's <b>king tower</b> (a stack of 2 cards) before it destroys yours.</li>
     <li><b>Cards</b> are soldiers. Higher rank wins a fight (A=1 … K=13). A card of the suit that beats the other counts <b>double</b>: ♠→♥, ♥→♦, ♦→♣, ♣→♠.<SuitWheel /></li>
-    <li><b>Aces beat picture cards</b> (J, Q, K) in a fight, whatever the suits, and against towers too. Watch out: it works for the enemy as well.</li>
+    <li><b>Aces beat Kings</b> in a fight, whatever the suits, and against towers too. Watch out: it works for the enemy as well.</li>
     <li><b>Elixir</b> pays for your soldiers: a card costs about its rank (A=1, 5=4, 8=6, K=10). You get 3 more each round, max 10. The enemy has no elixir: it plays <b>one card per round</b>, the top of its pile.</li>
     <li>Each round: <b>you play</b> cards into a lane, then the <b>enemy</b> plays its top card into the lane where you have <b>more</b> cards (it defends; on a tie, where your highest-ranked card is, then left), then the front cards <b>fight</b> where they stand. When one falls, the card behind it <b>steps up</b> one slot and fights the winner. Then every card that hasn't moved <b>moves</b> one slot. Survivors reaching the other end hit a tower.</li>
     <li><b>A tower hit is a fight</b> against the tower's top card (the wheel and aces count). Win or tie, and the tower card <b>breaks</b>: your soldier stays, turned sideways (<b>wounded</b>), hits <b>once more</b> next round, then goes back to its pile. Lose, and the tower shoots it back: it goes back to its pile and the tower card <b>cracks</b> (turn it sideways, move it to the bottom of that tower). Any later hit breaks a cracked card. Each tower has 2 cards. The king can only be hit after the princess tower in that lane is gone.</li>
@@ -507,7 +507,7 @@ const TIPS: Record<TipId, string> = {
   elixir: 'Elixir pays for cards: +3 every round. Done? Press ✓ and the enemy moves.',
   change: 'Changed your mind? Before ✓, drag a placed card back to your hand or to the other lane.',
   enemy: 'The enemy defends the lane where you have more cards. Its Next card is what it plays next.',
-  fight: 'Higher rank wins. The suit that beats the other counts ×2. Aces beat J, Q, K. Need it again? Tap the ⚔ button, top left.',
+  fight: 'Higher rank wins. The suit that beats the other counts ×2. Aces beat Kings. Need it again? Tap the ⚔ button, top left.',
   tower: 'A card at a tower fights its top card. Win or tie: the tower card breaks. The king is safe until its side tower falls.',
   crack: 'Lost at a tower? The card goes back to its pile, but the tower card cracks: the next hit breaks it.',
   next: 'The Next card, between your lanes, joins your hand when you play. Cards that die come back later.',
@@ -973,8 +973,17 @@ export default function App() {
   )
   // the whole log as a text file, to keep or send
   const exportLog = () => {
-    const head = ['Kingfall game log', new Date().toLocaleString(), `Mode: ${mode === 'guide' ? 'real cards' : 'on screen'}`, stage === 'over' ? `Result: ${g.winner === 'P' ? 'you won' : g.winner === 'E' ? 'you lost' : 'draw'} after ${g.round} rounds` : `Unfinished: round ${g.round}`, '']
-    const url = URL.createObjectURL(new Blob([[...head, ...g.log].join('\n') + '\n'], { type: 'text/plain' }))
+    const cards = (ids: string[]) => ids.map(id => label(byId(id))).join(' ')
+    const help = mode === 'play' ? (suggestOn ? 'suggestions on' : 'suggestions off') : (explainOn ? 'explanations on' : 'explanations off')
+    const head = [
+      'Kingfall game log', new Date().toLocaleString(), `Mode: ${mode === 'guide' ? 'real cards' : 'on screen'} (${help}${intro?.deck ? ', first game' : ''})`,
+      `Rules: aces beat kings${g.rules.aceMin === 13 ? ' only' : ''}, elixir cap ${g.rules.cap}`,
+      stage === 'over' ? `Result: ${g.winner === 'P' ? 'you won' : g.winner === 'E' ? 'you lost' : 'draw'} after ${g.round} rounds` : `Unfinished: round ${g.round}`,
+      `Your 14 cards: ${g.dealt.map(label).join(' ')} (${g.dealt.filter(c => c.rank === 1).length} aces)`,
+      deckIds.length ? `Your deck: ${cards(deckIds)}` : '', slotIds.length ? `Your towers (left, left, right, right, king, king): ${cards(slotIds)}` : '',
+      g.enemySeen.length ? `Enemy cards seen: ${g.enemySeen.map(label).join(' ')}` : '',
+      `Your record before this log: ${record.wins} wins in ${record.games} games`, '']
+    const url = URL.createObjectURL(new Blob([[...head.filter(l => l !== '' || l === head.at(-1)), ...g.log].join('\n') + '\n'], { type: 'text/plain' }))
     const a = Object.assign(document.createElement('a'), { href: url, download: `kingfall-log-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.txt` })
     a.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)

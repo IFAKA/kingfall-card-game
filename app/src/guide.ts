@@ -65,7 +65,7 @@ const clone = (g: GuideState): GuideState => structuredClone(g)
 const step = (g0: GuideState): GuideState => ({ ...clone(g0), events: [], batched: undefined })
 const emit = (g: GuideState, e: GameEvent) => { (g.events ??= []).push(e) }
 const bonusNote = (a: Card, b: Card, r: Rules) =>
-  aceWins(a, b, r) ? ' (ace: beats pictures)' : effective(a, b, r.wheel) > a.rank ? ` (winning suit: counts double, ${effective(a, b, r.wheel)})` : ''
+  aceWins(a, b, r) ? ' (ace: beats a king)' : effective(a, b, r.wheel) > a.rank ? ` (winning suit: counts double, ${effective(a, b, r.wheel)})` : ''
 
 export function makeGame(deck: Card[], towerSlots: Card[], dealt: Card[], rules: Rules = DEFAULT_RULES): GuideState {
   const d = shuffle(deck)
@@ -513,7 +513,7 @@ function resolveNext(g: GuideState): GuideState {
       res = [`The ENEMY ${label(e.card)} WINS and stays where it is.`, ...kill(g, p)]
       g.log.push(`Enemy ${label(e.card)} beats your ${label(p.card)}.`)
       if (aceWins(e.card, p.card, g.rules)) {
-        (g.stats.aceLosses ??= []).push(`The enemy ${label(e.card)} beat your ${label(p.card)}: aces beat J, Q and K. When the enemy's next card is an ace, meet it with a cheap card, not a picture card.`)
+        (g.stats.aceLosses ??= []).push(`The enemy ${label(e.card)} beat your ${label(p.card)}: an ace beats a king. When the enemy's next card is an ace, meet it with a cheap card, not a king.`)
       } else if (ev > e.card.rank && p.card.rank > e.card.rank) {
         (g.stats.wheelLosses ??= []).push(`Your ${label(p.card)} lost to ${label(e.card)}: ${SUITS[e.card.suit]} beats ${SUITS[p.card.suit]}, so the ${RANKS[e.card.rank]} counted double. Check the wheel before you pick a card: ♠ › ♥ › ♦ › ♣ › ♠.`)
       }
@@ -521,7 +521,7 @@ function resolveNext(g: GuideState): GuideState {
     g.stage = 'fight'
     g.lines = [head, ...res]
     g.why = [ace
-      ? 'Aces beat picture cards (J, Q, K), whatever the suits. The winner stays and fights the next card; the loser goes to the bottom of its pile.'
+      ? 'An ace beats a king, whatever the suits. The winner stays and fights the next card; the loser goes to the bottom of its pile.'
       : 'The front cards fight where they stand. Higher rank wins; a card of the suit that beats the other counts double. The winner stays and fights the next card; the loser goes to the bottom of its pile.']
     return g
   }
@@ -617,7 +617,7 @@ function resolveHit(g: GuideState, u: Unit, k: StackKey): GuideState {
   const broken = wasCracked || won
   const av = effective(u.card, top, g.rules.wheel), tv = effective(top, u.card, g.rules.wheel)
   const versus = aceWins(u.card, top, g.rules) || aceWins(top, u.card, g.rules)
-    ? `${label(aceWins(u.card, top, g.rules) ? u.card : top)} is an ace, and aces beat picture cards`
+    ? `${label(aceWins(u.card, top, g.rules) ? u.card : top)} is an ace, and an ace beats a king`
     : `${label(u.card)}${av > u.card.rank ? ` counts ${av}` : ''} ${won ? '≥' : '<'} ${label(top)}${tv > top.rank ? ` counts ${tv}` : ''}`
   const stackLeft = (mineHit ? g.E.towers[k] : g.P.towers[k]).length - (broken ? 1 : 0)
   emit(g, { type: 'tower', side: u.side, tid: u.tid!, card: u.card, stack: k, top: { tid: topId, card: top }, result: broken ? 'break' : 'crack', wasCracked, destroyed: stackLeft === 0 })
@@ -864,7 +864,7 @@ export function describe(e: GameEvent): string | null {
     case 'fight': {
       const { mine, theirs } = e
       const head = e.winner === 'P' ? `Your ${label(mine.card)} beats ${label(theirs.card)}` : e.winner === 'E' ? `Enemy ${label(theirs.card)} beats your ${label(mine.card)}` : `${label(mine.card)} ties ${label(theirs.card)} (${mine.value} vs ${theirs.value}): both are removed`
-      if (e.ace) return `${head}: aces beat picture cards.`
+      if (e.ace) return `${head}: an ace beats a king.`
       if (e.double) {
         const [d, o] = e.double === 'P' ? [mine, theirs] : [theirs, mine]
         return `${head}: ${SUITS[d.card.suit]} beats ${SUITS[o.card.suit]}, so ${RANKS[d.card.rank]} counts double (${d.value} vs ${o.value}).`

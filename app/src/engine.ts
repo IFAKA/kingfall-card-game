@@ -12,7 +12,7 @@ export interface SideState {
   towers: Towers
   revealed: Record<StackKey, boolean> // top card face-up (used for the enemy)
 }
-export interface Rules { regen: number; startElixir: number; cap: number; wheel: number; laneLen: number; acesBeatPictures: boolean } // wheel: rank multiplier for the winning suit (1 = off)
+export interface Rules { regen: number; startElixir: number; cap: number; wheel: number; laneLen: number; acesBeatPictures: boolean; aceMin?: number } // aceMin: lowest rank an ace beats (13 = kings only: the default; 11 = J, Q and K, the first rules); wheel: rank multiplier for the winning suit (1 = off)
 export interface GameState {
   rules: Rules
   tick: number
@@ -31,7 +31,7 @@ export const label = (c: Card) => `${RANKS[c.rank]}${SUITS[c.suit]}`
 export const cost = (rank: number) => Math.floor((rank * 10) / 13 + 0.5)
 export const isRed = (c: Card) => c.suit === 1 || c.suit === 2
 
-export const DEFAULT_RULES: Rules = { regen: 3, startElixir: 5, cap: 10, wheel: 2, laneLen: 2, acesBeatPictures: true }
+export const DEFAULT_RULES: Rules = { regen: 3, startElixir: 5, cap: 10, wheel: 2, laneLen: 2, acesBeatPictures: true, aceMin: 13 }
 
 export function freshDeck(): Card[] {
   const d: Card[] = []
@@ -130,8 +130,8 @@ export function effective(a: Card, b: Card, wheel: number) {
   return a.rank * (b.suit === (a.suit + 1) % 4 ? wheel : 1)
 }
 
-/** Aces beat picture cards (J, Q, K) outright, ignoring the wheel. */
-export const aceWins = (a: Card, b: Card, rules: Rules) => rules.acesBeatPictures && a.rank === 1 && b.rank >= 11
+/** Aces beat kings outright, ignoring the wheel (aceMin: the lowest rank an ace beats; 13 = kings only). */
+export const aceWins = (a: Card, b: Card, rules: Rules) => rules.acesBeatPictures && a.rank === 1 && b.rank >= (rules.aceMin ?? 13)
 
 /** Fight result for card a against card b: 1 = a wins, -1 = b wins, 0 = tie (both removed). */
 export function compare(a: Card, b: Card, rules: Rules): number {
@@ -198,7 +198,7 @@ function fight(g: GameState, lane: 0 | 1) {
     const e = es.reduce((a, b) => (b.pos < a.pos ? b : a))
     if (p.pos < e.pos) return
     const res = compare(p.card, e.card, g.rules)
-    const bonus = (a: Card, b: Card) => (aceWins(a, b, g.rules) ? ' (ace beats pictures)' : effective(a, b, g.rules.wheel) > a.rank ? ' (suit ×2)' : '')
+    const bonus = (a: Card, b: Card) => (aceWins(a, b, g.rules) ? ' (ace beats a king)' : effective(a, b, g.rules.wheel) > a.rank ? ' (suit ×2)' : '')
     if (res === 0) {
       g.log.push(`${label(p.card)}${bonus(p.card, e.card)} ties ${label(e.card)}${bonus(e.card, p.card)}: both removed.`)
       kill(g, p)

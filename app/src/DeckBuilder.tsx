@@ -27,7 +27,7 @@ const GUIDE = <>
   <p><b>Three rules of thumb</b></p>
   <ul>
     <li><b>Mix your costs:</b> a few strong cards to break towers, and enough cheap ones (cost 1 to 3) to play something every round.</li>
-    <li><b>Put an ace on top of a tower:</b> it beats any J, Q or K that reaches it.</li>
+    <li><b>Put an ace on top of a tower:</b> it beats any King that reaches it.</li>
     <li><b>Mix your suits,</b> so the suit wheel can work for you whatever the enemy plays.</li>
   </ul>
   <details className="help"><summary>Everything about cards and decks</summary>
@@ -35,14 +35,14 @@ const GUIDE = <>
   <ul>
     <li><b>Cost:</b> stronger cards cost more elixir to play (the purple number: 2→2, 6→5, 10→8, K→10).</li>
     <li><b>Suit wheel:</b> ♠ beats ♥, ♥ beats ♦, ♦ beats ♣, ♣ beats ♠ — a card of the winning suit counts double in that fight (a 6♠ fights a J♥ as 12).</li>
-    <li><b>Aces beat picture cards:</b> an ace wins any fight against a J, Q or K, whatever the suits, and towers count too.</li>
-    <li><b>Towers:</b> a tower card fights back. A soldier must win or tie a fight against the tower's front card to break it (the wheel and aces count), so an ace on top of a tower stops any picture card. A failed hit cracks that card, and any later hit breaks a cracked card.</li>
+    <li><b>Aces beat Kings:</b> an ace wins any fight against a K, whatever the suits, and towers count too.</li>
+    <li><b>Towers:</b> a tower card fights back. A soldier must win or tie a fight against the tower's front card to break it (the wheel and aces count), so an ace on top of a tower stops a King. A failed hit cracks that card, and any later hit breaks a cracked card.</li>
   </ul>
   <p><b>Building a good deck.</b></p>
   <ul>
     <li>Your 8 deck cards are the soldiers you play; the other 6 are your towers. Swap cards between them until you like both.</li>
     <li>It's a trade-off: <b>strong cards are great soldiers but cost a lot</b>. You get only 3 elixir per round, so a deck of all kings can barely play anything.</li>
-    <li><b>Any kind of deck can win.</b> In thousands of simulated games, all-cheap, mixed and all-heavy decks win about as often: what decides the game is how you play it. Cheap cards answer big ones through aces (they kill picture cards for 1 elixir) and the wheel (a mid card can beat a big one); heavy cards break towers and stay there. Watch out: an enemy ace can kill your king.</li>
+    <li><b>Any kind of deck can win.</b> In thousands of simulated games, most mixes of cheap and strong cards win within about 10 points of each other: what decides the game is how you play it. Cheap cards answer big ones through aces (they kill a King for 1 elixir) and the wheel (a mid card can beat a big one); heavy cards break towers and stay there. Watch out: an enemy ace can kill your K.</li>
     <li>Don't put <i>all</i> your best cards in the deck: the cards you leave out are your tower armor. A mix of suits helps the wheel work for you.</li>
     <li>Your cards arrive split at random: building the deck is up to you. Stuck? "Suggest" sets a good split and says why; change it from there. On screen, "Deal" shuffles all 52 cards and deals you (and the enemy) new cards, again split at random.</li>
   </ul>

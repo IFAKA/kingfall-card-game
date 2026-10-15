@@ -104,7 +104,7 @@ const pct = (x: number) => `${(x * 100).toFixed(0)}%`
 const strong = playGuided(400, suggestions, 7)
 check(strong.error === null, `rules stay consistent in 400 games with the app's suggestions${strong.error ? ` (${strong.error})` : ''}`)
 check(strong.unfinished === 0, `every game finishes (${strong.unfinished} unfinished)`)
-check(strong.winRate >= 0.7 && strong.winRate <= 0.92, `following the suggestions wins 70–92% (got ${pct(strong.winRate)}, ${strong.avgRounds.toFixed(0)} rounds on average)`)
+check(strong.winRate >= 0.6 && strong.winRate <= 0.82, `following the suggestions wins 60–82% (got ${pct(strong.winRate)}, ${strong.avgRounds.toFixed(0)} rounds on average)`)
 check(strong.avgRounds >= 8 && strong.avgRounds <= 18, `games are short: 8–18 rounds on average (got ${strong.avgRounds.toFixed(1)})`)
 
 const batched = playGuided(400, suggestions, 7, true)
@@ -146,8 +146,8 @@ check(cost(1) === 1 && cost(5) === 4 && cost(9) === 7 && cost(13) === 10, 'cost 
   // ranks with suits that give no wheel bonus either way (♠ vs ♦), unless noted
   const c = (rank: number, suit = 0): Card => ({ id: `${rank}-${suit}`, rank, suit })
   const R = DEFAULT_RULES
-  check(compare(c(1), c(11, 2), R) === 1 && compare(c(1), c(13, 2), R) === 1, 'aces beat picture cards: A beats J and K')
-  check(compare(c(2), c(11, 2), R) === -1 && compare(c(1), c(10, 2), R) === -1, 'only aces, only against pictures: J beats 2, 10 beats A')
+  check(compare(c(1), c(13, 2), R) === 1 && compare(c(1), c(13, 0), R) === 1, 'aces beat kings: A beats K of any suit')
+  check(compare(c(2), c(11, 2), R) === -1 && compare(c(1), c(10, 2), R) === -1 && compare(c(1), c(11, 2), R) === -1 && compare(c(1), c(12, 2), R) === -1, 'only aces, only against kings: J and Q beat A, 10 beats A, J beats 2')
   check(compare(c(13, 0), c(1, 1), R) === -1, 'aces ignore the wheel: A♥ beats K♠ even though ♠ beats ♥')
   check(compare(c(6, 0), c(11, 1), R) === 1 && compare(c(6, 0), c(12, 1), R) === 0 && compare(c(5, 0), c(11, 1), R) === -1, 'winning suit counts double: 6♠ beats J♥, ties Q♥; 5♠ loses to J♥')
   check(compare(c(7), c(9, 2), R) === -1 && compare(c(7), c(7, 2), R) === 0, 'no wheel between ♠ and ♦: higher rank wins, equal ranks tie')
@@ -186,8 +186,8 @@ check(cost(1) === 1 && cost(5) === 4 && cost(9) === 7 && cost(13) === 10, 'cost 
   const c = (rank: number, suit = 0): Card => ({ id: `t${rank}-${suit}`, rank, suit })
   const R = DEFAULT_RULES
   check(breaksTower(c(6, 0), c(11, 1), R) && breaksTower(c(9), c(9, 2), R), 'towers: 6♠ breaks a J♥ (♠ beats ♥, it counts 12), and a tie breaks too')
-  check(!breaksTower(c(13, 2), c(1, 1), R) && !breaksTower(c(13, 2), c(7, 1), R) && breaksTower(c(1), c(12, 2), R),
-    'towers: an ace on top stops a K, a 7♥ stops a K♦ (counts 14), and an attacking ace breaks a Q')
+  check(!breaksTower(c(13, 2), c(1, 1), R) && !breaksTower(c(13, 2), c(7, 1), R) && breaksTower(c(1), c(13, 2), R) && !breaksTower(c(1), c(12, 2), R),
+    'towers: an ace on top stops a K, a 7♥ stops a K♦ (counts 14), an attacking ace breaks a K but not a Q')
 }
 
 {
@@ -251,15 +251,15 @@ check(cost(1) === 1 && cost(5) === 4 && cost(9) === 7 && cost(13) === 10, 'cost 
   const d = freshDeck()
   let g: GuideState = { ...makeGame(d.slice(0, DECK_SIZE), d.slice(DECK_SIZE, PER_SIDE), d.slice(0, PER_SIDE)), stage: 'my_play', turn: [], nextUid: 3 }
   g.units = [{ uid: 1, card: c(11, 1), side: 'P', lane: 1, pos: 1, tid: 'J' }, { uid: 2, card: c(1, 0), side: 'P', lane: 1, pos: 0, tid: 'A' }]
-  g.E.queue = [{ tid: 'Q', card: c(12, 1) }, { tid: 'N', card: c(9, 3) }]
-  g = endMyTurn(g) // the enemy plays Q♥ into the right lane, facing your J♥
+  g.E.queue = [{ tid: 'Q', card: c(13, 1) }, { tid: 'N', card: c(9, 3) }]
+  g = endMyTurn(g) // the enemy plays K♥ into the right lane, facing your J♥
   const seen: string[] = []
   for (let n = 0; n < 6 && g.stage !== 'round_start'; n++) {
     g = next(g)
     seen.push(`${g.stage} ${g.units.map(u => `${u.tid}${u.pos}`).join(' ')}`)
   }
   check(seen.slice(0, 3).join(' | ') === 'fight A0 Q1 | step_up Q1 A1 | fight A1',
-    `J♥ and Q♥ fight first, then A♠ steps up behind the fallen J♥ (to the end of the slot), then A♠ fights Q♥ (got: ${seen.join(' | ')})`)
+    `J♥ and K♥ fight first, then A♠ steps up behind the fallen J♥ (to the end of the slot), then A♠ fights K♥ (got: ${seen.join(' | ')})`)
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nall checks passed')
