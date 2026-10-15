@@ -413,7 +413,7 @@ const wheelPair = (w: number, l: number, wheel: number, pools: Pools): [Card, Ca
   }
   return [{ id: `m6-${w}`, rank: 6, suit: w }, { id: `m11-${l}`, rank: 11, suit: l }]
 }
-const show = (c: Card) => <CardView card={c} big small />
+const show = (c: Card) => <CardView card={c} small />
 // the numbers are written under the cards: a 6 beating a J only makes sense once you see 6 × 2 = 12 against 11
 const SuitWheel = ({ wheel = 2, pools = [] }: { wheel?: number; pools?: Pools }) => (
   <div className="suitwheel" role="img" aria-label="Spades beat hearts, hearts beat diamonds, diamonds beat clubs, clubs beat spades; the winning suit counts double">
@@ -1063,7 +1063,7 @@ export default function App() {
       ? wide
         ? Math.max(44, Math.min((view.sh - 160) / 5.9, (Math.min(view.sw - 420, 760) - 60) / 7.4 / 0.714, (380 - 40) / 5 / 0.714, 128)) // the hand (4 cards + Done) fits the 380px column
         : Math.max(44, Math.min((view.sh - 300) / 6.84, (aw - 60) / 7.4 / 0.714, 128))
-      : Math.max(52, Math.min((view.sh - 196) / 6.9, (aw - 72) / 4.75 / 0.714, 128))
+      : Math.max(52, Math.min((view.sh - 218) / 6.9, (aw - 72) / 4.75 / 0.714, 128))
     const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px` } as CSSProperties
     const prompt = stage === 'my_play' ? 'Your turn: drag a card onto a lane, then tap ✓.' : standing ? TITLES[stage] : stage === 'round_start' ? `Round ${g.round}: you get ${g.rules.regen} more elixir.` : 'Enemy turn…'
     // the enemy's last-stand card came in during its turn: your turn still says where it came from, until it has fought
