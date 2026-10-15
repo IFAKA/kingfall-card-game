@@ -64,4 +64,4 @@
 /* the suggestion's why reuses the tutorial's floating tip, over the towers just above the start bar */
 .dpanel.deck { position: relative; }
 .coach.dcoach { top: 50px; bottom: auto; left: 8px; right: 8px; width: auto; transform: none; z-index: 40; }
-.coach.dcoach::after { left: 310px; margin-left: 0; top: -12px; bottom: auto; border: 10px solid transparent; border-top: 0; border-bottom: 12px solid var(--gold-d); } /* (the tutorial tip points down; this one points up at Suggest) */
+.coach.dcoach::after { left: 199px; margin-left: 0; top: -12px; bottom: auto; border: 10px solid transparent; border-top: 0; border-bottom: 12px solid var(--gold-d); } /* (the tutorial tip points down; this one points up at Suggest) */
