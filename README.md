@@ -28,7 +28,7 @@ Free, no sign-up, works on phones and desktops.
 - **Each round:** you play cards into a lane, the enemy defends the lane where you pushed harder, the front cards fight (when one falls, the card behind it steps up and fights next), then every card that hasn't moved steps forward. Cards that get through hit a tower.
 - **Towers fight back:** a hit is a fight against the top tower card (the wheel and aces count). Win or tie and it breaks, and your card stays, wounded, for one more hit. Lose and the tower card cracks, and any later hit breaks it.
 
-Full rules: [RULEBOOK.md](RULEBOOK.md) · Printable rulebook (2 pages, A4): [print/Kingfall-Rulebook.pdf](print/Kingfall-Rulebook.pdf)
+Full rules: [RULEBOOK.md](RULEBOOK.md) · Printable rulebook (3 pages, A4): [print/Kingfall-Rulebook.pdf](print/Kingfall-Rulebook.pdf)
 
 ## Features
 

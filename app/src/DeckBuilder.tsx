@@ -24,7 +24,6 @@ const PEEK = 0.5
 const GATHER_MS = 420, DEAL_MS = 55, FLY = 0.35
 
 // the rules of thumb, and the one thing worth knowing before you worry about them; how cards fight is in How to play
-const WHY_KEY = 'kingfall-suggest-why-seen'
 const GUIDE = <>
   <ul>
     <li><b>Mix your costs.</b> Strong cards break towers but cost a lot, and you get only 3 elixir a round: keep enough cheap ones (cost 1 to 3) to play something every round.</li>
@@ -34,6 +33,9 @@ const GUIDE = <>
   </ul>
   <p><b>Any kind of deck can win.</b> In thousands of simulated games, most mixes of cheap and strong cards win within about 10 points of each other: how you play decides the game.</p>
 </>
+
+// set once the suggestion's why has been read: it is told only the first time Suggest is used
+const WHY_KEY = 'kingfall-suggest-why-seen'
 
 type Spot = { zone: 'deck'; id: string } | { zone: 'tower'; i: number }
 
