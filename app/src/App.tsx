@@ -33,13 +33,14 @@ function load(): Saved | null {
 }
 
 // ---------- small components ----------
-function CardView({ card, down, showCost, selected, dim, small, onClick }: {
-  card?: Card | null; down?: boolean; showCost?: boolean; selected?: boolean; dim?: boolean; small?: boolean; onClick?: () => void
+function CardView({ card, down, showCost, selected, dim, small, big, onClick }: {
+  card?: Card | null; down?: boolean; showCost?: boolean; selected?: boolean; dim?: boolean; small?: boolean; big?: boolean; onClick?: () => void
 }) {
   if (!card || down) return <div className={`card back ${small ? 'small' : ''}`} onClick={onClick} />
   return (
     <div className={`card face ${isRed(card) ? 'red' : 'black'} ${selected ? 'selected' : ''} ${dim ? 'dim' : ''} ${small ? 'small' : ''} ${onClick ? 'clickable' : ''}`} onClick={onClick}>
       <div className="corner">{RANKS[card.rank]}<br />{SUITS[card.suit]}</div>
+      {big && <div className="bigpip">{SUITS[card.suit]}</div>}
       {showCost && <div className="cost" title="elixir cost">{cost(card.rank)}</div>}
     </div>
   )
@@ -369,12 +370,18 @@ function Logo({ small }: { small?: boolean }) {
   )
 }
 
-// Each suit beats the next one clockwise; the loop is drawn as a loop so ♣ → ♠ reads as clearly as the rest.
+// Every rule is drawn as a real fight between cards. Suits: same rank, so only the wheel decides (the winner counts double).
+const WHEEL: [number, number][] = [[0, 1], [1, 2], [2, 3], [3, 0]]
+const mini = (rank: number, suit: number) => <CardView card={{ id: `m${rank}-${suit}`, rank, suit }} big small />
+const Beats = ({ win, lose, winText, loseText }: { win: ReactNode; lose: ReactNode; winText?: ReactNode; loseText?: ReactNode }) => (
+  <div className="fight">
+    <span className="side win">{win}{winText && <em>{winText}</em>}</span><i>&gt;</i><span className="side"><span className="lose">{lose}</span>{loseText && <em>{loseText}</em>}</span>
+  </div>
+)
+// the numbers are written under the cards: a 6 beating a J only makes sense once you see 6 × 2 = 12 against 11
 const SuitWheel = () => (
   <div className="suitwheel" role="img" aria-label="Spades beat hearts, hearts beat diamonds, diamonds beat clubs, clubs beat spades; the winning suit counts double">
-    <i className="n">♠</i><i className="e r">♥</i><i className="s r">♦</i><i className="w">♣</i>
-    <em className="ne">→</em><em className="se">→</em><em className="sw">→</em><em className="nw">→</em>
-    <b>×2</b>
+    {WHEEL.map(([w, l]) => <Beats key={w} win={mini(6, w)} lose={mini(11, l)} winText={<>6 ×2 = <b>12</b></>} loseText="J = 11" />)}
   </div>
 )
 
@@ -421,14 +428,14 @@ function RoundChip({ n }: { n: number }) {
 }
 
 // the one thing you look up mid-game, without going through the menu
-const CHEAT = (<>
+const R = ({ c }: { c: string }) => <span className="rs">{c}</span>
+const CHEAT = (<div className="cheat">
+  <p><b>The higher number wins.</b> <small>A=1, 2 … 10, J=11, Q=12, K=13. Same number: both cards are lost.</small></p>
+  <p><b>Suit bonus:</b> <small>each suit doubles its number against the next one: ♠ beats <R c="♥" />, <R c="♥" /> beats <R c="♦" />, <R c="♦" /> beats ♣, ♣ beats ♠. Any other pair (♠ vs <R c="♦" />, <R c="♥" /> vs ♣): no bonus.</small></p>
   <SuitWheel />
-  <ul>
-    <li><b>Higher rank wins</b> (A=1 … K=13).</li>
-    <li>The suit that beats the other counts <b>×2</b>: ♠→♥→♦→♣→♠.</li>
-    <li><b>Aces beat J, Q, K</b>, even at towers (for the enemy too).</li>
-  </ul>
-</>)
+  <p><b>Aces beat J, Q, K</b> <small>even at towers, for the enemy too</small></p>
+  <div className="fights"><Beats win={mini(1, 0)} lose={<>{mini(11, 1)}{mini(12, 2)}{mini(13, 3)}</>} /></div>
+</div>)
 
 const RULES_60 = (<>
   <p><b>Goal:</b> break the enemy's <b>king tower</b> before it breaks yours.</p>

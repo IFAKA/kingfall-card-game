@@ -785,13 +785,24 @@ button.fkey:disabled { opacity: .25; filter: none; }
 /* the ring is drawn outside the card, so the slot keeps clear of the armor pips above it */
 .castle .tslot { margin-top: 5px; }
 /* the rules page draws the suit order as a loop: each suit beats the next one clockwise, the winner counts double */
-.suitwheel { display: grid; grid-template: repeat(3, 1.6em) / repeat(3, 1.6em); place-items: center; width: max-content; margin: 8px auto 2px; font-size: 22px; line-height: 1; }
-.suitwheel i { font-style: normal; } .suitwheel i.r { color: #ff6b78; }
-.suitwheel .n { grid-area: 1 / 2; } .suitwheel .e { grid-area: 2 / 3; } .suitwheel .s { grid-area: 3 / 2; } .suitwheel .w { grid-area: 2 / 1; }
-.suitwheel em { font-style: normal; font-size: .7em; opacity: .7; }
-.suitwheel .ne { grid-area: 1 / 3; transform: rotate(45deg); } .suitwheel .se { grid-area: 3 / 3; transform: rotate(135deg); }
-.suitwheel .sw { grid-area: 3 / 1; transform: rotate(225deg); } .suitwheel .nw { grid-area: 1 / 1; transform: rotate(315deg); }
-.suitwheel b { grid-area: 2 / 2; font-size: .7em; color: var(--gold); }
+.cheat { display: flex; flex-direction: column; gap: 4px; }
+.cheat p { margin: 4px 0 0; font-size: 15px; line-height: 1.25; text-align: center; } .cheat small { opacity: .85; font-size: 13px; }
+.cheat p.note { margin: 0; }
+.cheat b { color: var(--gold); }
+.cheat .card { width: 34px; height: 48px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,.5); animation: none; }
+.cheat .card .corner { font-size: 10px; left: 3px; top: 2px; }
+.cheat .card .bigpip { font-size: 20px; bottom: 3px; }
+.fights, .suitwheel { display: grid; gap: 6px 10px; justify-items: center; }
+.fights { grid-template-columns: 1fr; } .suitwheel { grid-template-columns: 1fr 1fr; }
+.cheat .rs { color: #ff6b78; }
+.fight em { font-style: normal; font-size: 12px; white-space: nowrap; }
+.fight .side { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.fight { display: flex; align-items: center; gap: 8px; padding: 5px 10px; background: rgba(255,255,255,.08); border-radius: 10px; }
+.fight i { font-style: normal; color: #ffd36b; font-weight: 900; font-size: 18px; }
+.fight .win .card { box-shadow: 0 0 0 2px #ffd36b; }
+.fight .lose { display: flex; gap: 4px; }
+.card .bigpip { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font-size: 28px; line-height: 1; }
+.card.small .bigpip { font-size: 24px; }
 /* after a first game: what changes in the next one */
 .gonext { margin: 0 0 14px; font-size: 15px; line-height: 1.4; color: rgba(255,255,255,.8); }
 /* your own results: on the title under the tagline, and at the end of a game */
