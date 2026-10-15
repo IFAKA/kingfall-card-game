@@ -7,7 +7,7 @@
 Free, no sign-up, works on phones and desktops.
 
 <p align="center">
-  <img src="docs/screenshots/arena.png" alt="Kingfall on a phone: red enemy castles at the top, blue castles at the bottom, two lanes with a river, a ×2 suit bonus pop-up, the enemy's next card with its elixir cost in the middle and the hand of cards below" width="300" />
+  <img src="docs/screenshots/arena.png" alt="Kingfall on screen: red enemy castles at the top with cracked tower cards, blue castles at the bottom with one fallen, your card attacking an enemy tower, a ×2 suit bonus pop-up in the left lane, the enemy's face-up next card in the middle and your hand with the next card and the Done button below" width="300" />
   &nbsp;
   <img src="docs/screenshots/title.png" alt="Kingfall title screen with a gold crown logo and the Play, Play with real cards and How to play buttons" width="520" />
 </p>
@@ -24,25 +24,27 @@ Free, no sign-up, works on phones and desktops.
 - **Suit wheel:** a card of the suit that beats the other counts **double** in a fight: ♠ beats ♥, ♥ beats ♦, ♦ beats ♣, ♣ beats ♠.
 - **Aces beat picture cards** (J, Q, K) in a fight, whatever the suits.
 - **Elixir** pays for cards. A card costs about its rank (A=1, 5=4, K=10), and you get 3 more each round, up to 10.
+- **The enemy** has no elixir: it plays one card per round, the top of its pile, and that card is always face-up, so you know its next play.
 - **Each round:** you play cards into a lane, the enemy defends the lane where you pushed harder, everything moves, and the front cards fight. Cards that get through hit a tower.
-- **Towers:** a soldier breaks the top tower card if its rank is at least that card's. If not, the tower card cracks, and any later hit breaks it.
+- **Towers fight back:** a hit is a fight against the top tower card (the wheel and aces count). Win or tie and it breaks, and your card stays, wounded, for one more hit. Lose and the tower card cracks, and any later hit breaks it.
 
 Full rules: [RULEBOOK.md](RULEBOOK.md) · Printable rulebook (2 pages, A4): [print/Kingfall-Rulebook.pdf](print/Kingfall-Rulebook.pdf)
 
 ## Features
 
 - **Game feel:** "×2!", "ACE!", "CRACK" and "TOWER DOWN!" pop-ups, board shake and sound effects. Every fight also says in plain words why it was won.
-- **Arena view** on screen: castles with armor pips, two lanes with a river, an elixir bar and your hand with the next card. The purple elixir cost shows only where you need it: your hand, your next card and the enemy's next card. Cards already in the lanes stay clean.
-- **Deck building:** your 16 cards arrive split at random into a deck of 8 and three towers; building a good deck is up to you. Tap two cards to swap them and watch the average-cost meter. **Suggest** sets a good split once per hand. On screen, **Deal** shuffles all 52 cards and deals new hands, card by card, as often as you like.
+- **Arena view** on screen: castles with armor pips, two lanes with a river, an elixir bar and your hand with the next card. The purple elixir cost shows only where you need it: your hand and your next card. Cards already in the lanes stay clean. The cards about to fight tremble first, and a card attacking a tower waits in the slot next to it.
+- **Deck building:** your 14 cards arrive split at random into a deck of 8 and three towers of 2; building a good deck is up to you. Tap two cards to swap them and watch the average-cost meter. **Suggest** sets a good split once per hand. On screen, **Deal** shuffles all 52 cards and deals new hands, card by card, as often as you like.
 - **Installable app:** add it to your home screen (Install in the menu, or Share → Add to Home Screen on iPhone). After one visit it plays offline.
 - **Real-cards setup in pictures:** one step per screen, from shuffling to laying out the table.
-- **Undo and redo**, game saved in the browser, an optional suggested move, and a log of everything that happened.
-- **Balanced by simulation:** thousands of simulated games tuned the rules. Random play wins about 4%, a careful player about 85–90%.
+- **Change your mind until you tap Done:** drag a card you placed back to your hand or onto the other lane, or tap two cards to switch them. With real cards, undo and redo fix entry mistakes.
+- Game saved in the browser, an optional suggested move, and a log of everything that happened.
+- **Balanced by simulation:** thousands of simulated games tuned the rules. Games last about 12–17 rounds. Random play wins about 10%, a simple rule-follower about half, the app's suggestions about 80%, and every kind of deck (all cheap, mixed, all heavy) wins about as often: skill is in the playing.
 
 <p align="center">
-  <img src="docs/screenshots/deck.png" alt="Kingfall deck building screen: the 8 deck cards on top, the three towers with their armor cards under blue castles, and the average elixir cost meter with Start the game at the bottom" width="420" />
+  <img src="docs/screenshots/deck.png" alt="Kingfall deck building screen: the 8 deck cards on top, the three towers with two armor cards each under blue castles, and the average elixir cost meter with Start the game at the bottom" width="420" />
   &nbsp;
-  <img src="docs/screenshots/real-cards-setup.png" alt="Kingfall real-cards setup step: two rows of face-down cards as elixir bars with the 5th card turned sideways as the marker" width="420" />
+  <img src="docs/screenshots/real-cards-setup.png" alt="Kingfall real-cards setup step: a row of 10 face-down cards as your elixir bar with the 5th card turned sideways as the marker" width="420" />
 </p>
 
 ## Run it locally
