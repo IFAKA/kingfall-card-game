@@ -5,7 +5,7 @@ import type { Card, Rules, StackKey, Towers, Unit } from './engine.ts'
 
 export type Stage =
   | 'round_start' | 'my_play' | 'enemy_enter' | 'enemy_play' | 'enemy_peek' | 'enemy_stop'
-  | 'move' | 'fight' | 'tower_enter' | 'tower_result' | 'my_last_stand' | 'last_stand_enter' | 'over'
+  | 'step_up' | 'fight' | 'move' | 'tower_enter' | 'tower_result' | 'my_last_stand' | 'last_stand_enter' | 'over'
 
 // Every physical card has a stable tracking id (tid) so the board can animate it. Enemy cards are unknown until flipped.
 export interface ESlot { tid: string; card: Card | null }
@@ -15,7 +15,7 @@ export interface Discarded { tid: string; card: Card; owner: 'P' | 'E' }
 export type GameEvent =
   | { type: 'round'; round: number; gain: number }
   | { type: 'play'; side: 'P' | 'E'; tid: string; card: Card; lane: 0 | 1; cost: number; free?: boolean }
-  | { type: 'move'; held: (0 | 1)[] } // lanes where the front cards stand face to face and don't move
+  | { type: 'move'; tids: string[] } // cards that stepped one slot (a card stepping up after a fight, or the move once the fights are over)
   | { type: 'fight'; lane: 0 | 1; mine: { tid: string; card: Card; value: number }; theirs: { tid: string; card: Card; value: number }
       double: 'P' | 'E' | null; ace: 'P' | 'E' | null; winner: 'P' | 'E' | 'tie' }
   | { type: 'reveal'; tid: string; card: Card; stack: StackKey } // an enemy tower card turned face-up before a hit
@@ -43,7 +43,8 @@ export interface GuideState {
   winner: null | 'P' | 'E' | 'draw'
   cracked?: string[] // tower cards turned sideways by a failed hit (tids); any later hit breaks them
   lastStand?: { side: 'P' | 'E'; lane: 0 | 1 } | null // a princess tower just fell: its owner places one card there for free
-  peek?: 'play' | 'move' // flipping the enemy's new top card face-up, then going on to your play or to the move
+  peek?: 'play' | 'move' // flipping the enemy's new top card face-up, then going on to your play or to the fights
+  stepped?: number[] // units that already moved this round (uids)
   turn?: Placed[] // the cards you placed this turn, in order: until you end it, any of them can be taken back
   stats: Stats
   events?: GameEvent[] // what the latest step did
@@ -126,8 +127,9 @@ export function next(g0: GuideState): GuideState {
   switch (g.stage) {
     case 'round_start': return peekOr(g, 'play')
     case 'enemy_play': return peekOr(g, 'move') // one card per round: the enemy turn is over
-    case 'enemy_peek': return goMove(g)
-    case 'enemy_stop': return goMove(g)
+    case 'enemy_peek': return goFight(g)
+    case 'enemy_stop': return goFight(g)
+    case 'step_up': return resolveNext(g)
     case 'move': return resolveNext(g)
     case 'fight': return resolveNext(g)
     case 'tower_enter': return processHit(g) // its top card was revealed as a step of its own: now the hit lands
@@ -269,7 +271,7 @@ function peekOr(g: GuideState, then: 'play' | 'move'): GuideState {
     g.why = ["The enemy's top card is always face-up, so you always know what it plays next. Plan around it."]
     return g
   }
-  return then === 'play' ? toMyPlay(g) : goMove(g)
+  return then === 'play' ? toMyPlay(g) : goFight(g)
 }
 
 function toMyPlay(g: GuideState): GuideState {
@@ -298,7 +300,7 @@ export function enterEnemyCard(g0: GuideState, card: Card): GuideState {
   const g = step(g0)
   g.E.queue[0].card = card
   g.enemySeen.push(card)
-  if (g.peek) { const then = g.peek; g.peek = undefined; return then === 'play' ? toMyPlay(g) : goMove(g) }
+  if (g.peek) { const then = g.peek; g.peek = undefined; return then === 'play' ? toMyPlay(g) : goFight(g) }
   return g.stage === 'last_stand_enter' ? enemyLastStand(g) : enemyDecide(g)
 }
 
@@ -332,93 +334,95 @@ function enemyDecide(g: GuideState): GuideState {
   return g
 }
 
-// ---------- move / fight ----------
-/** Front units of a lane that face each other (same or neighbouring slot) clash in place instead of passing through. */
-function contact(g: GuideState, lane: 0 | 1) {
-  const ps = g.units.filter(u => u.lane === lane && u.side === 'P')
-  const es = g.units.filter(u => u.lane === lane && u.side === 'E')
-  if (!ps.length || !es.length) return null
-  const p = ps.reduce((a, b) => (b.pos > a.pos ? b : a))
-  const e = es.reduce((a, b) => (b.pos < a.pos ? b : a))
-  return e.pos - p.pos <= 1 ? { p, e } : null
+// ---------- fight / move ----------
+// After the enemy's play, one thing at a time: in each lane the front cards that face each other fight where they stand. When a
+// card falls, the card behind it steps up one slot (its move this round) and fights next. When no fights are left, every card
+// that hasn't moved yet steps one slot, and then cards at a tower hit it. Cards never pass through each other.
+
+/** A side's front card in a lane (furthest advanced; in a shared slot, the one that got there first), or null. */
+function front(g: GuideState, lane: 0 | 1, side: 'P' | 'E'): Unit | null {
+  const us = g.units.filter(u => u.lane === lane && u.side === side)
+  if (!us.length) return null
+  return side === 'P' ? us.reduce((a, b) => (b.pos > a.pos ? b : a)) : us.reduce((a, b) => (b.pos < a.pos ? b : a))
 }
 
-function goMove(g: GuideState): GuideState {
-  const lines: string[] = []
-  const holdSlots: { lane: number; side: 'P' | 'E'; pos: number }[] = []
+/** Front cards in the same or neighbouring slots face each other, so they fight. */
+function facing(g: GuideState, lane: 0 | 1) {
+  const p = front(g, lane, 'P'), e = front(g, lane, 'E')
+  return p && e && e.pos - p.pos <= 1 ? { p, e } : null
+}
+
+/** The fights begin: the cards in the front slots that face each other fight where they stand (held); nothing has moved yet. */
+function beginFights(g: GuideState) {
+  g.stepped = []
+  for (const u of g.units) u.held = false
   for (const lane of [0, 1] as const) {
-    const c = contact(g, lane)
-    if (!c) continue
-    holdSlots.push({ lane, side: 'P', pos: c.p.pos }, { lane, side: 'E', pos: c.e.pos })
-    lines.push(`${laneName(lane)} lane: your ${label(c.p.card)} and the enemy ${label(c.e.card)} are face to face, so they do NOT move. They clash next. Don't move them.`)
+    const f = facing(g, lane)
+    if (!f) continue
+    for (const u of g.units) if (u.lane === lane && ((u.side === 'P' && u.pos === f.p.pos) || (u.side === 'E' && u.pos === f.e.pos))) u.held = true
   }
-  const moved: Unit[] = []
-  for (const u of g.units) {
-    if (holdSlots.some(h => h.lane === u.lane && h.side === u.side && h.pos === u.pos)) u.held = true
-    else if (!atTower(g, u)) { u.pos += u.side === 'P' ? 1 : -1; moved.push(u) }
-  }
-  toBack(g, moved)
-  g.stage = 'move'
-  g.lines = [
-    'MOVE every other card one slot toward the other side: your cards go away from you, enemy cards come toward you.',
-    ...lines,
-    'A card that moves past the last slot is now "at the tower" (the board shows it in the slot next to that tower, with a swords badge). Cards already at a tower stay there.',
-  ]
-  g.why = ['Every unit advances one slot each round, except cards that are already facing an enemy: those fight where they stand, and the winner then steps into the loser\'s slot. Cards never pass through each other. A card at a tower stays there until an enemy card beats it.']
-  emit(g, { type: 'move', held: [...new Set(holdSlots.map(h => h.lane as 0 | 1))] })
-  return g
 }
 
-const clash = (p: Unit, e: Unit) => p.pos >= e.pos || (!!p.held && !!e.held && e.pos - p.pos <= 1)
-function engaged(g: GuideState, lane: 0 | 1) {
-  const ps = g.units.filter(u => u.lane === lane && u.side === 'P')
-  const es = g.units.filter(u => u.lane === lane && u.side === 'E')
-  if (!ps.length || !es.length) return false
-  return clash(ps.reduce((a, b) => (b.pos > a.pos ? b : a)), es.reduce((a, b) => (b.pos < a.pos ? b : a)))
+const towardEnemy = (u: Unit) => (u.side === 'P' ? 1 : -1)
+/** An enemy card in this card's slot or behind it is in the way: cards never pass through each other. */
+const blocked = (g: GuideState, u: Unit) => g.units.some(x => x.lane === u.lane && x.side !== u.side && (u.side === 'P' ? x.pos <= u.pos : x.pos >= u.pos))
+const canStep = (g: GuideState, u: Unit) => !atTower(g, u) && !g.stepped?.includes(u.uid) && !blocked(g, u)
+
+/** In a lane where both sides have cards, a front card that wasn't facing an enemy at the start (the card ahead of it fell) steps up
+ *  one slot before it fights, with any card that shares its slot. */
+function stepUps(g: GuideState): Unit[] {
+  const out: Unit[] = []
+  for (const lane of [0, 1] as const) {
+    for (const side of ['P', 'E'] as const) {
+      const f = front(g, lane, side)
+      if (!f || !front(g, lane, side === 'P' ? 'E' : 'P') || f.held || !canStep(g, f)) continue
+      out.push(...g.units.filter(u => u.lane === lane && u.side === side && u.pos === f.pos && !u.held && canStep(g, u)))
+    }
+  }
+  return out
 }
+
+/** The cards that move when the fights are over: every card that hasn't moved this round and isn't at a tower. */
+const movers = (g: GuideState) => g.units.filter(u => !atTower(g, u) && !g.stepped?.includes(u.uid))
+
+/** These cards step one slot toward the other side, once a round. Each goes to the back of its new slot: it arrived last, so it
+ *  fights after the cards already there and is drawn after them. (Among a side's cards in one slot, the first in g.units is the front one.) */
+function stepForward(g: GuideState, moved: Unit[]) {
+  for (const u of moved) { u.pos += towardEnemy(u); u.held = false }
+  ;(g.stepped ??= []).push(...moved.map(u => u.uid))
+  g.units = [...g.units.filter(u => !moved.includes(u)), ...moved]
+}
+
+const slotName = (g: GuideState, u: Unit) => atTower(g, u) ? `the ${u.side === 'P' ? 'enemy' : 'your'} tower` : u.pos === 0 ? 'the slot nearest YOU' : 'the slot nearest the ENEMY'
+const whose = (u: Unit) => (u.side === 'P' ? 'your' : 'the enemy')
 
 /** What meets on the very next step, so the screen can show it squaring up first: the two cards that fight next (one fight per step,
- *  left lane first, as resolveNext does), or once the fights are over, the next card to hit a tower and that tower (its anchor id,
- *  "tower-E-L"). Cards are named by tid. */
-export function fightingNext(g: GuideState): string[] {
+ *  left lane first, as resolveNext does), or once the fights and the move are over, the next card to hit a tower and that tower (its
+ *  anchor id, "tower-E-L"). Nothing while a card is about to step up or move. Cards are named by tid. */
+export function fightingNext(g0: GuideState): string[] {
   // a hit on a face-down enemy tower card squares up only on the step that turns that card up (tower_enter), so the shake and the
   // reveal come together and the hit lands next
-  const hit = (u: Unit | undefined, revealing = false) => {
+  const hit = (g: GuideState, u: Unit | undefined, revealing = false) => {
     if (!u) return []
     const k = hitTarget(g, u)
     if (!revealing && u.side === 'P' && g.E.towers[k][0]?.card === null) return []
     return [u.tid!, `tower-${u.side === 'P' ? 'E' : 'P'}-${k}`]
   }
-  if (g.stage === 'tower_enter') return hit(g.units.find(x => x.uid === g.hitQueue[0]), true)
-  if (g.stage === 'tower_result' && !g.lastStand) return hit(g.units.find(x => x.uid === g.hitQueue[0]))
-  if (g.stage !== 'move' && g.stage !== 'fight') return []
+  if (g0.stage === 'tower_enter') return hit(g0, g0.units.find(x => x.uid === g0.hitQueue[0]), true)
+  if (g0.stage === 'tower_result' && !g0.lastStand) return hit(g0, g0.units.find(x => x.uid === g0.hitQueue[0]))
+  // the fights come right after the enemy's turn (once its next card is face-up)
+  const before = g0.stage === 'enemy_peek' || g0.stage === 'enemy_stop' || (g0.stage === 'enemy_play' && g0.E.queue[0]?.card !== null)
+  if (!before && g0.stage !== 'step_up' && g0.stage !== 'fight' && g0.stage !== 'move') return []
+  const g = before ? clone(g0) : g0
+  if (before) beginFights(g)
+  if (stepUps(g).length) return []
   for (const lane of [0, 1] as const) {
-    const ps = g.units.filter(u => u.lane === lane && u.side === 'P')
-    const es = g.units.filter(u => u.lane === lane && u.side === 'E')
-    if (!ps.length || !es.length) continue
-    const p = ps.reduce((a, b) => (b.pos > a.pos ? b : a)), e = es.reduce((a, b) => (b.pos < a.pos ? b : a))
-    if (clash(p, e)) return [p.tid!, e.tid!]
+    const f = facing(g, lane)
+    if (f) return [f.p.tid!, f.e.tid!]
   }
-  // no fight left: the hits come next, in the order processHit takes them
-  return hit(g.units.find(u => atTower(g, u)))
-}
-
-/** Cards that just stepped into a slot go to the back of it: they arrived last, so they fight after the cards already there and are
- *  drawn after them. (Among a side's cards in one slot, the first in g.units is the front one.) */
-function toBack(g: GuideState, moved: Unit[]) {
-  g.units = [...g.units.filter(u => !moved.includes(u)), ...moved]
-}
-
-/** Held units advance into the slot the fight cleared. */
-function advance(g: GuideState, lane: 0 | 1, side: 'P' | 'E') {
-  const moved: Unit[] = []
-  for (const u of g.units) {
-    if (u.lane !== lane || u.side !== side || !u.held) continue
-    // enemies still sharing this slot (or behind it) block the step: cards never pass through each other
-    const blocked = g.units.some(x => x.lane === lane && x.side !== side && (side === 'P' ? x.pos <= u.pos : x.pos >= u.pos))
-    if (!blocked) { u.held = false; if (!atTower(g, u)) { u.pos += side === 'P' ? 1 : -1; moved.push(u) } }
-  }
-  toBack(g, moved)
+  if (movers(g).length) return []
+  // no fight or move left: the hits come next, in the order processHit takes them
+  return hit(g, hitOrder(g)[0])
 }
 
 function kill(g: GuideState, u: Unit): string[] {
@@ -431,14 +435,30 @@ function kill(g: GuideState, u: Unit): string[] {
   return [`Put the enemy ${label(u.card)} at the BOTTOM of the enemy pile, FACE-UP (you know this card now, so you won't need to flip it again).`]
 }
 
+/** The enemy's turn is over: the fights begin. */
+function goFight(g: GuideState): GuideState {
+  beginFights(g)
+  return resolveNext(g)
+}
+
+/** The next thing that happens, one per step: a card steps up, a fight, the move, then the tower hits. */
 function resolveNext(g: GuideState): GuideState {
+  const ups = stepUps(g)
+  if (ups.length) {
+    stepForward(g, ups)
+    g.stage = 'step_up'
+    g.lines = ups.map(u => {
+      const f = facing(g, u.lane)
+      return `${laneName(u.lane)} lane: the card in front of ${whose(u)} ${label(u.card)} fell, so it steps up: move it one slot forward, to ${slotName(g, u)}${f ? `. It fights ${f.p === u ? `the enemy ${label(f.e.card)}` : f.e === u ? `your ${label(f.p.card)}` : 'next'}` : ''}.`
+    })
+    g.why = ['When a card falls, the card behind it steps up one slot (that is its move this round) and fights next. Cards never pass through each other.']
+    emit(g, { type: 'move', tids: ups.map(u => u.tid!) })
+    return g
+  }
   for (const lane of [0, 1] as const) {
-    const ps = g.units.filter(u => u.lane === lane && u.side === 'P')
-    const es = g.units.filter(u => u.lane === lane && u.side === 'E')
-    if (!ps.length || !es.length) continue
-    const p = ps.reduce((a, b) => (b.pos > a.pos ? b : a))
-    const e = es.reduce((a, b) => (b.pos < a.pos ? b : a))
-    if (!clash(p, e)) continue
+    const f = facing(g, lane)
+    if (!f) continue
+    const { p, e } = f
     const r = compare(p.card, e.card, g.rules)
     const ace = aceWins(p.card, e.card, g.rules) || aceWins(e.card, p.card, g.rules)
     const pv = effective(p.card, e.card, g.rules.wheel), ev = effective(e.card, p.card, g.rules.wheel)
@@ -455,30 +475,47 @@ function resolveNext(g: GuideState): GuideState {
       res = ['Equal rank: BOTH cards are removed.', ...kill(g, p), ...kill(g, e)]
       g.log.push(`${label(p.card)} ties ${label(e.card)}: both removed.`)
     } else if (r > 0) {
-      res = [`YOUR ${label(p.card)} WINS${p.held ? ' and steps forward when the slot is clear' : ' and stays where it is'}.`, ...kill(g, e)]
+      res = [`YOUR ${label(p.card)} WINS and stays where it is.`, ...kill(g, e)]
       g.log.push(`Your ${label(p.card)} beats enemy ${label(e.card)}.`)
       if (!ace && cost(p.card.rank) - cost(e.card.rank) >= 4) {
         g.stats.overkills.push(`In round ${g.round} your ${label(p.card)} (${cost(p.card.rank)} elixir) beat a ${label(e.card)} (${cost(e.card.rank)} elixir). A cheaper card would have won too.`)
       }
     } else {
-      res = [`The ENEMY ${label(e.card)} WINS${e.held ? ' and steps forward when the slot is clear' : ' and stays where it is'}.`, ...kill(g, p)]
+      res = [`The ENEMY ${label(e.card)} WINS and stays where it is.`, ...kill(g, p)]
       g.log.push(`Enemy ${label(e.card)} beats your ${label(p.card)}.`)
     }
-    if (r > 0) advance(g, lane, 'P')
-    else if (r < 0) advance(g, lane, 'E')
-    if (!engaged(g, lane)) { advance(g, lane, 'P'); advance(g, lane, 'E') }
     g.stage = 'fight'
     g.lines = [head, ...res]
     g.why = [ace
-      ? 'Aces beat picture cards (J, Q, K), whatever the suits. The winner stays and keeps fighting; the loser goes to the bottom of its pile.'
-      : 'The front-most cards fight first. Higher rank wins; a card of the suit that beats the other counts double. The winner stays and keeps fighting; the loser goes to the bottom of its pile.']
+      ? 'Aces beat picture cards (J, Q, K), whatever the suits. The winner stays and fights the next card; the loser goes to the bottom of its pile.'
+      : 'The front cards fight where they stand. Higher rank wins; a card of the suit that beats the other counts double. The winner stays and fights the next card; the loser goes to the bottom of its pile.']
     return g
   }
-  g.hitQueue = g.units.filter(u => atTower(g, u)).map(u => u.uid)
+  const ms = movers(g)
+  if (ms.length) {
+    // with no fight left, nothing is in the way of a card that hasn't moved yet; a blocked one (never, in practice) just stays
+    const go = ms.filter(u => !blocked(g, u))
+    ;(g.stepped ??= []).push(...ms.map(u => u.uid))
+    stepForward(g, go)
+    if (go.length) {
+      g.stage = 'move'
+      g.lines = [
+        `MOVE ${go.map(u => `${whose(u)} ${label(u.card)}`).join(', ')} one slot toward the other side: your cards go away from you, enemy cards come toward you.`,
+        'A card that moves past the last slot is now "at the tower" (the board shows it in the slot next to that tower, with a swords badge). Cards already at a tower stay there.',
+      ]
+      g.why = ['When the fights are over, every card that hasn\'t moved yet this round steps one slot. A card at a tower stays there until an enemy card beats it.']
+      emit(g, { type: 'move', tids: go.map(u => u.tid!) })
+      return g
+    }
+  }
+  g.hitQueue = hitOrder(g).map(u => u.uid)
   return processHit(g)
 }
 
 // ---------- tower hits ----------
+/** The cards at a tower, in the order they hit: left lane first, then right; in a lane, the card that got there first. */
+const hitOrder = (g: GuideState) => g.units.filter(u => atTower(g, u)).sort((a, b) => a.lane - b.lane)
+
 function hitTarget(g: GuideState, u: Unit): StackKey {
   const targetTowers = u.side === 'P' ? g.E.towers : g.P.towers
   const lk: StackKey = u.lane === 0 ? 'L' : 'R'

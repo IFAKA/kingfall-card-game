@@ -236,5 +236,22 @@ check(cost(1) === 1 && cost(5) === 4 && cost(9) === 7 && cost(13) === 10, 'cost 
   check(faceDown && fightingNext(g).join() === 'x9,tower-E-L', 'a hit on a face-down tower card shakes as the card turns up; on a known card it shakes a step before')
 }
 
+{
+  // one thing at a time: the front cards fight where they stand, then the card behind the loser steps up, then it fights
+  const c = (rank: number, suit: number): Card => ({ id: `s${rank}-${suit}`, rank, suit })
+  const d = freshDeck()
+  let g: GuideState = { ...makeGame(d.slice(0, DECK_SIZE), d.slice(DECK_SIZE, PER_SIDE), d.slice(0, PER_SIDE)), stage: 'my_play', turn: [], nextUid: 3 }
+  g.units = [{ uid: 1, card: c(11, 1), side: 'P', lane: 1, pos: 1, tid: 'J' }, { uid: 2, card: c(1, 0), side: 'P', lane: 1, pos: 0, tid: 'A' }]
+  g.E.queue = [{ tid: 'Q', card: c(12, 1) }, { tid: 'N', card: c(9, 3) }]
+  g = endMyTurn(g) // the enemy plays Q♥ into the right lane, facing your J♥
+  const seen: string[] = []
+  for (let n = 0; n < 6 && g.stage !== 'round_start'; n++) {
+    g = next(g)
+    seen.push(`${g.stage} ${g.units.map(u => `${u.tid}${u.pos}`).join(' ')}`)
+  }
+  check(seen.slice(0, 3).join(' | ') === 'fight A0 Q1 | step_up Q1 A1 | fight A1',
+    `J♥ and Q♥ fight first, then A♠ steps up behind the fallen J♥ (to the end of the slot), then A♠ fights Q♥ (got: ${seen.join(' | ')})`)
+}
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nall checks passed')
 process.exit(failures ? 1 : 0)

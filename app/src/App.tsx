@@ -26,7 +26,7 @@ interface Saved { mode?: 'guide' | 'play'; secret?: Record<string, Card>; screen
 
 const ALL = freshDeck()
 const byId = (id: string) => ALL.find(c => c.id === id)!
-export const STORAGE_KEY = 'solo-clash-guide-v7' // bump when the rules change, so old saved games don't load into new rules
+export const STORAGE_KEY = 'solo-clash-guide-v8' // bump when the rules change, so old saved games don't load into new rules
 
 function load(): Saved | null {
   try { const s = localStorage.getItem(STORAGE_KEY); return s ? (JSON.parse(s) as Saved) : null } catch { return null }
@@ -355,7 +355,7 @@ function CardPicker({ disabled, onPick, selected }: { disabled: Set<string>; onP
 
 const TITLES: Record<string, string> = {
   round_start: 'Start of the round', my_play: 'Your turn', enemy_enter: "Flip the enemy's top card", enemy_play: 'Enemy plays a card', enemy_peek: "The enemy's next card",
-  enemy_stop: 'Enemy turn ends', move: 'Move the cards', fight: 'Fight', tower_enter: 'A tower is hit: flip its top card',
+  enemy_stop: 'Enemy turn ends', step_up: 'A card steps up', fight: 'Fight', move: 'Move the cards', tower_enter: 'A tower is hit: flip its top card',
   tower_result: 'Tower hit', my_last_stand: 'Last stand: place a free card', last_stand_enter: 'Enemy last stand: flip its top card', over: 'Game over',
 }
 
@@ -374,7 +374,7 @@ const RULES_60 = (
     <li><b>Cards</b> are soldiers. Higher rank wins a fight (A=1 … K=13). A card of the suit that beats the other counts <b>double</b>: ♠→♥, ♥→♦, ♦→♣, ♣→♠.</li>
     <li><b>Aces beat picture cards</b> (J, Q, K) in a fight, whatever the suits, and against towers too. Watch out: it works for the enemy as well.</li>
     <li><b>Elixir</b> pays for your soldiers: a card costs about its rank (A=1, 5=4, 8=6, K=10). You get 3 more each round, max 10. The enemy has no elixir: it plays <b>one card per round</b>, the top of its pile.</li>
-    <li>Each round: <b>you play</b> cards into a lane, then the <b>enemy</b> plays its top card into the lane where you have <b>more</b> cards (it defends; on a tie, where your highest-ranked card is, then left), then <b>everything moves</b> one slot and <b>fights</b>. Cards that face each other don't pass through: they clash where they stand, and the winner steps into the slot it cleared. Survivors reaching the other end hit a tower.</li>
+    <li>Each round: <b>you play</b> cards into a lane, then the <b>enemy</b> plays its top card into the lane where you have <b>more</b> cards (it defends; on a tie, where your highest-ranked card is, then left), then the front cards <b>fight</b> where they stand. When one falls, the card behind it <b>steps up</b> one slot and fights the winner. Then every card that hasn't moved <b>moves</b> one slot. Survivors reaching the other end hit a tower.</li>
     <li><b>A tower hit is a fight</b> against the tower's top card (the wheel and aces count). Win or tie, and the tower card <b>breaks</b>: your soldier stays, turned sideways (<b>wounded</b>), hits <b>once more</b> next round, then goes back to its pile. Lose, and the tower shoots it back: it goes back to its pile and the tower card <b>cracks</b> (turn it sideways, move it to the bottom of that tower). Any later hit breaks a cracked card. Each tower has 2 cards. The king can only be hit after the princess tower in that lane is gone.</li>
     <li><b>Last stand:</b> when a left or right tower is destroyed, its owner immediately places one card in that lane for free (the enemy uses the top card of its pile).</li>
     <li>A fighting card that dies goes to the <b>bottom of its owner's pile</b>, and you draw it again later. So your 8 cards just keep cycling.</li>
@@ -401,7 +401,7 @@ const PULSES = ['droppulse', 'suggestglow', 'suggestring', 'flipglow']
 const readJSON = <T,>(key: string, fallback: T): T => { try { const v = localStorage.getItem(key); return v ? (JSON.parse(v) as T) : fallback } catch { return fallback } }
 const writeJSON = (key: string, v: unknown) => { try { localStorage.setItem(key, JSON.stringify(v)) } catch { /* storage full or blocked */ } }
 
-const AUTO_STAGES = ['round_start', 'enemy_play', 'enemy_peek', 'enemy_stop', 'move', 'fight', 'tower_enter', 'tower_result']
+const AUTO_STAGES = ['round_start', 'enemy_play', 'enemy_peek', 'enemy_stop', 'step_up', 'fight', 'move', 'tower_enter', 'tower_result']
 // hold each step longer the more it shows (one line per event), so busy fights can be followed
 const autoDelay = (events: number) => Math.min(4000, 700 + 600 * events)
 
