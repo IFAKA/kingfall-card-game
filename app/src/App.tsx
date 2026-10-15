@@ -444,6 +444,16 @@ export default function App() {
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, screen, game, tip])
+  // when no card in hand is affordable, ending the turn is the only move, so it ends by itself; not recorded for undo,
+  // so undo goes back past it to your last real choice instead of landing here and ending again
+  useEffect(() => {
+    if (screen !== 'play' || !game || tip || game.stage !== 'my_play' || game.P.hand.some((_, i) => canPlay(game, i))) return
+    if (mode === 'guide' && game.lastAction.length > 0 && doSeen !== game.log.length) return // still placing at the table
+    const t = setTimeout(() => advance(settle(endMyTurn(game))), autoDelay(game.lines.length))
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, screen, game, tip, doSeen])
+
 
   const mine = my16.map(byId).sort((a, b) => b.rank - a.rank || a.suit - b.suit)
   const deck = mine.filter(c => deckIds.includes(c.id))
