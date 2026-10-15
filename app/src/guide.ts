@@ -322,7 +322,7 @@ function enemyDecide(g: GuideState): GuideState {
   const c = slot.card!
   const { count: mine, best } = playerLaneInfo(g)
   const lane = defendLane(mine, best)
-  g.units.push({ uid: g.nextUid++, card: c, side: 'E', lane, pos: g.rules.laneLen - 1, tid: slot.tid })
+  g.units.push({ uid: g.nextUid++, card: c, side: 'E', lane, pos: g.rules.laneLen - 1, tid: slot.tid, free: true })
   g.stage = 'enemy_play'
   g.lines = [
     `ENEMY PLAYS ${label(c)}.`,
@@ -469,6 +469,7 @@ function resolveNext(g: GuideState): GuideState {
       ace: aceWins(p.card, e.card, g.rules) ? 'P' : aceWins(e.card, p.card, g.rules) ? 'E' : null,
       winner: r > 0 ? 'P' : r < 0 ? 'E' : 'tie',
     })
+    delete p.free; delete e.free // a last-stand card is an ordinary card once it has fought
     const head = `${laneName(lane)} lane: your ${label(p.card)}${bonusNote(p.card, e.card, g.rules)} vs enemy ${label(e.card)}${bonusNote(e.card, p.card, g.rules)}.`
     let res: string[]
     if (r === 0) {
@@ -587,6 +588,7 @@ function resolveHit(g: GuideState, u: Unit, k: StackKey): GuideState {
     : `${label(u.card)}${av > u.card.rank ? ` counts ${av}` : ''} ${won ? '≥' : '<'} ${label(top)}${tv > top.rank ? ` counts ${tv}` : ''}`
   const stackLeft = (mineHit ? g.E.towers[k] : g.P.towers[k]).length - (broken ? 1 : 0)
   emit(g, { type: 'tower', side: u.side, tid: u.tid!, card: u.card, stack: k, top: { tid: topId, card: top }, result: broken ? 'break' : 'crack', wasCracked, destroyed: stackLeft === 0 })
+  delete u.free
   const lines: string[] = []
   lines.push(`${mineHit ? 'Your' : 'Enemy'} ${label(u.card)} (rank ${u.card.rank}) hits ${owner} ${stackName(k)}, top card ${label(top)} (rank ${top.rank}${wasCracked ? ', CRACKED' : ''}).`)
   if (broken) {
@@ -650,7 +652,7 @@ function enemyLastStand(g: GuideState): GuideState {
   const lane = g.lastStand!.lane
   const slot = g.E.queue.shift()!
   const c = slot.card!
-  g.units.push({ uid: g.nextUid++, card: c, side: 'E', lane, pos: g.rules.laneLen - 1, tid: slot.tid })
+  g.units.push({ uid: g.nextUid++, card: c, side: 'E', lane, pos: g.rules.laneLen - 1, tid: slot.tid, free: true })
   g.lastStand = null
   g.stage = 'tower_result'
   g.lines = [`ENEMY LAST STAND: place ${label(c)} FREE in the ${laneName(lane)} lane, slot nearest the ENEMY. Don't move its marker.`]
@@ -665,7 +667,7 @@ export function lastStandPlay(g0: GuideState, i: number): GuideState {
   const g = step(g0)
   const lane = g.lastStand!.lane
   const c = g.P.hand.splice(i, 1)[0]
-  g.units.push({ uid: g.nextUid++, card: c, side: 'P', lane, pos: 0, tid: c.id })
+  g.units.push({ uid: g.nextUid++, card: c, side: 'P', lane, pos: 0, tid: c.id, free: true })
   g.stats.placed++
   g.lastStand = null
   g.stage = 'tower_result'

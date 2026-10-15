@@ -12,7 +12,7 @@ import { AnimatePresence, motion, useAnimate, useReducedMotion } from 'framer-mo
 import type { Variants } from 'framer-motion'
 import type { Pop } from './fx'
 import { isMuted, setMuted, sfx } from './sfx'
-import { Lightbulb, Redo2, Swords, Undo2 } from 'lucide-react'
+import { Flag, Lightbulb, Redo2, Swords, Undo2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { CardText, Choice, GameMenu, InstallLink, RulesSheet } from './Menu'
@@ -245,12 +245,13 @@ function ElixirBar({ n, spend }: { n: number; spend: number }) {
 function ArenaLane({ idx, units, fighting, laneLen, dragging, hint, suggested, over, onPlace, grabbable = [], lifted, picked, onGrab, onTap }: { idx: 0 | 1; units: Unit[]; fighting: string[]; laneLen: number; dragging: boolean; hint: boolean; suggested: boolean; over: boolean; onPlace: () => void; grabbable?: string[]; lifted?: string | null; picked?: string | null; onGrab?: (e: React.PointerEvent<HTMLElement>, tid: string) => void; onTap?: (tid: string) => void }) {
   const atTower = (u: Unit) => (u.side === 'P' && u.pos >= laneLen) || (u.side === 'E' && u.pos < 0)
   const here = (pred: (u: Unit) => boolean) => units.filter(u => u.lane === idx && pred(u)).sort((a, b) => +atTower(b) - +atTower(a)).map(u => (
-    <div key={u.uid} className={`unit ${u.side} ${atTower(u) ? 'atk' : ''} ${u.wounded ? 'wounded' : ''} ${fighting.includes(u.tid!) ? 'tremble' : ''} ${grabbable.includes(u.tid!) ? 'grab' : ''} ${lifted === u.tid ? 'lifted' : ''}`}
-      title={atTower(u) ? `${u.side === 'P' ? 'Your' : 'Enemy'} card at the tower: ${u.wounded ? 'wounded, it hits once more, then goes back to its pile' : 'it hits the tower this round'}` : grabbable.includes(u.tid!) ? 'Changed your mind? Drag it back to your hand or onto the other lane, or tap it, then tap another card to switch them' : undefined}
+    <div key={u.uid} className={`unit ${u.side} ${atTower(u) ? 'atk' : ''} ${u.wounded ? 'wounded' : ''} ${u.free ? 'free' : ''} ${fighting.includes(u.tid!) ? 'tremble' : ''} ${grabbable.includes(u.tid!) ? 'grab' : ''} ${lifted === u.tid ? 'lifted' : ''}`}
+      title={atTower(u) ? `${u.side === 'P' ? 'Your' : 'Enemy'} card at the tower: ${u.wounded ? 'wounded, it hits once more, then goes back to its pile' : 'it hits the tower this round'}` : u.free ? `${u.side === 'P' ? 'Your' : 'Enemy'} last stand: a tower in this lane fell, so this card came in free. It fights in the next round.` : grabbable.includes(u.tid!) ? 'Changed your mind? Drag it back to your hand or onto the other lane, or tap it, then tap another card to switch them' : undefined}
       onPointerDown={grabbable.includes(u.tid!) ? e => onGrab?.(e, u.tid!) : undefined}
       onClick={grabbable.includes(u.tid!) ? e => { e.stopPropagation(); onTap?.(u.tid!) } : undefined}>
       <TCard tid={u.tid!} card={u.card} down={false} side={u.side} selected={picked === u.tid} />
       {atTower(u) && <span className="siege" aria-hidden><Swords /></span>}
+      {u.free && <span className="standflag" aria-hidden><Flag /></span>}
     </div>
   ))
   return (
@@ -901,7 +902,9 @@ export default function App() {
       : Math.max(52, Math.min((view.sh - 196) / 6.9, (aw - 72) / 4.75 / 0.714, 128))
     const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px` } as CSSProperties
     const prompt = stage === 'my_play' ? 'Your turn: drag a card onto a lane, then tap ✓.' : standing ? TITLES[stage] : stage === 'round_start' ? `Round ${g.round}: you get ${g.rules.regen} more elixir.` : 'Enemy turn…'
-    const lines = note ? [note] : said.length ? said : [prompt]
+    // the enemy's last-stand card came in during its turn: your turn still says where it came from, until it has fought
+    const stood = stage === 'my_play' && g.units.find(u => u.side === 'E' && u.free)
+    const lines = note ? [note] : said.length ? said : stood ? [`Enemy last stand: its ${stood.lane === 0 ? 'left' : 'right'} tower fell, so ${label(stood.card)} came in free.`, prompt] : [prompt]
     // the suggested lane glows only while no other card is picked up; tapping it with nothing picked plays the suggestion
     const fighting = fightingNext(g)
     const towerFx = (side: 'P' | 'E', k: 'L' | 'R' | 'K'): TowerFx => {

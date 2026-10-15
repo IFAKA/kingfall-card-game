@@ -3,7 +3,7 @@
 export type Side = 'P' | 'E'
 export type StackKey = 'L' | 'R' | 'K'
 export interface Card { id: string; rank: number; suit: number } // suit: 0♠ 1♥ 2♦ 3♣
-export interface Unit { uid: number; card: Card; side: Side; lane: 0 | 1; pos: number; tid?: string; held?: boolean; wounded?: boolean } // wounded: broke a tower card, has one hit left
+export interface Unit { uid: number; card: Card; side: Side; lane: 0 | 1; pos: number; tid?: string; held?: boolean; wounded?: boolean; free?: boolean } // wounded: broke a tower card, has one hit left; free: came in as a last stand, until its first fight or tower hit
 export interface Towers { L: Card[]; R: Card[]; K: Card[] } // index 0 = top card
 export interface SideState {
   hand: Card[]

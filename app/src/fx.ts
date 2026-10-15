@@ -69,7 +69,14 @@ export function useFx(game: GuideState | null, fresh: GuideState | null, root: R
       const ms = n * STAGGER
       switch (e.type) {
         case 'round': sfx('round', ms); break // the round chip on the bridge rolls its number (RoundChip)
-        case 'play': sfx('place', ms, { mood: e.side === 'P' ? 'good' : 'bad', pan: pan(`lane-${e.lane}`) }); n++; break
+        case 'play': {
+          const sound = { mood: e.side === 'P' ? 'good' : 'bad', pan: pan(`lane-${e.lane}`) } as const
+          // a last stand is a card nobody paid for, out of turn: it says so where it lands, so it never seems to come from nowhere
+          if (e.free) { const p = at(`lane-${e.lane}`); pop(ms, p && { ...p, text: 'LAST STAND!', sub: `${e.side === 'P' ? 'your' : 'enemy'} free card`, kind: `stand ${sound.mood}` }); sfx('big', ms, sound); hit(1) }
+          else sfx('place', ms, sound)
+          n++
+          break
+        }
         case 'fight': {
           const p = at(`lane-${e.lane}`)
           const good = e.winner === 'P' ? 'good' : e.winner === 'E' ? 'bad' : 'tie'
