@@ -39,6 +39,13 @@ export function freshDeck(): Card[] {
   return d
 }
 
+// a number in [0, 1) from the browser's cryptographic generator (53 random bits, like Math.random), so the app's deals can't be predicted;
+// the defaults below stay Math.random because the scripts seed it to replay the same deals
+export function secureRandom(): number {
+  const [hi, lo] = crypto.getRandomValues(new Uint32Array(2))
+  return ((hi >>> 5) * 67108864 + (lo >>> 6)) / 9007199254740992
+}
+
 export function shuffle<T>(a: T[], rnd: () => number = Math.random): T[] {
   const x = [...a]
   for (let i = x.length - 1; i > 0; i--) {

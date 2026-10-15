@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { CircleHelp, Shuffle, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { DECK_SIZE, PER_SIDE, cost, randomSetup, suggestSetup } from './engine'
+import { DECK_SIZE, PER_SIDE, cost, randomSetup, secureRandom, suggestSetup } from './engine'
 import type { Card } from './engine'
 import { RulesSheet } from './Menu'
 import { CastleArt, TCard } from './Pieces'
@@ -61,7 +61,7 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
   const valid = deckIds.length === DECK_SIZE && slotIds.length === PER_SIDE - DECK_SIZE
   const suggested = suggestSetup(mine)
   // a hand saved by an older version or half-built starts from a random split like a fresh deal
-  useEffect(() => { if (!valid) { const r = randomSetup(mine); onChange(r.deckIds, r.slotIds) } })
+  useEffect(() => { if (!valid) { const r = randomSetup(mine, secureRandom); onChange(r.deckIds, r.slotIds) } })
   if (!valid) return null
   // on the suggestion, the screen says why it is built that way (Suggest has nothing left to do)
   const onSuggestion = suggested.deckIds.every(id => deckIds.includes(id)) && suggested.slotIds.every((id, i) => slotIds[i] === id)

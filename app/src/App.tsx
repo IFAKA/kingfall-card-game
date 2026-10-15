@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import confetti from 'canvas-confetti'
-import { DECK_SIZE, DEFAULT_RULES, PER_SIDE, RANKS, SUITS, aceWins, compare, cost, deal, effective, freshDeck, isRed, label, randomSetup, shuffle, suggestSetup } from './engine'
+import { DECK_SIZE, DEFAULT_RULES, PER_SIDE, RANKS, SUITS, aceWins, compare, cost, deal, effective, freshDeck, isRed, label, randomSetup, secureRandom, shuffle, suggestSetup } from './engine'
 import type { Card, Rules, Unit } from './engine'
 import {
   advise, adviseLastStand, autoReveal, canPlay, describe, endMyTurn, extendBatch, fightingNext, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary, switchCards, takeBack,
@@ -744,11 +744,11 @@ export default function App() {
   // on-screen play: deal both hands at random; the enemy's cards stay hidden inside the app (tid ep0-7 = pile, et0-5 = towers)
   const startOnScreen = () => {
     if (novice) return startTutorial()
-    const d = deal()
-    const enemy = shuffle(d.theirs)
+    const d = deal(secureRandom)
+    const enemy = shuffle(d.theirs, secureRandom)
     setSecret(Object.fromEntries(enemy.map((c, i) => [i < DECK_SIZE ? `ep${i}` : `et${i - DECK_SIZE}`, c])))
     setMode('play'); setDealt(d.mine.map(c => c.id))
-    setSplit(randomSetup(d.mine)); setScreen('draft')
+    setSplit(randomSetup(d.mine, secureRandom)); setScreen('draft')
   }
   // a first game on screen is always the same deal (src/tutorial.ts), so the tips teach the rules in the same order for everyone.
   // It skips the deck screen, whose choices mean nothing before you know the rules: it starts on the suggested split.
@@ -842,7 +842,7 @@ export default function App() {
         <CardPicker disabled={new Set()} selected={set} onPick={c => setDealt(a => a.includes(c.id) ? a.filter(x => x !== c.id) : a.length < PER_SIDE ? [...a, c.id] : a)} />
         <div className="row">
           <button className="big" disabled={dealt.length !== PER_SIDE} onClick={() => {
-            if (!novice) { setSplit(randomSetup(mine)); setScreen('draft'); return }
+            if (!novice) { setSplit(randomSetup(mine, secureRandom)); setScreen('draft'); return }
             // a first game skips the deck screen: the app picks a good split, and the table steps say which card goes where
             const s = suggestSetup(mine)
             setSplit(s); setPre(makeGame(deckOf(mine, s.deckIds), s.slotIds.map(byId), mine, DEFAULT_RULES)); setScreen('table')
