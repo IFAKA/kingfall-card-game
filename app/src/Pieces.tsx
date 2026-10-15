@@ -6,6 +6,32 @@ import type { Card } from './engine'
 
 // Pieces shared by the deck screen and the arena.
 
+// The face of a playing card, the same on every card in the game: rank over suit in the top-left corner like a real card,
+// and (on a card you can play) its elixir cost on a ball at the middle of the bottom edge.
+// Everything is sized from the card's width (--cw), so a small card is the same picture shrunk.
+function Face({ card, showCost }: { card: Card; showCost?: boolean }) {
+  return <>
+    <div className="corner">{RANKS[card.rank]}<br />{SUITS[card.suit]}</div>
+    {showCost && <div className="cost" title="elixir cost">{cost(card.rank)}</div>}
+  </>
+}
+
+// A card that stays put (the title, the rules and the setup pictures): the same card as TCard, without the moves.
+// Its size comes from --cw set by the place it is shown in (.scard's default otherwise).
+export function PlayingCard({ card, down, showCost, selected, dim, className, onClick }: {
+  card?: Card | null; down?: boolean; showCost?: boolean; selected?: boolean; dim?: boolean; className?: string; onClick?: () => void
+}) {
+  const up = !!card && !down
+  return (
+    <div className={`tcard scard ${className ?? ''} ${selected ? 'selected' : ''} ${dim ? 'dim' : ''} ${onClick ? 'clickable' : ''}`} onClick={onClick}>
+      <div className={`flip ${up ? '' : 'down'}`}>
+        <div className={`cf front ${card && isRed(card) ? 'red' : 'black'}`}>{up && <Face card={card} showCost={showCost} />}</div>
+        <div className="cf backside" />
+      </div>
+    </div>
+  )
+}
+
 // A card on the board: it has a stable id (tid), so when it changes place it SLIDES there instead of jumping.
 // A card that is revealed (face-down -> face-up) FLIPS while it moves.
 const faceMemory = new Map<string, boolean>()
@@ -30,10 +56,7 @@ export function TCard({ tid, card, down, side, selected, dim, showCost, fly = 0.
     >
       <div className={`flip ${shown ? 'down' : ''}`}>
         <div className={`cf front ${card && isRed(card) ? 'red' : 'black'}`}>
-          {card && <>
-            <div className="corner">{RANKS[card.rank]}<br />{SUITS[card.suit]}</div>
-            {showCost && <div className="cost" title="elixir cost">{cost(card.rank)}</div>}
-          </>}
+          {card && <Face card={card} showCost={showCost} />}
         </div>
         <div className="cf backside" />
       </div>

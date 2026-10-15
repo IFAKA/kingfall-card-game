@@ -21,7 +21,8 @@
 .dpanel.towers header span { opacity: .95; text-shadow: 0 1px 0 rgba(0,0,0,.5); white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 @media (max-width: 520px) { .dpanel.deck header span { display: none; } }
 
-.dcards { display: grid; grid-template-columns: repeat(4, var(--cw)); justify-content: space-between; row-gap: 10px; }
+/* the gap under each row leaves room for the elixir balls hanging off the cards' bottom edge */
+.dcards { display: grid; grid-template-columns: repeat(4, var(--cw)); justify-content: space-between; row-gap: calc(var(--cw) * .32); padding-bottom: calc(var(--cw) * .18); }
 .deckb.wide .dcards { grid-template-columns: repeat(8, var(--cw)); }
 .dc.empty { width: var(--cw); height: var(--ch); box-sizing: border-box; border: 2px dashed rgba(255,255,255,.3); border-radius: 8px; background: rgba(0,0,0,.15); }
 
@@ -35,15 +36,12 @@
 .dtower { gap: 4px; }
 .dstack { position: relative; width: var(--cw); }
 .dstack > .dc { position: absolute; left: 0; }
-/* rank and suit on one line, so both show on the strip of a card that peeks out */
-.dstack .corner br { display: none; }
 
 /* a picked card lifts; the cards it can swap with glow, all on the same beat as the arena's pulses */
 .deckb .dc { transition: translate .15s var(--ease-out); }
 .deckb .dc:has(.tcard.selected) { translate: 0 -6px; }
 @media (hover: hover) { .deckb .dc:hover { translate: 0 -3px; } }
 .deckb .dc.target .cf.front { animation: flipglow 1.1s ease-in-out infinite; }
-.deckb .tcard .cost { right: 3px; top: 3px; width: 1.5em; height: 1.5em; font-size: .85em; border-width: 1px; }
 
 /* the start bar: the deck's average cost on a meter, its heavy and cheap counts, and the main button */
 .dtray { flex: none; display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 12px; border-radius: 14px; background: rgba(11, 20, 48, .7); border: 2px solid rgba(61, 95, 192, .6); }

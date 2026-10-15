@@ -18,8 +18,8 @@ const TOWERS = [
   { k: 'K', name: 'King', slots: [4, 5] },
   { k: 'R', name: 'Right', slots: [2, 3] },
 ] as const
-// how much of each card behind the front one peeks out above it, as a share of the card's height
-const PEEK = 0.33
+// how much of each card behind the front one peeks out above it, as a share of the card's height: enough for its corner, rank over suit
+const PEEK = 0.5
 // dealing again, timed to watch but not to wait for: the 14 cards gather into a pile, then fly out one by one
 const GATHER_MS = 420, DEAL_MS = 55, FLY = 0.35
 
@@ -109,8 +109,9 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
   const wide = w >= 620
   const rows = wide ? 1 : 2, cols = 8 / rows
   const byWidth = (w - 24 - 10 * (cols - 1)) / cols / 0.714
-  // the towers row is as tall as its tallest column: every tower has two cards, so it's the king's bigger castle
-  const byHeight = (view.sh - 302 - (onSuggestion ? 44 : 0)) / (rows + 0.84 + 1 + PEEK) // (the suggestion's why takes a line or two)
+  // the towers row is as tall as its tallest column: every tower has two cards, so it's the king's bigger castle;
+  // each deck row also leaves room under it for the cards' elixir balls
+  const byHeight = (view.sh - 302 - (onSuggestion ? 44 : 0)) / (rows + 0.84 + 1 + PEEK + rows * 0.23) // (the suggestion's why takes a line or two)
   const ch = Math.max(60, Math.min(byWidth, byHeight, 150))
   const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px`, '--peek': `${ch * PEEK}px` } as CSSProperties
 

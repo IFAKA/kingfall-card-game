@@ -16,7 +16,7 @@ import { FastForward, Lightbulb, ListChecks, Redo2, Swords, Undo2 } from 'lucide
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { CardText, Choice, GameMenu, InstallLink, RulesSheet } from './Menu'
-import { CastleArt, TCard } from './Pieces'
+import { CastleArt, PlayingCard, TCard } from './Pieces'
 import { useViewport } from '@/hooks/use-viewport'
 import DeckBuilder from './DeckBuilder'
 
@@ -33,19 +33,6 @@ function load(): Saved | null {
 }
 
 // ---------- small components ----------
-function CardView({ card, down, showCost, selected, dim, small, big, onClick }: {
-  card?: Card | null; down?: boolean; showCost?: boolean; selected?: boolean; dim?: boolean; small?: boolean; big?: boolean; onClick?: () => void
-}) {
-  if (!card || down) return <div className={`card back ${small ? 'small' : ''}`} onClick={onClick} />
-  return (
-    <div className={`card face ${isRed(card) ? 'red' : 'black'} ${selected ? 'selected' : ''} ${dim ? 'dim' : ''} ${small ? 'small' : ''} ${onClick ? 'clickable' : ''}`} onClick={onClick}>
-      <div className="corner">{RANKS[card.rank]}<br />{SUITS[card.suit]}</div>
-      {big && <div className="bigpip">{SUITS[card.suit]}</div>}
-      {showCost && <div className="cost" title="elixir cost">{cost(card.rank)}</div>}
-    </div>
-  )
-}
-
 // the 3D flip makes browsers snapshot the card's back, so drag a flat copy of the face instead
 function makeGhost(el: HTMLElement, x: number, y: number) {
   const card = el.querySelector('.tcard') as HTMLElement | null
@@ -287,7 +274,7 @@ function ArenaLane({ idx, units, fighting, laneLen, verdicts, blocked, dragging,
 // ---------- setup at the real table: one step per screen, each with a picture ----------
 // Mini cards for the pictures: face-down by default, or a known card face-up; "side" is a marker turned sideways.
 function Mc({ card, side, hot }: { card?: Card; side?: boolean; hot?: boolean }) {
-  return <span className={`mc${card ? ' face' : ''}${card && isRed(card) ? ' red' : ''}${side ? ' side' : ''}${hot ? ' hot' : ''}`}>{card && <>{RANKS[card.rank]}{SUITS[card.suit]}</>}</span>
+  return <PlayingCard card={card} className={`mc${side ? ' side' : ''}${hot ? ' hot' : ''}`} />
 }
 const backs = (n: number, gapAfter?: number, sideAt?: number) => Array.from({ length: n }, (_, i) => <Fragment key={i}>{i === gapAfter && <span className="mgap" />}<Mc side={i === sideAt} hot={i === sideAt} /></Fragment>)
 
@@ -413,7 +400,7 @@ const wheelPair = (w: number, l: number, wheel: number, pools: Pools): [Card, Ca
   }
   return [{ id: `m6-${w}`, rank: 6, suit: w }, { id: `m11-${l}`, rank: 11, suit: l }]
 }
-const show = (c: Card) => <CardView card={c} small />
+const show = (c: Card) => <PlayingCard card={c} />
 // the numbers are written under the cards: a 6 beating a J only makes sense once you see 6 × 2 = 12 against 11
 const SuitWheel = ({ wheel = 2, pools = [] }: { wheel?: number; pools?: Pools }) => (
   <div className="suitwheel" role="img" aria-label="Spades beat hearts, hearts beat diamonds, diamonds beat clubs, clubs beat spades; the winning suit counts double">
@@ -741,7 +728,7 @@ export default function App() {
     const fan = ['1-0', '13-1', '12-2'].map(byId)
     return (
       <div className="title">
-        <div className="titlefan" aria-hidden>{fan.map(c => <CardView key={c.id} card={c} />)}</div>
+        <div className="titlefan" aria-hidden>{fan.map(c => <PlayingCard key={c.id} card={c} />)}</div>
         <Logo />
         <p className="tagline">A lane battle for one player and a deck of cards</p>
         {record.games > 0 && <p className="record">{record.wins} {record.wins === 1 ? 'win' : 'wins'} in {record.games} {record.games === 1 ? 'game' : 'games'}{record.best !== undefined && ` · fastest win: ${record.best} rounds`}</p>}
@@ -824,7 +811,7 @@ export default function App() {
     const steps: SetupStep[] = [
       { title: 'Build your three towers', pic: <div className="mcols">{stack('Left', g.P.towers.L)}{stack('King', g.P.towers.K)}{stack('Right', g.P.towers.R)}</div>,
         body: <p>{novice && <>For your first game I picked your deck and towers; next game you build your own. </>}Make three stacks <b>face-up</b> in a row in front of you, the <b>top card first</b> (gold above): <b>Left</b> {g.P.towers.L.map(label).join(' · ')}, <b>King</b> {g.P.towers.K.map(label).join(' · ')} in the middle, <b>Right</b> {g.P.towers.R.map(label).join(' · ')}. Fan each stack so you can see every card.</p> },
-      { title: 'Your hand and your queue', pic: <div className="mbars"><span className="mlbl">Hand, face-up</span><div className="row">{g.P.hand.map(c => <CardView key={c.id} card={c} showCost />)}</div><span className="mlbl">Queue, face-down, top card first</span><div className="mrow">{g.P.queue.map(c => <Mc key={c.id} card={c} />)}</div></div>,
+      { title: 'Your hand and your queue', pic: <div className="mbars"><span className="mlbl">Hand, face-up</span><div className="row">{g.P.hand.map(c => <PlayingCard key={c.id} card={c} showCost />)}</div><span className="mlbl">Queue, face-down, top card first</span><div className="mrow">{g.P.queue.map(c => <Mc key={c.id} card={c} />)}</div></div>,
         body: <>
           <p>I shuffled your 8 deck cards. Take the <b>4 hand cards</b> into your hand and stack the other <b>4 face-down</b> as your queue, in this order, top card first.</p>
           <button onClick={reshuffle}>Shuffle again</button>
