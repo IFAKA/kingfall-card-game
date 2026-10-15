@@ -2,27 +2,38 @@
 
 **Players:** 1 · **Time:** 10–20 minutes · **You need:** one standard 52-card deck (no jokers). No pen, no counters, no dice.
 
-**Goal:** destroy the enemy's king tower before it destroys yours. You play against an automaton: a simple, fixed set of rules runs the enemy, so you never have to make decisions for it.
+You play against an automaton: a simple, fixed set of rules runs the enemy, so you never have to make decisions for it.
 
 Every card is a soldier. You spend elixir to send soldiers down two lanes, the enemy sends one card a round, they clash in the middle, and survivors attack the towers. Skill gives a big edge; luck still decides some games. A careful player wins most games, but not all.
 
 **Companion app (optional):** the table guide runs the enemy for you and tells you exactly what to move each step. The rules below are complete without it.
 
-**Rank:** A=1, 2–10 face value, J=11, Q=12, K=13. Suits only matter for the wheel (below).
+The sections are named like the topics of the app's How to play: **Goal, Fights, Elixir, A round, Towers, Last stand, Your pile**.
 
-## Cost table (elixir)
-| Rank | A | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | J | Q | K |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Cost | 1 | 2 | 2 | 3 | 4 | 5 | 5 | 6 | 7 | 8 | 8 | 9 | 10 |
+## Goal
+Destroy the enemy's **king tower** before it destroys yours. Each side has three towers of 2 cards: the **left princess**, the **right princess** and the **king**. The king can only be hit through a lane whose princess tower is gone.
+If both kings fall in the same round, count the cards left in your left and right towers against the enemy's: **more cards left wins**, equal is a draw.
 
-## Suit wheel
+## Fights
+**Rank:** A=1, 2–10 face value, J=11, Q=12, K=13. When two cards fight, the **higher rank wins** and the loser goes to the bottom of its owner's pile (see **Your pile**). **Equal:** both go. Suits only matter for the wheel, and aces only against Kings.
+
+### Suit wheel
 In a fight (and a tower hit, which is a fight too), a card **counts double** against the suit it beats:
 ♠ beats ♥ · ♥ beats ♦ · ♦ beats ♣ · ♣ beats ♠.
 Example: 6♠ against J♥ fights as 12 and wins; against Q♥ it ties. Between ♠ and ♦ (or ♥ and ♣) nobody doubles.
 
-## Aces beat Kings
+### Aces beat Kings
 In a fight, an **ace beats a K**, whatever the suits. (J and Q are ordinary cards: they beat an ace.)
 It works both ways: an enemy ace kills your king. It counts against towers too: an ace on top of a tower stops a K.
+
+## Elixir
+Elixir pays for your cards. You start with **5**, gain **3** each round, max **10** (your bar and its marker: **Setup**, step 5).
+
+| Rank | A | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | J | Q | K |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Cost | 1 | 2 | 2 | 3 | 4 | 5 | 5 | 6 | 7 | 8 | 8 | 9 | 10 |
+
+The enemy has **no elixir**: it plays exactly one card per round, whatever it costs.
 
 ## Setup (52 = 14 + 14 + 10 + 14 in the box)
 1. Shuffle. Deal **14 to you**, **14 to the enemy** (face-down, don't look), then **10 face-down in a row for your elixir bar**. Put the **other 14 back in the box without looking**: they sit this game out, so you can never be sure which cards the enemy has.
@@ -33,24 +44,30 @@ It works both ways: an enemy ace kills your king. It counts against towers too: 
 5. **Elixir:** lay your bar as a row of 10 face-down cards with a small gap after the 5th, so positions read at a glance. Turn the **5th card sideways** (still face-down). That sideways card is the **marker**: elixir = its position, counted from the left (1–10). No card sideways = 0 elixir.
    - To gain or spend elixir, straighten the marker and turn the card that many places right or left sideways instead. Never past 10.
    - Tip: do the sums in your head and move the marker **once per round**: your new elixir = min(10, old + 3) − what you spent.
-   - The enemy has **no elixir bar**: it plays one card per round.
 6. **Table:** two lanes (left, right) between the tower rows. Each lane has **2 slots**: slot 1 next to you, slot 2 next to the enemy. Several cards may share a slot. Cards in a lane are **units**.
 
-## Each round
+## A round
 1. **Elixir.** Your marker moves **3** to the right. Max 10.
 2. **You play.** As many cards as you like and can afford: move your marker left by the cost, put the card in **slot 1** of a lane, refill your hand to 4 from the top of your queue. You may play nothing.
-3. **Enemy plays (automaton).** It plays **exactly one card**: its face-up top card, whatever it costs. The card goes to **slot 2 of the lane where you have more units** (tie: left), so the enemy always defends against your biggest push. Then turn its next top card face-up: that is its play next round.
-4. **Fight.** In each lane with units from both sides, your front-most unit fights the enemy's front-most where they stand (front-most = furthest advanced; in a shared slot, the one that got there first). Nothing has moved yet. Compare rank, doubled for the winning suit (an ace against a picture card always wins).
-   - **Higher wins; the loser goes to the bottom of its owner's pile** (the enemy's goes face-up: you know it now). **Equal:** both go.
+3. **Enemy plays (automaton).** It plays **exactly one card**: its face-up top card, whatever it costs. The card goes to **slot 2 of the lane where you have more units** (tie: the lane with your highest-ranked unit; still tied, left), so the enemy always defends against your biggest push. Then turn its next top card face-up: that is its play next round.
+4. **Fight.** In each lane with units from both sides, your front-most unit fights the enemy's front-most where they stand (front-most = furthest advanced; in a shared slot, the one that got there first). Nothing has moved yet. They fight as in **Fights**.
    - The winner stays where it is. The next unit behind the loser **steps up one slot** (that is its move this round; if an enemy card is in its own slot, it stays) and fights the winner, and so on until one side has no units left in that lane.
-   - Whenever one of your cards returns to your queue, refill your hand to 4.
 5. **Move.** Every unit that hasn't moved this round steps one slot toward the other side. Cards never pass through each other. A unit that steps past the last slot is **at the tower**. Units already at a tower stay there.
-6. **Tower hits.** Left lane first, then right. Every unit at the tower hits that lane's princess stack, or the king stack if that princess stack is empty. **The king can only be hit once that lane's princess stack is gone.** Turn the top tower card face-up: **a tower hit is a fight** against that card, with the same rules (the wheel doubles, an ace beats a picture card).
-   - The unit **wins or ties**, **or the card is already cracked (sideways)**: **the tower card is destroyed** (discard it). The unit stays at the tower, **turned sideways: it is wounded**. It hits **once more** next round (unless an enemy unit beats it first: it is the front-most unit in its lane, so new enemy cards fight it first), then goes to the bottom of its owner's pile whatever happens. So one card breaks at most 2 tower cards.
-   - The unit **loses**: the tower holds and **shoots it back**: the unit goes to the bottom of its owner's pile, and the tower card **cracks**: turn it **sideways** and move it to the **bottom of that tower** (face-up if it is an enemy card). The next card is now on top. Any later hit breaks a cracked card, so every tower can be worn down, even by small cards.
-   - The enemy hits your towers the same way. You know your own cards.
-   - **Last stand:** when a left or right tower loses its last card, its owner immediately places **one card in that lane for free** (the marker doesn't move). You pick any card from your hand, put it in slot 1 and refill your hand. The enemy puts its face-up top card in slot 2, then turns its next top card face-up. The king has no last stand.
-7. **End.** Enemy king stack empty = **you win**. Yours empty = **you lose**. Both in the same round: count the cards left in your left and right towers against the enemy's; **more cards left wins**, equal is a draw. Otherwise start the next round.
+6. **Tower hits.** Left lane first, then right. Every unit at the tower hits that lane's princess stack, or the king stack if that princess stack is empty. **The king can only be hit once that lane's princess stack is gone.** Each hit is resolved as in **Towers**; a side tower that loses its last card gets a **Last stand**.
+7. **End.** A king stack empty ends the game (see **Goal**). Otherwise start the next round.
+
+## Towers
+Turn the top tower card face-up: **a tower hit is a fight** against that card, with the same rules as **Fights** (the wheel doubles, an ace beats a K).
+- The unit **wins or ties**, **or the card is already cracked (sideways)**: **the tower card is destroyed** (discard it). The unit stays at the tower, **turned sideways: it is wounded**. It hits **once more** next round (unless an enemy unit beats it first: it is the front-most unit in its lane, so new enemy cards fight it first), then goes to the bottom of its owner's pile whatever happens. So one card breaks at most 2 tower cards.
+- The unit **loses**: the tower holds and **shoots it back**: the unit goes to the bottom of its owner's pile, and the tower card **cracks**: turn it **sideways** and move it to the **bottom of that tower** (face-up if it is an enemy card). The next card is now on top. Any later hit breaks a cracked card, so every tower can be worn down, even by small cards.
+- The enemy hits your towers the same way. You know your own cards.
+
+## Last stand
+When a left or right tower loses its last card, its owner immediately places **one card in that lane for free** (the marker doesn't move). You pick any card from your hand, put it in slot 1 and refill your hand. The enemy puts its face-up top card in slot 2, then turns its next top card face-up. The king has no last stand.
+
+## Your pile
+A card that loses a fight, is shot back by a tower, or is a wounded unit after its second hit goes to the **bottom of its owner's pile** (the enemy's goes face-up: you know it now). Whenever one of your cards returns to your queue, refill your hand to 4.
+So your 8 cards keep cycling, and you will face the enemy's cards again. A card holding a tower is out of that cycle until it dies.
 
 ## Designer's notes (from thousands of simulated games)
 - Expect to lose some of your first games. Measured over thousands of simulated games: random play wins about 11%, following the companion app's suggestions about 72%, and a player who thinks several moves ahead about 90%. Thoughtless play mostly loses; thinking wins, and thinking harder keeps winning more.
@@ -61,4 +78,3 @@ It works both ways: an enemy ace kills your king. It counts against towers too: 
 - Skill is in the playing, not the deck: with a strong bot most mixes of cheap and strong cards win within about 10 points of each other (about 67–77%), and the best split changes with the rules. The deal matters little: a deal with two aces wins about 10 points more than one with none. Aces kill kings, and the wheel lets a mid card beat a big one.
 - No numbers to memorise: the wheel doubles, aces beat kings.
 - Last stand makes comebacks more common: when a side tower falls, its owner gets a free card in that lane.
-- Dead cards return to the bottom of their owner's pile, so your 8 cards keep cycling and you will face the enemy's cards again. A card holding a tower is out of that cycle until it dies.
