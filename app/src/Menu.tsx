@@ -203,9 +203,9 @@ export function GameMenu({ topics, log, onExport, hints, settings, muted, toggle
     log: { title: 'What happened', body: <LogView log={log ?? []} />, footer: <>{onExport && <Button variant="success" size="xl" onClick={onExport}><SaveIcon /> Save log as a file</Button>}{back}</> },
     hints: { title: 'Hints', body: hints?.(close), footer: back },
     install: { title: 'Install the app', body: iosSteps, footer: back },
-    leave: { title: 'Leave this game?', description: 'The game will be discarded and you go back to the title screen.', footer: <>
+    leave: { title: 'Back to the title screen?', description: 'This game will be discarded.', footer: <>
       <Button variant="success" size="xl" onClick={() => go(null)}>Keep playing</Button>
-      <Button variant="destructive" size="xl" onClick={() => { setLeaving(true); close() }}>Leave game</Button>
+      <Button variant="destructive" size="xl" onClick={() => { setLeaving(true); close() }}>Back to title</Button>
     </> },
   }
   const shown = page && pages[page]
@@ -218,7 +218,7 @@ export function GameMenu({ topics, log, onExport, hints, settings, muted, toggle
       }}>
       <DrawerTrigger render={<Button variant="secondary" size="icon-lg" aria-label="Menu" title="Menu" />}><MenuIcon /></DrawerTrigger>
       {shown ? <Panel title={shown.title} description={shown.description} footer={shown.footer} {...panel}>{shown.body}</Panel> : (
-        <Panel title="Menu" {...panel} footer={onLeave && <Button variant="destructive" size="xl" onClick={() => go('leave')}><LogOut /> Leave game</Button>}>
+        <Panel title="Menu" {...panel} footer={onLeave && <Button variant="destructive" size="xl" onClick={() => go('leave')}><LogOut /> Back to title</Button>}>
           <ItemGroup className="gap-3">
             <PageRow icon={<BookOpen />} title="How to play" description="The whole game, one rule per line" onOpen={() => go('rules')} />
             {log && <PageRow icon={<ScrollText />} title="What happened" description="Every play and fight so far" onOpen={() => go('log')} />}
