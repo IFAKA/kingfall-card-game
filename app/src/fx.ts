@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 import type { RefObject } from 'react'
 import type { GameEvent, GuideState } from './guide'
 import { sfx } from './sfx'
+import { RANKS, SUITS } from './engine'
 
-export interface Pop { id: number; x: number; y: number; text: string; sub?: string; kind: string }
+export interface Pop { id: number; x: number; y: number; text: string; sub?: string; kind: string; ms: number }
 export type Shake = '' | 'shake-s' | 'shake-m' | 'shake-l'
 
 // A card you move yourself (dropped, or tapped into place) is already moving under your finger, so its trip is quicker than the
@@ -17,6 +18,14 @@ export function quick(tid: string | undefined, seconds: number) {
 
 let nextId = 1
 const STAGGER = 140 // ms between effects of the same step, so two fights read as two hits
+
+// A pop-up stays long enough to read: adults read about 238 words a minute (Brysbaert 2019), plus a moment to notice it. Only the
+// part of the animation where it is fully shown counts (after it pops in, before it fades: about 58% of it, see @keyframes popup).
+const MS_PER_WORD = 60000 / 238, NOTICE_MS = 300, SHOWN = 0.58, MIN_MS = 1450
+export const popMs = (text: string) => {
+  const words = text.split(/\s+/).filter(w => /[\p{L}\p{N}\p{S}]/u.test(w)).length // a lone "·" is not a word
+  return Math.max(MIN_MS, Math.round((NOTICE_MS + words * MS_PER_WORD) / SHOWN))
+}
 
 /**
  * `fresh` is the state the latest step produced; effects play only for it, never for undo, redo or a reloaded game.
@@ -43,16 +52,15 @@ export function useFx(game: GuideState | null, fresh: GuideState | null, root: R
       const rs = rects(name)
       return rs.length ? ((rs.reduce((x, r) => x + r.left + r.width / 2, 0) / rs.length / innerWidth) * 2 - 1) * 0.5 : 0
     }
-    const center = { x: pr.width / 2, y: pr.height / 2 }
     const calm = matchMedia('(prefers-reduced-motion: reduce)').matches
     let biggest = 0
     // not cancelled when the next step arrives: a pop-up always finishes and removes itself
     const later = (ms: number, f: () => void) => { window.setTimeout(f, ms) }
-    const pop = (ms: number, p: Omit<Pop, 'id'> | null) => {
+    const pop = (ms: number, p: Omit<Pop, 'id' | 'ms'> | null) => {
       if (!p) return
-      const id = nextId++
-      later(ms, () => setPops(ps => [...ps, { ...p, id }]))
-      later(ms + 1500, () => setPops(ps => ps.filter(q => q.id !== id)))
+      const id = nextId++, life = popMs(`${p.text} ${p.sub ?? ''}`)
+      later(ms, () => setPops(ps => [...ps, { ...p, id, ms: life }]))
+      later(ms + life + 50, () => setPops(ps => ps.filter(q => q.id !== id)))
     }
     const hit = (size: 1 | 2 | 3) => { biggest = Math.max(biggest, size) }
 
@@ -60,7 +68,7 @@ export function useFx(game: GuideState | null, fresh: GuideState | null, root: R
     for (const e of game.events as GameEvent[]) {
       const ms = n * STAGGER
       switch (e.type) {
-        case 'round': pop(ms, { ...center, text: `Round ${e.round}`, kind: 'round' }); sfx('round', ms); break
+        case 'round': sfx('round', ms); break // the round chip on the bridge rolls its number (RoundChip)
         case 'play': sfx('place', ms, { mood: e.side === 'P' ? 'good' : 'bad', pan: pan(`lane-${e.lane}`) }); n++; break
         case 'fight': {
           const p = at(`lane-${e.lane}`)
@@ -68,10 +76,12 @@ export function useFx(game: GuideState | null, fresh: GuideState | null, root: R
           const sound = { mood: good, pan: pan(`lane-${e.lane}`) } as const
           // your value first, the sign pointing at the winner: "13 > 3"
           const vs = `${e.mine.value} ${e.winner === 'P' ? '>' : e.winner === 'E' ? '<' : '='} ${e.theirs.value}`
+          // an ace or suit win says which rule decided it, so the rule is learned where it happens instead of from a cheat sheet
+          const [win, lose] = (e.ace ?? e.double) === 'P' ? [e.mine.card, e.theirs.card] : [e.theirs.card, e.mine.card]
           if (e.ace) {
-            pop(ms, p && { ...p, text: 'ACE!', kind: `ace ${good}` }); sfx('big', ms, sound); hit(2)
+            pop(ms, p && { ...p, text: 'ACE!', sub: `A beats ${RANKS[lose.rank]}`, kind: `ace ${good}` }); sfx('big', ms, sound); hit(2)
           } else if (e.double) {
-            pop(ms, p && { ...p, text: '×2!', sub: vs, kind: `x2 ${good}` }); sfx('big', ms, sound); hit(2)
+            pop(ms, p && { ...p, text: '×2!', sub: `${SUITS[win.suit]} beats ${SUITS[lose.suit]} · ${vs}`, kind: `x2 ${good}` }); sfx('big', ms, sound); hit(2)
           } else {
             pop(ms, p && { ...p, text: vs, sub: e.winner === 'tie' ? 'tie' : undefined, kind: `fight ${good}` }); sfx('clash', ms, sound); hit(1)
           }

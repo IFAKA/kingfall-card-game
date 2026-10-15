@@ -8,7 +8,7 @@ import {
 } from './guide'
 import type { ESlot, GuideState } from './guide'
 import { quick, useFx } from './fx'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useAnimate, useReducedMotion } from 'framer-motion'
 import type { Variants } from 'framer-motion'
 import type { Pop } from './fx'
 import { isMuted, setMuted, sfx } from './sfx'
@@ -134,7 +134,7 @@ function PopView({ p }: { p: Pop }) {
     })
   }, [p])
   return (
-    <div ref={ref} className={`pop ${p.kind}`} style={{ left: fit?.x ?? p.x, top: fit?.y ?? p.y, fontSize: fit?.size, visibility: fit ? undefined : 'hidden' }}>
+    <div ref={ref} className={`pop ${p.kind}`} style={{ left: fit?.x ?? p.x, top: fit?.y ?? p.y, fontSize: fit?.size, animationDuration: `${p.ms}ms`, visibility: fit ? undefined : 'hidden' }}>
       {p.text}{p.sub && <small>{p.sub}</small>}
     </div>
   )
@@ -368,10 +368,58 @@ function Logo({ small }: { small?: boolean }) {
   )
 }
 
+// Each suit beats the next one clockwise; the loop is drawn as a loop so ♣ → ♠ reads as clearly as the rest.
+const SuitWheel = () => (
+  <div className="suitwheel" role="img" aria-label="Spades beat hearts, hearts beat diamonds, diamonds beat clubs, clubs beat spades; the winning suit counts double">
+    <i className="n">♠</i><i className="e r">♥</i><i className="s r">♦</i><i className="w">♣</i>
+    <em className="ne">→</em><em className="se">→</em><em className="sw">→</em><em className="nw">→</em>
+    <b>×2</b>
+  </div>
+)
+
+// The round chip on the bridge: when the round changes, each digit rolls like a wheel (up going forward, down on undo)
+// and the chip pops with a gold glow, so the eye goes there. Columns are keyed from the right, so 9 → 10 rolls the ones
+// digit 9 → 0 while the new tens digit rolls in.
+const roll: Variants = {
+  enter: (dir: number) => ({ y: `${dir * 100}%` }),
+  still: { y: '0%', transition: { type: 'spring', stiffness: 260, damping: 22 } },
+  leave: (dir: number) => ({ y: `${dir * -100}%`, transition: { duration: 0.25, ease: 'easeIn' } }),
+}
+function RoundChip({ n }: { n: number }) {
+  // the number before the last change, kept in state so the digit that leaves knows its direction in the same render
+  const [cur, setCur] = useState(n)
+  const [from, setFrom] = useState(n)
+  if (n !== cur) { setFrom(cur); setCur(n) }
+  const d = n >= from ? 1 : -1
+  const [scope, animate] = useAnimate<HTMLDivElement>()
+  const calm = useReducedMotion()
+  const digits = String(n).split('')
+  const seen = useRef(n)
+  useEffect(() => {
+    if (n === seen.current) return
+    seen.current = n
+    if (!calm) animate(scope.current, { scale: [1, 1.45, 0.94, 1.08, 1], boxShadow: ['0 0 0 0 rgba(255,200,60,0)', '0 0 0 4px rgba(255,200,60,.95), 0 0 28px 8px rgba(255,200,60,.7)', '0 0 0 3px rgba(255,200,60,.7), 0 0 18px 4px rgba(255,200,60,.4)', '0 0 0 0 rgba(255,200,60,0)'] }, { duration: 1.1, ease: 'easeOut' })
+  }, [n, calm, animate, scope])
+  return (
+    <div ref={scope} className="round" aria-live="polite" aria-label={`Round ${n}`}>
+      <span aria-hidden="true">Round</span>
+      <span className="odo" aria-hidden="true">
+        {digits.map((x, i) => (
+          <span key={digits.length - i} className="dial">
+            <AnimatePresence initial={digits.length - i > String(from).length} custom={d}>{/* a column that wasn't there before (9 → 10) rolls in */}
+              <motion.span key={x} custom={d} variants={calm ? undefined : roll} initial="enter" animate="still" exit="leave">{x}</motion.span>
+            </AnimatePresence>
+          </span>
+        ))}
+      </span>
+    </div>
+  )
+}
+
 const RULES_60 = (
   <ul>
     <li><b>Goal:</b> destroy the enemy's <b>king tower</b> (a stack of 2 cards) before it destroys yours.</li>
-    <li><b>Cards</b> are soldiers. Higher rank wins a fight (A=1 … K=13). A card of the suit that beats the other counts <b>double</b>: ♠→♥, ♥→♦, ♦→♣, ♣→♠.</li>
+    <li><b>Cards</b> are soldiers. Higher rank wins a fight (A=1 … K=13). A card of the suit that beats the other counts <b>double</b>: ♠→♥, ♥→♦, ♦→♣, ♣→♠.<SuitWheel /></li>
     <li><b>Aces beat picture cards</b> (J, Q, K) in a fight, whatever the suits, and against towers too. Watch out: it works for the enemy as well.</li>
     <li><b>Elixir</b> pays for your soldiers: a card costs about its rank (A=1, 5=4, 8=6, K=10). You get 3 more each round, max 10. The enemy has no elixir: it plays <b>one card per round</b>, the top of its pile.</li>
     <li>Each round: <b>you play</b> cards into a lane, then the <b>enemy</b> plays its top card into the lane where you have <b>more</b> cards (it defends; on a tie, where your highest-ranked card is, then left), then the front cards <b>fight</b> where they stand. When one falls, the card behind it <b>steps up</b> one slot and fights the winner. Then every card that hasn't moved <b>moves</b> one slot. Survivors reaching the other end hit a tower.</li>
@@ -873,11 +921,7 @@ export default function App() {
       <Button variant="secondary" size="icon-lg" aria-label="Redo" title="Redo" onClick={redo} disabled={!future.length}><Redo2 /></Button>
     </>
     const menu = <GameMenu rules={RULES_60} muted={muted} toggleMute={toggleMute} onLeave={reset} log={g.log} hints={hints} />
-    const rules = <>
-      <div className="round">Round {g.round}</div>
-      <div className="rule" title="Aces beat picture cards in a fight, whatever the suits"><b>A</b> beats <b>J Q K</b></div>
-      <div className="rule wheelmini" title="Each suit beats the next one; the winning suit counts double">{['♠', '♥', '♦', '♣', '♠'].map((x, k) => <Fragment key={k}>{k > 0 && <em>›</em>}<i className={x === '♥' || x === '♦' ? 'r' : ''}>{x}</i></Fragment>)}<span>×2</span></div>
-    </>
+    const round = <RoundChip n={g.round} />
     const discard = (owner: 'P' | 'E') => {
       const d = g.discard.filter(x => x.owner === owner)
       return <TablePile top={d.at(-1)} down={false} n={d.length} name="Discard" discard />
@@ -895,7 +939,7 @@ export default function App() {
           <div className="lanes">
             <span />
             <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} />
-            <div className="mid">{rules}</div>
+            <div className="mid">{round}</div>
             <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} />
             <span />
           </div>
@@ -917,11 +961,11 @@ export default function App() {
         </div>
         <div className="lanes">
           <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} />
-          <div className="mid">
+          <div className="mid rows">
             <div className="sidechip enemy" title="The next card of the enemy pile (face-down until you have seen it). The enemy plays one card per round.">
               {eNext && <div className="nextcard"><TCard key={eNext.tid} tid={eNext.tid} card={eNext.card} down={!eNext.card} side="E" /></div>}
             </div>
-            {rules}
+            {round}
           </div>
           <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} />
         </div>
