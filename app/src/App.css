@@ -434,7 +434,9 @@ details.help[open] > summary { margin-bottom: 8px; }
 .castle.king .cart { width: calc(var(--cw) * 1.7); height: calc(var(--cw) * 1.49); }
 .castle .cart .door { fill: #2a1a10; stroke: none; }
 .castle .cart .crown { fill: var(--gold); stroke: var(--gold-ink); stroke-width: 1.5; }
-.castle.fallen .cart { fill: #6b6b6b; stroke: #333; opacity: .45; }
+.castle.fallen .cart { fill: #6b6b6b; stroke: #333; opacity: .6; }
+.castle .cart .crack { fill: none; stroke: #333; stroke-width: 1.5; }
+.castle.fallen .cart .crown { opacity: .8; }
 .castle .armor { display: flex; gap: 4px; margin: 3px 0; }
 .castle .armor i { width: calc(var(--cw) * .24); height: calc(var(--cw) * .28); min-width: 8px; min-height: 9px; border-radius: 3px 3px 7px 7px; background: linear-gradient(#ffe27a, #e3a400); border: 1.5px solid #6e4300; }
 .castle .armor i.crk { background: linear-gradient(135deg, #c9a8ff 45%, #3b1d6e 45% 55%, #c9a8ff 55%); border-color: #3b1d6e; }
@@ -775,8 +777,6 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .castle.theirs .topcard:not(.empty) { background: #fbfbf6; box-shadow: 0 0 0 3px #e24a4a, 0 0 0 4px #fff, 0 2px 0 4px rgba(0,0,0,.4); }
 /* the ring is drawn outside the card, so the slot keeps clear of the armor pips above it */
 .castle .tslot { margin-top: 5px; }
-/* a fallen tower's label sits just under its castle, over the empty armor row, instead of down in the top-card slot; the row keeps its height */
-.castle.fallen .cname { transform: translateY(calc(-1 * (max(9px, var(--cw) * .28) + 3px) - 9px)); }
 /* the rules page draws the suit order as a loop: each suit beats the next one clockwise, the winner counts double */
 .suitwheel { display: grid; grid-template: repeat(3, 1.6em) / repeat(3, 1.6em); place-items: center; width: max-content; margin: 8px auto 2px; font-size: 22px; line-height: 1; }
 .suitwheel i { font-style: normal; } .suitwheel i.r { color: #ff6b78; }
