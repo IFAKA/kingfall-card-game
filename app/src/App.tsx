@@ -741,7 +741,7 @@ export default function App() {
   const open = (i: number) => (pick ? switchCards(g, pick, g.P.hand[i].id) !== g : standing || canPlay(g, i))
   const handCards = g.P.hand.map((c, i) => (
     <div key={c.id} data-i={i} className={`hdrag ${drag === i ? 'lifted' : ''} ${!open(i) ? 'off' : ''} ${suggested?.handIndex === i && drag === null ? 'suggested' : ''}`} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} onPointerDown={e => startDrag(e, i)}>
-      <TCard tid={c.id} card={c} down={false} showCost selected={sel === i} dim={!open(i)} onClick={() => tapHand(i)} />
+      <TCard tid={c.id} card={c} down={false} side="P" showCost selected={sel === i} dim={!open(i)} onClick={() => tapHand(i)} />
     </div>
   ))
   // the Hints page of the menu: two switches, then only what they say about this turn
@@ -909,6 +909,7 @@ export default function App() {
     )
     const field = (
       <div className={`field ${shake}`}>
+        {import.meta.env.DEV && <span className="corner left undoredo">{undoRedo}</span>} {/* debugging aid: dev server only, never in the deployed build */}
         <span className="corner right">{menu}</span>
         <div className="castles theirs">
           {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} fx={towerFx('E', k)} shake={fighting.includes(`tower-E-${k}`)} />)}
@@ -939,7 +940,7 @@ export default function App() {
             </div>}
           <div className="handwrap">
             <div className="handrow">
-              {mode === 'play' && <div className="nextcard mine" title="Your next card: it comes into your hand when you play one"><span>Next</span>{g.P.queue[0] && <TCard key={g.P.queue[0].id} tid={g.P.queue[0].id} card={g.P.queue[0]} down={false} showCost />}</div>}
+              {mode === 'play' && <div className="nextcard mine" title="Your next card: it comes into your hand when you play one"><span>Next</span>{g.P.queue[0] && <TCard key={g.P.queue[0].id} tid={g.P.queue[0].id} card={g.P.queue[0]} down={false} side="P" showCost />}</div>}
               {handCards}
               <div className="nextcard mine endwrap"><span>Done</span>
                 <button className={`big done endturn ${advice?.kind === 'wait' ? 'suggested' : ''}`} title={advice?.kind === 'wait' ? advice.reason : 'End turn'} disabled={stage !== 'my_play'} aria-label="End turn" onClick={() => commit(endMyTurn(g))}><svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg></button>
