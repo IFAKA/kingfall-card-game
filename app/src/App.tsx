@@ -377,29 +377,32 @@ const SuitWheel = () => (
   </div>
 )
 
-// The round chip on the bridge: when the round changes, each digit rolls like a wheel (up going forward, down on undo)
-// and the chip glows gold with a gentle swell, so the eye goes to the rolling digits rather than to a jump in size. Columns are keyed from the right, so 9 → 10 rolls the ones
-// digit 9 → 0 while the new tens digit rolls in.
+// The round chip on the bridge: when the round changes, the chip first glows gold with a gentle swell to catch the eye,
+// and only once the glow peaks (the old number is readable) does each digit roll like a wheel (down going forward: the
+// new digit drops in from above; up on undo). Columns are keyed from the right, so 9 → 10 rolls the ones digit 9 → 0
+// while the new tens digit rolls in.
 const roll: Variants = {
-  enter: (dir: number) => ({ y: `${dir * 100}%` }),
+  enter: (dir: number) => ({ y: `${dir * -100}%` }),
   still: { y: '0%', transition: { type: 'spring', stiffness: 150, damping: 18 } },
-  leave: (dir: number) => ({ y: `${dir * -100}%`, transition: { duration: 0.4, ease: 'easeIn' } }),
+  leave: (dir: number) => ({ y: `${dir * 100}%`, transition: { duration: 0.4, ease: 'easeIn' } }),
 }
+const ROLL_AFTER = 250 // ms: when the glow peaks, the wheel turns
 function RoundChip({ n }: { n: number }) {
-  // the number before the last change, kept in state so the digit that leaves knows its direction in the same render
-  const [cur, setCur] = useState(n)
+  // the number on the wheel lags n by ROLL_AFTER; `from` is the number before it, so the leaving digit knows its direction
+  const [shown, setShown] = useState(n)
   const [from, setFrom] = useState(n)
-  if (n !== cur) { setFrom(cur); setCur(n) }
-  const d = n >= from ? 1 : -1
+  const d = shown >= from ? 1 : -1
   const [scope, animate] = useAnimate<HTMLDivElement>()
   const calm = useReducedMotion()
-  const digits = String(n).split('')
-  const seen = useRef(n)
+  const digits = String(shown).split('')
   useEffect(() => {
-    if (n === seen.current) return
-    seen.current = n
-    if (!calm) animate(scope.current, { scale: [1, 1.06, 1, 1], boxShadow: ['0 0 0 0 rgba(255,200,60,0)', '0 0 0 4px rgba(255,200,60,.95), 0 0 28px 8px rgba(255,200,60,.7)', '0 0 0 3px rgba(255,200,60,.7), 0 0 18px 4px rgba(255,200,60,.4)', '0 0 0 0 rgba(255,200,60,0)'] }, { duration: 1.3, ease: 'easeInOut' })
-  }, [n, calm, animate, scope])
+    if (n === shown) return
+    const turn = () => { setFrom(shown); setShown(n) }
+    if (calm) { turn(); return }
+    animate(scope.current, { scale: [1, 1.06, 1.06, 1], boxShadow: ['0 0 0 0 rgba(255,200,60,0)', '0 0 0 4px rgba(255,200,60,.95), 0 0 28px 8px rgba(255,200,60,.7)', '0 0 0 3px rgba(255,200,60,.7), 0 0 18px 4px rgba(255,200,60,.4)', '0 0 0 0 rgba(255,200,60,0)'] }, { duration: 0.9, times: [0, 0.22, 0.5, 1], ease: 'easeInOut' })
+    const t = setTimeout(turn, ROLL_AFTER)
+    return () => clearTimeout(t)
+  }, [n, shown, calm, animate, scope])
   return (
     <div ref={scope} className="round" aria-live="polite" aria-label={`Round ${n}`}>
       <span aria-hidden="true">Round</span>
