@@ -73,7 +73,7 @@ select { padding: 6px; }
 .card.small .corner { font-size: 12px; left: 3px; }
 .card .pip { position: absolute; right: 6px; bottom: 4px; font-size: 26px; }
 .card.small .pip { font-size: 18px; }
-.card .cost { position: absolute; right: -6px; top: -6px; background: var(--elixir-fill); text-shadow: 0 1px 0 #2a0f4d; color: #fff; border-radius: 50%; width: 22px; height: 22px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
+.card .cost { position: absolute; left: 50%; translate: -50% 0; bottom: -8px; background: var(--elixir-fill); text-shadow: 0 1px 0 #2a0f4d; color: #fff; border-radius: 50%; width: 22px; height: 22px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
 .card.clickable { cursor: pointer; }
 @media (hover: hover) { .card.clickable:hover { transform: translateY(-4px); } }
 .card.selected { outline: 3px solid #ffd36b; transform: translateY(-8px); }
@@ -178,7 +178,7 @@ h3 { margin: 18px 0 8px; }
 .tcard, .mini { width: var(--cw); height: var(--ch); flex: none; font-size: calc(var(--cw) * .27); }
 .tcard .corner { font-size: 1em; left: 4px; top: 3px; text-align: center; }
 .tcard .pip { font-size: 1.7em; right: 4px; bottom: 2px; }
-.tcard .cost { width: 1.7em; height: 1.7em; font-size: .9em; right: -.5em; top: -.5em; }
+.tcard .cost { width: 1.7em; height: 1.7em; font-size: .9em; right: auto; top: auto; left: 50%; translate: -50% 0; bottom: -.5em; }
 .mini { display: block; perspective: 700px; }
 .mini .cf { font-size: 1em; }
 .bar { display: flex; gap: 4px; align-items: center; } .bar > b { font-size: 18px; margin-left: 4px; }
@@ -239,7 +239,7 @@ h3 { margin: 18px 0 8px; }
 .vhand { position: relative; width: var(--cw); height: calc(var(--ch) + 3 * var(--voff)); }
 .vcard { position: absolute; left: 0; transition: transform .2s; }
 .vcard:hover { transform: translateX(6px); }
-.tcard .cost { right: 3px; top: 3px; width: 1.55em; height: 1.55em; font-size: .85em; border-width: 1px; }
+.tcard .cost { right: auto; top: auto; left: 50%; translate: -50% 0; bottom: -.45em; width: 1.55em; height: 1.55em; font-size: .85em; border-width: 1px; }
 .tcard.dim { opacity: 1; }
 .tcard.dim .front { filter: grayscale(1) brightness(.6); }
 .tcard.dim .cost { background: #b3261e; }
@@ -508,7 +508,7 @@ details.help[open] > summary { margin-bottom: 8px; }
 .lanes .mid .nextcard span { font-family: var(--display); font-size: max(11px, calc(var(--ch) * .17)); line-height: 1; color: rgba(255,255,255,.8); text-transform: uppercase; }
 .lanes .mid .nextcard { gap: 8px; } /* clears the card's colored ring */
 .lanes .mid .nextcard .tcard { --nh: calc(var(--ch) - max(11px, calc(var(--ch) * .17)) - 8px); width: calc(var(--nh) * .714); height: var(--nh); font-size: calc(var(--nh) * .2); }
-.arena .tcard .cost { right: 3px; top: 3px; width: 1.5em; height: 1.5em; font-size: .85em; border-width: 1px; }
+.arena .tcard .cost { right: auto; top: auto; left: 50%; translate: -50% 0; bottom: -.45em; width: 1.5em; height: 1.5em; font-size: .85em; border-width: 1px; }
 
 /* ---------- teaching by playing: one tip at a time over the field, the enemy waits while it is open ---------- */
 .coach { position: absolute; z-index: 45; left: 50%; transform: translateX(-50%); bottom: calc(var(--ch) + 112px); width: min(540px, calc(100% - 24px)); box-sizing: border-box;
