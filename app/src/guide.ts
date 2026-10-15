@@ -694,7 +694,8 @@ function finishRound(g: GuideState): GuideState {
 }
 
 // ---------- advice ----------
-export type Advice = { kind: 'play'; handIndex: number; lane: 0 | 1; reason: string } | { kind: 'wait'; reason: string }
+// short: the reason in a few words, for the line on the board
+export type Advice = { kind: 'play'; handIndex: number; lane: 0 | 1; reason: string; short: string } | { kind: 'wait'; reason: string; short: string }
 
 function beats(g: GuideState, a: Card, b: Card) {
   return compare(a, b, g.rules) > 0
@@ -777,19 +778,21 @@ export function advise(g: GuideState): Advice {
     const why = leaking.length
       ? `Nothing you can afford stops the enemy ${leaking.map(l => `${cardList(base.leaks[l])} in the ${laneName(l).toLowerCase()} lane`).join(' and ')}. Save elixir so you can answer next round.`
       : `Every enemy card is covered by what is already on the table. Saving elixir keeps an answer ready for the cards it hasn't flipped yet.`
-    return { kind: 'wait', reason: why + nextNote(base) }
+    return { kind: 'wait', reason: why + nextNote(base), short: leaking.length ? 'nothing you can afford stops them, so save elixir' : 'everything is covered, so save elixir' }
   }
   // defend first: start with a card for a lane that would otherwise leak
   const first = best.plays.find(p => base.leaks[p.lane].length > best.leaks[p.lane].length) ?? best.plays[0]
   const c = hand[first.i], ln = laneName(first.lane).toLowerCase()
-  let reason = base.leaks[first.lane].length > best.leaks[first.lane].length
+  const stops = base.leaks[first.lane].length > best.leaks[first.lane].length
+  const short = stops ? `it stops the enemy ${cardList(base.leaks[first.lane])}` : 'nothing there beats it, so it can reach a tower'
+  let reason = stops
     ? `Without help, the enemy ${cardList(base.leaks[first.lane])} would get through the ${ln} lane and crack or break your tower. ${label(c)} stops ${base.leaks[first.lane].length > 1 ? 'them' : 'it'}.`
     : `${label(c)} has a clear path in the ${ln} lane: nothing the enemy has there beats it, so it should reach the enemy tower. If it breaks a card there, it stays for one more hit.`
   if (base.plays.length === 0 && g.P.elixir + g.rules.regen > g.rules.cap) reason += ` It also keeps your bar from overflowing next round.`
   if (best.plays.length > 1) reason += ` Plan for this turn: ${best.plays.map(p => `${label(hand[p.i])} → ${laneName(p.lane)}`).join(', ')}.`
   const stillLeaks = [0, 1].filter(l => best.leaks[l].length)
   if (stillLeaks.length) reason += ` You can't stop everything: ${stillLeaks.map(l => cardList(best.leaks[l])).join(', ')} will still get through.`
-  return { kind: 'play', handIndex: first.i, lane: first.lane, reason: reason + nextNote(best) }
+  return { kind: 'play', handIndex: first.i, lane: first.lane, reason: reason + nextNote(best), short }
 }
 
 /** Last stand: the card is free, so pick the one that stops the most enemy cards, spending the weakest card that does the job. */
@@ -807,12 +810,13 @@ export function adviseLastStand(g: GuideState): Advice | null {
   const { i, plan } = best!
   const c = g.P.hand[i]
   const was = base.leaks[lane], now = plan.leaks[lane]
+  const short = was.length > now.length ? `it stops the enemy ${cardList(was)}` : plan.pushers[lane].length ? 'it has a clear path, and it is free' : 'it is the cheapest card to give up'
   const reason = was.length > now.length
     ? `The enemy ${cardList(was)} would get through the ${ln} lane. ${label(c)} stops ${was.length > 1 && !now.length ? 'them' : was.length > 1 ? 'some of them' : 'it'}${now.length ? `, but ${cardList(now)} still gets through` : ''}.`
     : plan.pushers[lane].length
       ? `${label(c)} has a clear path in the ${ln} lane, so it should reach the enemy tower. It is free, so use your weakest card that does the job.`
       : `Nothing in your hand changes the ${ln} lane much, so ${label(c)} is the cheapest card to give up.`
-  return { kind: 'play', handIndex: i, lane, reason }
+  return { kind: 'play', handIndex: i, lane, reason, short }
 }
 
 // ---------- events in words ----------

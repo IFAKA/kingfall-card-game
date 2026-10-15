@@ -14,8 +14,8 @@ Free, no sign-up, works on phones and desktops.
 
 ## Two ways to play
 
-- **On screen.** The app deals, runs the enemy and animates every fight. Your first game teaches you as you play, one tip at a time.
-- **With real cards.** Shuffle a real 52-card deck and play at the table. The app is your companion: it runs the enemy automaton and tells you exactly what to move at each step. The [rulebook](RULEBOOK.md) is complete without the app, so it also works as a print-and-play solitaire game.
+- **On screen.** The app deals, runs the enemy and animates every fight. Your first game teaches you as you play: the app builds your deck, suggests moves, and explains one rule at a time, starting with the goal.
+- **With real cards.** Shuffle a real 52-card deck and play at the table. The app is your companion: it runs the enemy automaton and tells you exactly what to move at each step. Your first game at the table also says why at every step. The [rulebook](RULEBOOK.md) is complete without the app, so it also works as a print-and-play solitaire game.
 
 ## How to play in one minute
 

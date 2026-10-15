@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import confetti from 'canvas-confetti'
-import { DECK_SIZE, DEFAULT_RULES, PER_SIDE, RANKS, SUITS, cost, deal, freshDeck, isRed, label, randomSetup, shuffle } from './engine'
+import { DECK_SIZE, DEFAULT_RULES, PER_SIDE, RANKS, SUITS, cost, deal, freshDeck, isRed, label, randomSetup, shuffle, suggestSetup } from './engine'
 import type { Card, Unit } from './engine'
 import {
   advise, adviseLastStand, autoReveal, canPlay, describe, endMyTurn, fightingNext, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary, switchCards, takeBack,
@@ -22,7 +22,7 @@ import DeckBuilder from './DeckBuilder'
 
 type Help = 'off' | 'explain' | 'suggest'
 type Screen = 'title' | 'deal' | 'enter' | 'draft' | 'table' | 'play'
-interface Saved { mode?: 'guide' | 'play'; secret?: Record<string, Card>; screen: Screen; dealt: string[]; deckIds: string[]; slotIds: string[]; help: Help; pre: GuideState | null; game: GuideState | null; history: GuideState[] }
+interface Saved { mode?: 'guide' | 'play'; secret?: Record<string, Card>; screen: Screen; dealt: string[]; deckIds: string[]; slotIds: string[]; help: Help; pre: GuideState | null; game: GuideState | null; history: GuideState[]; intro?: Intro | null; counted?: boolean }
 
 const ALL = freshDeck()
 const byId = (id: string) => ALL.find(c => c.id === id)!
@@ -420,8 +420,11 @@ function RoundChip({ n }: { n: number }) {
   )
 }
 
-const RULES_60 = (
-  <ul>
+const RULES_60 = (<>
+  <p><b>Goal:</b> break the enemy's <b>king tower</b> before it breaks yours.</p>
+  <p><b>Fights:</b> your cards are soldiers. Send them down a lane: when two cards meet, the higher rank wins.</p>
+  <p><b>Elixir</b> pays for cards: stronger cards cost more, and you get 3 more each round.</p>
+  <details className="help"><summary>All the rules</summary><ul>
     <li><b>Goal:</b> destroy the enemy's <b>king tower</b> (a stack of 2 cards) before it destroys yours.</li>
     <li><b>Cards</b> are soldiers. Higher rank wins a fight (A=1 … K=13). A card of the suit that beats the other counts <b>double</b>: ♠→♥, ♥→♦, ♦→♣, ♣→♠.<SuitWheel /></li>
     <li><b>Aces beat picture cards</b> (J, Q, K) in a fight, whatever the suits, and against towers too. Watch out: it works for the enemy as well.</li>
@@ -430,27 +433,39 @@ const RULES_60 = (
     <li><b>A tower hit is a fight</b> against the tower's top card (the wheel and aces count). Win or tie, and the tower card <b>breaks</b>: your soldier stays, turned sideways (<b>wounded</b>), hits <b>once more</b> next round, then goes back to its pile. Lose, and the tower shoots it back: it goes back to its pile and the tower card <b>cracks</b> (turn it sideways, move it to the bottom of that tower). Any later hit breaks a cracked card. Each tower has 2 cards. The king can only be hit after the princess tower in that lane is gone.</li>
     <li><b>Last stand:</b> when a left or right tower is destroyed, its owner immediately places one card in that lane for free (the enemy uses the top card of its pile).</li>
     <li>A fighting card that dies goes to the <b>bottom of its owner's pile</b>, and you draw it again later. So your 8 cards just keep cycling.</li>
-  </ul>
-)
+  </ul></details>
+</>)
 
 // First games teach by playing: one tip at a time, each shown the first time its situation comes up (on screen, the enemy waits while it is open).
-type TipId = 'drag' | 'elixir' | 'enemy' | 'fight' | 'tower'
+// The goal comes first, so every rule after it has something to serve; each tip says one thing.
+type TipId = 'goal' | 'drag' | 'elixir' | 'change' | 'enemy' | 'fight' | 'tower' | 'crack' | 'next'
 const TIPS: Record<TipId, string> = {
-  drag: 'Drag a card from your hand onto one of your lane slots, the bottom half of the field. The purple number is its elixir cost. The card marked Next, between your lanes, comes into your hand when you play one.',
-  elixir: 'Elixir pays for cards. You get 3 more every round, up to 10. Play another card, or press the ✓ button next to your hand to end your turn and let the enemy move. Changed your mind? Until you press ✓, drag a card you placed back to your hand, or tap it and then tap another card to switch them.',
+  goal: "Your goal: break the enemy's king, the big crowned castle at the top, before it breaks yours. Your cards are soldiers: send them up the lanes to reach its towers.",
+  drag: 'Drag a card from your hand onto one of your lane slots, the bottom half of the field. The purple number is its elixir cost.',
+  elixir: 'Elixir pays for cards. You get 3 more every round, up to 10. Play another card, or press the ✓ button next to your hand to end your turn and let the enemy move.',
+  change: 'Changed your mind? Until you press ✓, drag a card you placed back to your hand or onto the other lane, or tap two cards to switch them.',
   enemy: "The enemy defends: it plays into the lane where you have more cards. The card marked Next, between its lanes, is the one it plays next round.",
   fight: 'When two cards meet, the higher rank wins. A card of the suit that beats the other counts double (♠ › ♥ › ♦ › ♣ › ♠), and aces beat J, Q and K.',
-  tower: "The crowned castle in the middle is the king; the two beside it guard the left and right lanes. A card that reaches a tower fights its top card (shown under your castles): win or tie and it breaks, and your card stays wounded for one more hit. Lose and the tower card cracks, and any later hit breaks it. Break both king cards to win.",
+  tower: 'A card that reaches a tower fights its top card, shown under the castle (the suit wheel and aces count). Win or tie and the tower card breaks, and the attacker stays, wounded, for one more hit. The king can only be hit once the tower in its lane has fallen.',
+  crack: 'A card that loses at a tower is shot back to its pile, but the tower card cracks, and any later hit breaks it. So even small cards wear towers down.',
+  next: 'The card marked Next, between your lanes, comes into your hand when you play one. A card of yours that dies goes to the bottom of your pile, so your 8 cards keep coming back.',
 }
 // with real cards the towers are the fanned cards on the table, not castles
 const TABLE_TIPS: Partial<Record<TipId, string>> = {
+  goal: "Your goal: break the enemy's king, the middle tower across the table, before it breaks yours. Your cards are soldiers: send them down the lanes to reach its towers.",
   drag: 'Drag a card from your hand onto one of your lane slots, the bottom half of the field. The purple number is its elixir cost.',
   enemy: 'The enemy defends: it plays into the lane where you have more cards.',
-  elixir: 'Elixir pays for cards. You get 3 more every round, up to 10. Play another card, or press the ✓ button next to your hand to end your turn and let the enemy move.',
-  tower: "The fan in the middle is your king; the two beside it guard the left and right lanes. A card that reaches a tower fights its front card: win or tie and it breaks, and your card stays, turned sideways (wounded), for one more hit. Lose and the tower card cracks (turn it sideways at the table), and any later hit breaks it. Break both enemy king cards to win.",
+  change: 'Put down the wrong card? Undo, at the top left, takes back any step.',
+  tower: 'A card that reaches a tower fights its front card (the suit wheel and aces count). Win or tie and the tower card breaks, and the attacker stays, turned sideways (wounded), for one more hit. The king can only be hit once the tower in its lane has fallen.',
+  crack: 'A card that loses at a tower goes back to its pile, but the tower card cracks: turn it sideways and move it to the bottom of that tower. Any later hit breaks it, so even small cards wear towers down.',
+  next: 'When you play a card, draw the top of your queue into your hand. A card of yours that dies goes to the bottom of your queue, so your 8 cards keep coming back.',
 }
 const DEBUG = import.meta.env.DEV || new URLSearchParams(location.search).has('debug')
 const TIPS_KEY = 'kingfall-tips-seen'
+const PLAYED_KEY = 'kingfall-games-played' // games finished, per mode: a player who has finished none gets a ready-made deck and help on
+type Played = { play: number; guide: number }
+// what a player's first game did for them, so its end can say so and the next game can turn the help off again
+interface Intro { deck: boolean; help: boolean }
 const PULSES = ['droppulse', 'suggestglow', 'suggestring', 'flipglow']
 const readJSON = <T,>(key: string, fallback: T): T => { try { const v = localStorage.getItem(key); return v ? (JSON.parse(v) as T) : fallback } catch { return fallback } }
 const writeJSON = (key: string, v: unknown) => { try { localStorage.setItem(key, JSON.stringify(v)) } catch { /* storage full or blocked */ } }
@@ -474,6 +489,11 @@ export default function App() {
   const [pre, setPre] = useState<GuideState | null>(saved?.pre ?? null)
   const [game, setGame] = useState<GuideState | null>(saved?.game ?? null)
   const [history, setHistory] = useState<GuideState[]>(saved?.history ?? [])
+  // (a player from before games were counted, who has seen tips past the first turn, has played: count one game)
+  const [played, setPlayed] = useState<Played>(() => readJSON(PLAYED_KEY, readJSON<string[]>(TIPS_KEY, []).length >= 3 ? { play: 1, guide: 0 } : { play: 0, guide: 0 }))
+  const novice = played.play + played.guide === 0 // has never finished a game: the first one comes with its deck built
+  const [intro, setIntro] = useState<Intro | null>(saved?.intro ?? null)
+  const [counted, setCounted] = useState(saved?.counted ?? false)
   const [future, setFuture] = useState<GuideState[]>([])
   const [sel, setSel] = useState<number | null>(null)
   const [drag, setDrag] = useState<number | null>(null)
@@ -511,27 +531,34 @@ export default function App() {
   const advance = (g: GuideState) => { fresh.current = g; setGame(g) }
   const playRef = useRef<HTMLDivElement>(null)
   const { pops, shake } = useFx(game, fresh.current, playRef)
-  const [tipsSeen, setTipsSeen] = useState<TipId[]>(() => readJSON(TIPS_KEY, []))
+  const [tipsSeen, setTipsSeen] = useState<string[]>(() => readJSON(TIPS_KEY, []))
   const [tip, setTip] = useState<TipId | null>(null)
-  const seeTip = (ids: TipId[]) => { const n = [...new Set([...tipsSeen, ...ids])]; setTipsSeen(n); writeJSON(TIPS_KEY, n); setTip(null) }
+  // a tip told differently at the table is seen separately there, so switching modes still teaches the table's version
+  const seenId = (id: TipId) => (mode === 'guide' && TABLE_TIPS[id] ? `table:${id}` : id)
+  const seeTip = (ids: TipId[]) => { const n = [...new Set([...tipsSeen, ...ids.map(seenId)])]; setTipsSeen(n); writeJSON(TIPS_KEY, n); setTip(null) }
   useEffect(() => {
     if (screen !== 'play' || !game) return
     const doneNow: TipId[] = tip === 'drag' && game.stats.placed > 0 ? ['drag'] : [] // done by doing it
     if (doneNow.length) seeTip(doneNow)
     else if (tip) return
     const ev = game.events ?? [], isFresh = game === fresh.current
-    const wants = (id: TipId) => !tipsSeen.includes(id) && !doneNow.includes(id)
+    const wants = (id: TipId) => !tipsSeen.includes(seenId(id)) && !doneNow.includes(id)
     const happened = (f: (e: NonNullable<GuideState['events']>[number]) => boolean) => isFresh && ev.some(f)
+    const firstPlay = game.stage === 'my_play' && game.stats.placed === 0
     const next: TipId | undefined = ([
-      ['drag', game.stage === 'my_play' && game.stats.placed === 0],
+      ['goal', firstPlay],
+      ['drag', firstPlay],
       ['elixir', happened(e => e.type === 'play' && e.side === 'P')],
+      ['change', happened(e => e.type === 'play' && e.side === 'P') && game.stats.placed >= 2],
       ['enemy', happened(e => e.type === 'play' && e.side === 'E')],
       ['fight', happened(e => e.type === 'fight')],
       ['tower', happened(e => e.type === 'tower')],
+      ['crack', happened(e => e.type === 'tower' && e.result === 'crack')],
+      ['next', game.stage === 'my_play' && game.round >= 2],
     ] as [TipId, boolean][]).find(([id, now]) => now && wants(id))?.[0]
     if (next) setTip(next)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game, screen])
+  }, [game, screen, tip]) // when a tip closes, the next one the same step called for comes up
   // the arena's "what happened" line keeps the last thing worth saying until something new happens
   const [said, setSaid] = useState<string[]>([])
   useEffect(() => {
@@ -546,9 +573,16 @@ export default function App() {
   useEffect(() => { if (game?.stage !== 'over' && !browsing.current) { setOverSeen(false); setResultViewed(false) } browsing.current = false }, [game?.stage])
 
   useEffect(() => {
-    const s: Saved = { mode, secret, screen, dealt, deckIds, slotIds, help, pre, game, history: history.slice(-60) }
+    const s: Saved = { mode, secret, screen, dealt, deckIds, slotIds, help, pre, game, history: history.slice(-60), intro, counted }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)) } catch { /* storage full: ignore */ }
-  }, [mode, secret, screen, dealt, deckIds, slotIds, help, pre, game, history])
+  }, [mode, secret, screen, dealt, deckIds, slotIds, help, pre, game, history, intro, counted])
+  // a finished game counts once (not again when undo and redo pass the end)
+  useEffect(() => {
+    if (screen !== 'play' || game?.stage !== 'over' || counted) return
+    const n = { ...played, [mode]: played[mode] + 1 }
+    setCounted(true); setPlayed(n); writeJSON(PLAYED_KEY, n)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.stage, screen])
 
   // on screen, informational steps advance by themselves, slowly enough to follow what happens; not recorded for undo
   useEffect(() => {
@@ -573,8 +607,17 @@ export default function App() {
 
   const reset = () => {
     setTip(null)
-    setScreen('title'); setDealt([]); setDeckIds([]); setSlotIds([]); setPre(null); setGame(null); setHistory([]); setFuture([]); setSel(null); setMode('guide'); setSecret({})
+    setScreen('title'); setDealt([]); setDeckIds([]); setSlotIds([]); setPre(null); setGame(null); setHistory([]); setFuture([]); setSel(null); setMode('guide'); setSecret({}); setIntro(null)
   }
+  // the game begins. A player's first game: on screen, suggestions are on (a first game is hard to win, and each suggestion says
+  // why); with real cards for the first time, every step says why. Their next game turns that off again.
+  const begin = (g: GuideState, m: 'play' | 'guide') => {
+    const help = m === 'play' ? novice : played.guide === 0
+    if (help) { if (m === 'play') setSuggestOn(true); else setExplainOn(true) }
+    setIntro(novice || help ? { deck: novice, help } : null)
+    advance(startRound(g)); setHistory([]); setFuture([]); setPre(null); setCounted(false); setScreen('play')
+  }
+  const deckOf = (cards: Card[], ids: string[]) => cards.filter(c => ids.includes(c.id))
   const settle = (g: GuideState) => (mode === 'play' ? autoReveal(g, secret) : g)
   const commit = (g: GuideState) => { setHistory(h => [...h, game!]); setFuture([]); advance(settle(g)); setSel(null); setBad(null); setPick(null) }
   const undo = () => { if (!history.length || !game) return; browsing.current = true; setFuture(f => [...f, game]); setGame(history[history.length - 1]); setHistory(h => h.slice(0, -1)); setSel(null); setBad(null) }
@@ -586,12 +629,16 @@ export default function App() {
     const d = deal()
     const enemy = shuffle(d.theirs)
     setSecret(Object.fromEntries(enemy.map((c, i) => [i < DECK_SIZE ? `ep${i}` : `et${i - DECK_SIZE}`, c])))
-    // start from the suggested deck so "Start the game" is one tap; the player can still change it
-    setMode('play'); setDealt(d.mine.map(c => c.id)); setSplit(randomSetup(d.mine)); setScreen('draft')
+    setMode('play'); setDealt(d.mine.map(c => c.id))
+    if (!novice) { setSplit(randomSetup(d.mine)); setScreen('draft'); return }
+    // a first game skips the deck screen, whose choices mean nothing before you know the rules: it starts on a good split
+    const s = suggestSetup(d.mine)
+    setSplit(s); begin(makeGame(deckOf(d.mine, s.deckIds), s.slotIds.map(byId), d.mine, DEFAULT_RULES), 'play')
   }
   // straight into the next game of the same kind, skipping the title screen
   const playAgain = () => {
     const m = mode
+    if (intro?.help) { if (m === 'play') setSuggestOn(false); else setExplainOn(false) }
     reset()
     if (m === 'play') startOnScreen()
     else { setMode('guide'); setScreen('deal') }
@@ -646,6 +693,16 @@ export default function App() {
     return (
       <div className="page">{bar()}
         <h1>1. Deal the cards</h1>
+        {played.play === 0 && setupStep === 0 && (
+          <Alert className="mx-auto mt-2.5 max-w-[680px] border-(--gold-d) bg-black/25 text-base">
+            <Lightbulb className="text-primary" />
+            <AlertTitle className="font-heading text-lg font-normal tracking-wide">New to Kingfall?</AlertTitle>
+            <AlertDescription className="text-base text-foreground/90">
+              <p className="m-0">One game on screen (about 5 minutes) teaches the rules. Then the table only adds the cards.</p>
+              <Button variant="secondary" className="mt-2" onClick={startOnScreen}>Play on screen first</Button>
+            </AlertDescription>
+          </Alert>
+        )}
         <Stepper steps={steps} at={setupStep} setAt={setSetupStep} done={<button className="big" onClick={() => setScreen('enter')}>Done — I have my 14 cards</button>} />
       </div>
     )
@@ -659,7 +716,12 @@ export default function App() {
         <p className="help">Tap each card you were dealt. <b>{dealt.length}/{PER_SIDE}</b> selected. Tap again to deselect.</p>
         <CardPicker disabled={new Set()} selected={set} onPick={c => setDealt(a => a.includes(c.id) ? a.filter(x => x !== c.id) : a.length < PER_SIDE ? [...a, c.id] : a)} />
         <div className="row">
-          <button className="big" disabled={dealt.length !== PER_SIDE} onClick={() => { setSplit(randomSetup(mine)); setScreen('draft') }}>Next: build my deck</button>
+          <button className="big" disabled={dealt.length !== PER_SIDE} onClick={() => {
+            if (!novice) { setSplit(randomSetup(mine)); setScreen('draft'); return }
+            // a first game skips the deck screen: the app picks a good split, and the table steps say which card goes where
+            const s = suggestSetup(mine)
+            setSplit(s); setPre(makeGame(deckOf(mine, s.deckIds), s.slotIds.map(byId), mine, DEFAULT_RULES)); setScreen('table')
+          }}>{novice ? 'Next: set up the table' : 'Next: build my deck'}</button>
           <button onClick={() => setDealt([])}>Clear</button>
         </div>
       </div>
@@ -668,7 +730,7 @@ export default function App() {
 
   if (screen === 'draft') {
     const go = mode === 'play'
-      ? <button className="big" onClick={() => { advance(settle(startRound(makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES)))); setHistory([]); setScreen('play') }}>Start the game</button>
+      ? <button className="big" onClick={() => begin(makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES), 'play')}>Start the game</button>
       : <button className="big" onClick={() => { reshuffle(); setScreen('table') }}>Next: set up the table</button>
     return <DeckBuilder mine={mine} deckIds={deckIds} slotIds={slotIds} onChange={(d, t) => { setDeckIds(d); setSlotIds(t) }} onRedeal={mode === 'play' ? startOnScreen : undefined}
       title={mode === 'play' ? 'Build your deck' : '3. Build your deck'} bar={bar} start={go} />
@@ -680,7 +742,7 @@ export default function App() {
     const eStack = (name: string, n: number) => <div className="mtower"><div className="mrow">{backs(n)}</div><span className="mlbl">{name}</span></div>
     const steps: SetupStep[] = [
       { title: 'Build your three towers', pic: <div className="mcols">{stack('Left', g.P.towers.L)}{stack('King', g.P.towers.K)}{stack('Right', g.P.towers.R)}</div>,
-        body: <p>Make three stacks <b>face-up</b> in a row in front of you, the <b>top card first</b> (gold above): <b>Left</b> {g.P.towers.L.map(label).join(' · ')}, <b>King</b> {g.P.towers.K.map(label).join(' · ')} in the middle, <b>Right</b> {g.P.towers.R.map(label).join(' · ')}. Fan each stack so you can see every card.</p> },
+        body: <p>{novice && <>For your first game I picked your deck and towers; next game you build your own. </>}Make three stacks <b>face-up</b> in a row in front of you, the <b>top card first</b> (gold above): <b>Left</b> {g.P.towers.L.map(label).join(' · ')}, <b>King</b> {g.P.towers.K.map(label).join(' · ')} in the middle, <b>Right</b> {g.P.towers.R.map(label).join(' · ')}. Fan each stack so you can see every card.</p> },
       { title: 'Your hand and your queue', pic: <div className="mbars"><span className="mlbl">Hand, face-up</span><div className="row">{g.P.hand.map(c => <CardView key={c.id} card={c} showCost />)}</div><span className="mlbl">Queue, face-down, top card first</span><div className="mrow">{g.P.queue.map(c => <Mc key={c.id} card={c} />)}</div></div>,
         body: <>
           <p>I shuffled your 8 deck cards. Take the <b>4 hand cards</b> into your hand and stack the other <b>4 face-down</b> as your queue, in this order, top card first.</p>
@@ -699,8 +761,8 @@ export default function App() {
     ]
     return (
       <div className="page">{bar()}
-        <h1>4. Set up the table</h1>
-        <Stepper steps={steps} at={setupStep} setAt={setSetupStep} done={<button className="big" onClick={() => { advance(startRound(g)); setHistory([]); setPre(null); setScreen('play') }}>Start the game</button>} />
+        <h1>{novice ? 3 : 4}. Set up the table</h1>
+        <Stepper steps={steps} at={setupStep} setAt={setSetupStep} done={<button className="big" onClick={() => begin(g, 'guide')}>Start the game</button>} />
       </div>
     )
   }
@@ -839,7 +901,15 @@ export default function App() {
         <div><b>{sum.standing}<small>/{sum.mineTotal}</small></b><span>of your tower cards standing</span></div>
       </div>
       {sum.close && <p className="goclose">So close! Their king had one card left.</p>}
+      {intro?.deck && g.winner !== 'P' && <p className="goclose">Most first games are lost: this one was for learning the rules.</p>}
       <div className="gotip"><Lightbulb aria-hidden /><p>{sum.tip ? <CardText text={sum.tip} /> : 'Clean game: no elixir wasted and no expensive cards spent on cheap enemies.'}</p></div>
+      {intro && (
+        <p className="gonext">
+          {intro.deck && 'Next game you build your own deck from the cards you are dealt. '}
+          {intro.help && (mode === 'play' ? 'Suggestions were on for your first game; ' : 'Every step said why in your first game; ')}
+          {intro.help && 'Menu → Hints turns that on again.'}
+        </p>
+      )}
     </>
   )
   const overlays = (
@@ -904,7 +974,12 @@ export default function App() {
     const prompt = stage === 'my_play' ? 'Your turn: drag a card onto a lane, then tap ✓.' : standing ? TITLES[stage] : stage === 'round_start' ? `Round ${g.round}: you get ${g.rules.regen} more elixir.` : 'Enemy turn…'
     // the enemy's last-stand card came in during its turn: your turn still says where it came from, until it has fought
     const stood = stage === 'my_play' && g.units.find(u => u.side === 'E' && u.free)
-    const lines = note ? [note] : said.length ? said : stood ? [`Enemy last stand: its ${stood.lane === 0 ? 'left' : 'right'} tower fell, so ${label(stood.card)} came in free.`, prompt] : [prompt]
+    // with suggestions on, your turn's line says what they suggest and, in a few words, why (the whole reason is in Menu → Hints)
+    const suggestion = advice && (advice.kind === 'play'
+      ? `★ ${label(g.P.hand[advice.handIndex])}${standing ? '' : ` in the ${advice.lane === 0 ? 'left' : 'right'} lane`}: ${advice.short}.`
+      : `★ End your turn: ${advice.short}.`)
+    const lines = note ? [note] : stood ? [`Enemy last stand: its ${stood.lane === 0 ? 'left' : 'right'} tower fell, so ${label(stood.card)} came in free.`, suggestion ?? prompt]
+      : suggestion ? [suggestion] : said.length ? said : [prompt]
     // the suggested lane glows only while no other card is picked up; tapping it with nothing picked plays the suggestion
     const fighting = fightingNext(g)
     const towerFx = (side: 'P' | 'E', k: 'L' | 'R' | 'K'): TowerFx => {
