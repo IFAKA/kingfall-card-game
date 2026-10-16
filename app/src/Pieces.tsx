@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { RANKS, SUITS, cost, isRed } from './engine'
 import { landing } from './fx'
@@ -44,6 +44,8 @@ export function TCard({ tid, card, down, side, selected, dim, showCost, fly = 0.
   // a card on its way from one place to another flies over everything, in either direction (the Next pile and the hand, a lane and the pile)
   const [flying, setFlying] = useState(false)
   const takeoff = () => { setFlying(true); setTimeout(() => setFlying(false), 1500) }
+  // a card that has just arrived in a new place (it is a new element there) already flies on the first frame, so it never starts behind the pile it left
+  useLayoutEffect(() => { if (landing.has(tid) || faceMemory.has(tid)) takeoff() }, [])
   useEffect(() => {
     faceMemory.set(tid, down)
     // flip on the next frame, so a card that just moved here starts from the face it had before
@@ -54,7 +56,7 @@ export function TCard({ tid, card, down, side, selected, dim, showCost, fly = 0.
     <motion.div
       layoutId={tid} layout
       transition={{ layout: landing.has(tid) ? { duration: landing.get(tid), ease: [0.23, 1, 0.32, 1] } : { duration: fly, ease: [0.77, 0, 0.175, 1] } }}
-      className={`tcard ${side ?? ''} ${selected ? 'selected' : ''} ${dim ? 'dim' : ''} ${onClick ? 'clickable' : ''}`}
+      className={`tcard ${side ?? ''} ${selected ? 'selected' : ''} ${dim ? 'dim' : ''} ${flying ? 'flying' : ''} ${onClick ? 'clickable' : ''}`}
       style={{ zIndex: flying ? 30 : 5 }} onLayoutAnimationStart={takeoff} onLayoutAnimationComplete={() => setFlying(false)} onClick={onClick} data-tid={tid}
     >
       <div className={`flip ${shown ? 'down' : ''}`}>

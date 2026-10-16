@@ -598,6 +598,7 @@ button.linkish:active { transform: none; }
 .unit.wounded .cf.front { box-shadow: 0 0 0 3px var(--elixir-glow), 0 0 10px var(--elixir-glow); }
 /* the two cards that fight next tremble, leaning toward each other (or the next card to hit a tower, and that tower);
    then they strike (fx.ts moves them, stopping the trembling while it does) */
+.spot:has(.tcard.flying), .half > .unit:has(.tcard.flying) { z-index: 4; } /* a card leaving its pile for a lane starts on top of the pile (the middle column, 2); the slot is a containment box (container-type), so the slot itself has to rise too. The reverse of one going back to it */
 .half > .unit { position: relative; z-index: 1; } /* every lane card is its own layer, so a trembling one keeps its place in the stack */
 .unit.tremble { animation: tremble .3s linear .55s infinite; } /* starts once the step's moves (.5s) are over: first the cards move, then they square up */
 .castle.tremble, .tfan.tremble { animation: tremble .3s linear .55s infinite; --lean: 0px; }
@@ -782,7 +783,7 @@ button.fkey:disabled { opacity: .25; filter: none; }
 
 .unit { position: relative; }
 .ncard { position: relative; }
-.ncard > .pileunder { position: absolute; left: 0; top: 0; } /* the rest of the pile, under its top card */
+.ncard > .pileunder { position: absolute; left: 0; top: 0; z-index: 0; } /* the rest of the pile, under its top card */
 
 /* last stand: the lane whose tower did not fall can't take the free card */
 .spot.slot.mine.blocked { opacity: .35; filter: grayscale(.6); }
