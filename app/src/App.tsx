@@ -1172,11 +1172,11 @@ export default function App() {
     </div>
   )
 
-  const HAND_BIG = 1.3 // your hand's cards are this much bigger than the cards on the field, so the two are easy to tell apart
+  const HAND_BIG = 1.4 // your hand's cards are this much bigger than the cards on the field, so the two are easy to tell apart
   const HAND_MIN = 1.15 // the hand's cards stay at least this much bigger than the field's, even when the field could grow more
   const SMALL = 0.78 // the Next cards and the piles under them are this much of a normal card (the cards in the lanes); your hand's cards are the big size
   const FIELD_K = 210 // the window height kept for everything but the field's rows of cards and the hand's cards (castles, status line, margins)
-  const handFit = (Math.min(view.sw, 640, 470) - 94) / 3.57 // the tallest hand card whose row fits the width: Next, 3 cards and done are 5 cards wide, plus the turn bar, the gaps and a margin at each side (94px)
+  const handFit = (Math.min(view.sw, 640, 470) - 86) / 3.57 // the tallest hand card whose row fits the width: Next, 3 cards and done are 5 cards wide, plus the turn bar, the gaps and a margin at each side (86px)
 
   // the arena; card size follows the window so the whole field, the bar and the hand always fit
   const arena = () => {
