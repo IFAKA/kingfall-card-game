@@ -803,12 +803,13 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .title { position: relative; }
 .titlemenu { position: absolute; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); }
 
-/* the two Next cards (yours, then the enemy's) sit left of the hand, so the field stays free */
-.handrow .nexts { display: flex; align-items: flex-end; gap: 14px; flex: none; margin-right: 12px; } /* the pair and the done button are each set off from the hand by the same extra 12px */
-.handrow .endturn { margin-left: 6px; }
-.handrow .nextcard { --nl: max(10px, calc(var(--ch) * .15)); --nh: calc(var(--ch) - var(--nl) - 4px); align-self: flex-end; justify-content: flex-end; gap: 4px; height: var(--ch); margin: 0; } /* label + card are as tall as a hand card */
-.handrow .nextcard span { font-family: var(--display); font-size: var(--nl); line-height: 1; color: rgba(255,255,255,.8); text-transform: uppercase; }
-.handrow .nextcard .tcard { width: calc(var(--nh) * .714); height: var(--nh); font-size: calc(var(--nh) * .2); }
+/* your turn as a card-shaped bar left of the hand: two halves, lit while you may still play; the top half is spent first.
+   A card you hold rings the half or halves it would use (red when you can't afford it) */
+.turncard { flex: none; align-self: flex-end; box-sizing: border-box; width: var(--cw); height: var(--ch); display: flex; flex-direction: column-reverse; gap: 3px; padding: 3px; margin-right: 6px; border-radius: 8px; background: #0b1220; border: 2px solid #3b4a78; }
+.tp { flex: 1; border-radius: 5px; background: #1b2540; transition: background .3s var(--ease-out), box-shadow .3s var(--ease-out); }
+.tp.on { background: linear-gradient(#fff1b8, #ffd36b 55%, #d99a1c); box-shadow: 0 0 8px rgba(255,211,107,.7); }
+.tp.on.spend { background: #ffd36b33; box-shadow: inset 0 0 0 2px #ffd36b; }
+.tp.short { background: #b3261e55; box-shadow: inset 0 0 0 2px #ff6b61; }
 
 /* the round sits in the field's top-left corner, level with the buttons on the right */
 .field > .corner.left { display: flex; align-items: center; height: 32px; }
@@ -816,10 +817,3 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .field > .corner.right { display: flex; align-items: center; gap: 4px; height: 32px; }
 .field > .corner.right button { width: 32px; height: 32px; } /* four buttons (with undo/redo) still clear the king tower on a phone */
 .field > .corner .undoredo { display: contents; }
-
-/* the two lights of your turn under the hand: lit while you may still play, the card you hold shows which it would use */
-.turnpips { flex: 1; display: flex; align-items: center; justify-content: center; gap: 22px; height: 28px; }
-.tp { width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; background: #1b2540; border: 2px solid #3b4a78; transition: background .3s var(--ease-out), box-shadow .3s var(--ease-out), border-color .3s var(--ease-out); }
-.tp.on { background: radial-gradient(circle at 35% 30%, #fff1b8, #ffd36b 55%, #d99a1c); border-color: #fff; box-shadow: 0 0 10px rgba(255,211,107,.75); }
-.tp.on.spend { background: #ffd36b33; border-color: #ffd36b; box-shadow: 0 0 0 3px #ffd36b88; }
-.tp.short { background: #b3261e55; border-color: #ff6b61; box-shadow: 0 0 0 3px #ff6b6188; }

@@ -217,8 +217,8 @@ function TablePile({ top, down, side, n, name, flip, faces }: { top?: ESlot; dow
 function TurnBar({ n, spend, max }: { n: number; spend: number; max: number }) {
   const [a, b] = spendRange(n, spend, max)
   const left = n === max ? 'play 1 card, or 2 small cards (A to 5)' : n > 0 ? 'you may still play 1 small card (A to 5)' : 'your play is done'
-  return (
-    <div className="turnpips" role="meter" aria-valuemin={0} aria-valuemax={max} aria-valuenow={n} aria-label={`Your turn: ${left}`} title={`Your turn: ${left}`}>
+  return ( // a card-shaped bar of two halves: the top half is used first (a small card), the bottom one next; a big card uses both
+    <div className="turncard" role="meter" aria-valuemin={0} aria-valuemax={max} aria-valuenow={n} aria-label={`Your turn: ${left}`} title={`Your turn: ${left}`}>
       {Array.from({ length: max }, (_, i) => <span key={i} className={`tp${i < n ? ' on' : ''}${spend > 0 && i >= a && i < b ? (spend > n ? ' short' : ' spend') : ''}`} />)}
     </div>
   )
@@ -502,7 +502,7 @@ const RULES: Topic[] = [
   </> },
   { id: 'turn', icon: <Hand />, title: 'Your turn', line: 'Play 1 card a round, or 2 small cards (A to 5).', body: <>
     <p>Each round you play <b>1 card</b>, or <b>2 small cards</b> (A to 5). You may also play nothing.</p>
-    <p>The dots on a card say how much of your turn it uses: a small card <b>one dot</b>, any other card <b>two</b>, your whole turn. The two lights under your hand show what is left of your turn. Nothing carries over to the next round.</p>
+    <p>The dots on a card say how much of your turn it uses: a small card <b>one dot</b>, any other card <b>two</b>, your whole turn. The card-shaped bar left of your hand shows what is left of your turn: two halves, a small card uses one, any other card both. Nothing carries over to the next round.</p>
     <p>The enemy plays <b>2 cards every round</b>, the top two of its pile, whatever they are.</p>
   </> },
   { id: 'round', icon: <Repeat />, title: 'A round', line: 'You play, the enemy defends, the front cards fight, all move up.', body: <ol className="m-0 list-decimal pl-5">
@@ -537,7 +537,7 @@ type TipId = 'goal' | 'drag' | 'turn' | 'change' | 'enemy2' | 'rank' | 'suit' | 
 const TIPS: Record<TipId, string> = {
   goal: "Goal: break the enemy's king, the crowned castle at the top. Your cards are soldiers.",
   drag: 'Drag a card onto a lane at the bottom. Each round: 1 card, or 2 small ones (A to 5).',
-  turn: 'The dots on a card show how much of your turn it uses: big cards two, small cards one. The two lights show what is left. Done? Press ✓ and the enemy moves.',
+  turn: 'The dots on a card show how much of your turn it uses: big cards two, small cards one. The bar left of your hand shows what is left. Done? Press ✓ and the enemy moves.',
   change: 'Changed your mind? Before ✓, drag a placed card back to your hand or to the other lane.',
   enemy2: 'The enemy plays 2 cards a round: the first defends the lane where you have more cards, the second goes into the other lane. Its Next card is its first.',
   rank: 'Cards fight where they meet: the higher rank wins. Equal? The enemy wins. The loser goes back to its pile.',
@@ -1274,7 +1274,14 @@ export default function App() {
         </div>
         <div className="lanes">
           <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} />
-          <div className="mid rows" />
+          <div className="mid rows">
+            <div className="sidechip enemy" title="The next card of the enemy pile (face-down until you have seen it). The enemy plays two cards per round: this one first.">
+              {eNext && <div className="nextcard"><ArenaPile slots={g.E.queue} side="E" /><span>Next</span></div>}
+            </div>
+            <div className="sidechip mine" title="Your next card: it comes into your hand when you play one">
+              {g.P.queue[0] && <div className="nextcard"><span>Next</span><ArenaPile slots={g.P.queue.map(c => ({ tid: c.id, card: c }))} side="P" /></div>}
+            </div>
+          </div>
           <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} />
         </div>
         <div className="castles mine">
@@ -1293,14 +1300,10 @@ export default function App() {
             </div>}
           <div className="handwrap">
             <div className={`handrow${doNow && !atTable ? ' wait' : ''}`}>
-              <div className="nexts" title="Next: the cards that come up. Yours joins your hand when you play one; the enemy plays two cards a round, this one first.">
-                {eNext && <div className="nextcard enemy"><span>Enemy</span><ArenaPile slots={g.E.queue} side="E" /></div>}
-                {g.P.queue[0] && <div className="nextcard mine"><span>Next</span><ArenaPile slots={g.P.queue.map(c => ({ tid: c.id, card: c }))} side="P" /></div>}
-              </div>
+              <TurnBar n={g.P.elixir} spend={spend} max={g.rules.cap} />
               {handCards}
               <button className={`big done endturn ${advice?.kind === 'wait' ? 'suggested' : ''}`} title={advice?.kind === 'wait' ? advice.reason : 'End turn'} disabled={stage !== 'my_play'} aria-label="End turn" onClick={() => commit(endMyTurn(g))}><svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg></button>
             </div>
-            <div className="elixrow"><TurnBar n={g.P.elixir} spend={spend} max={g.rules.cap} /></div>
           </div>
           {tableStep || coach}
         </div>
