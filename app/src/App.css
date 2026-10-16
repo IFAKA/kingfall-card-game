@@ -288,6 +288,10 @@ h3 { margin: 18px 0 8px; }
 .hand .wheel.aces { right: auto; left: 12px; gap: 10px; }
 .hand .aces .ud { display: flex; align-items: center; gap: 3px; color: #fff; font-size: calc(var(--cw) * .3); font-weight: 800; white-space: nowrap; }
 .hdrag.lifted { opacity: .35; }
+/* a tapped (selected) hand card rises a little, and settles back when it is let go; a card that can't be played never rises */
+.hdrag { transition: opacity .2s var(--ease-out), translate .2s var(--ease-out); }
+.hdrag.picked { translate: 0 calc(var(--hch) * -.14); }
+@media (prefers-reduced-motion: reduce) { .hdrag { transition: opacity .2s; } }
 .unit.grab { cursor: grab; touch-action: none; -webkit-touch-callout: none; }
 .unit.grab:active { cursor: grabbing; }
 .unit.lifted { opacity: .35; }

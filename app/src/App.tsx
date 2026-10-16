@@ -1060,7 +1060,7 @@ export default function App() {
   // while a placed card is picked, the hand cards it can switch with stand out (its share of your turn would come back first)
   const open = (i: number) => (pick ? switchCards(g, pick, g.P.hand[i].id) !== g : standing || canPlay(g, i))
   const handCards = g.P.hand.map((c, i) => (
-    <div key={c.id} data-i={i} className={`hdrag ${drag === i ? 'lifted' : ''} ${!open(i) ? 'off' : ''} ${suggested?.handIndex === i && drag === null ? 'suggested' : ''}`} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} onPointerDown={e => startDrag(e, i)}>
+    <div key={c.id} data-i={i} className={`hdrag ${drag === i ? 'lifted' : ''} ${sel === i && drag === null && open(i) ? 'picked' : ''} ${!open(i) ? 'off' : ''} ${suggested?.handIndex === i && drag === null ? 'suggested' : ''}`} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} onPointerDown={e => startDrag(e, i)}>
       <TCard tid={c.id} card={c} down={false} side="P" showCost selected={sel === i} dim={!open(i)} onClick={() => tapHand(i)} />
     </div>
   ))
