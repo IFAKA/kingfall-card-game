@@ -41,6 +41,9 @@ export function TCard({ tid, card, down, side, selected, dim, showCost, fly = 0.
   tid: string; card: Card | null; down: boolean; side?: 'P' | 'E'; selected?: boolean; dim?: boolean; showCost?: boolean; fly?: number; onClick?: () => void
 }) {
   const [shown, setShown] = useState<boolean>(faceMemory.get(tid) ?? down)
+  // a card on its way from one place to another flies over everything, in either direction (the Next pile and the hand, a lane and the pile)
+  const [flying, setFlying] = useState(false)
+  const takeoff = () => { setFlying(true); setTimeout(() => setFlying(false), 1500) }
   useEffect(() => {
     faceMemory.set(tid, down)
     // flip on the next frame, so a card that just moved here starts from the face it had before
@@ -52,7 +55,7 @@ export function TCard({ tid, card, down, side, selected, dim, showCost, fly = 0.
       layoutId={tid} layout
       transition={{ layout: landing.has(tid) ? { duration: landing.get(tid), ease: [0.23, 1, 0.32, 1] } : { duration: fly, ease: [0.77, 0, 0.175, 1] } }}
       className={`tcard ${side ?? ''} ${selected ? 'selected' : ''} ${dim ? 'dim' : ''} ${onClick ? 'clickable' : ''}`}
-      style={{ zIndex: 5 }} onClick={onClick} data-tid={tid}
+      style={{ zIndex: flying ? 30 : 5 }} onLayoutAnimationStart={takeoff} onLayoutAnimationComplete={() => setFlying(false)} onClick={onClick} data-tid={tid}
     >
       <div className={`flip ${shown ? 'down' : ''}`}>
         <div className={`cf front ${card && isRed(card) ? 'red' : 'black'}`}>

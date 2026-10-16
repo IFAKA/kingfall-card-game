@@ -166,7 +166,7 @@ function refill(g: GuideState): string[] {
   const out: string[] = []
   while (g.P.hand.length < HAND_SIZE && g.P.queue.length) {
     const c = g.P.queue.shift()!
-    g.P.hand.push(c)
+    g.P.hand.unshift(c) // the new card comes in on the left, the cards left of the one you played shift right
     out.push(`Draw ${label(c)} from the top of your queue into your hand.`)
   }
   return out
@@ -255,7 +255,7 @@ function rework(g0: GuideState, j: number, plays: { id: string; lane: 0 | 1 }[],
   for (const p of g.turn!.splice(j).reverse()) {
     const u = g.units.find(x => x.side === 'P' && x.tid === p.id)!
     g.units = g.units.filter(x => x !== u)
-    for (let n = 0; n < p.drew; n++) g.P.queue.unshift(g.P.hand.pop()!)
+    for (let n = 0; n < p.drew; n++) g.P.queue.unshift(g.P.hand.shift()!)
     g.P.hand.splice(p.at, 0, u.card)
     g.P.elixir += cost(u.card.rank)
     g.stats.placed--

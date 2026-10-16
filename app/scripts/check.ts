@@ -281,9 +281,9 @@ const NO_ARMOR = { ...DEFAULT_RULES, armor: false }
   const base: GuideState = { ...makeGame(d.slice(0, DECK_SIZE), d.slice(DECK_SIZE, PER_SIDE), d.slice(0, PER_SIDE)), stage: 'my_play', turn: [] }
   base.P = { ...base.P, elixir: 10, hand: [c(2), c(3), c(13)], queue: [c(6), c(7), c(8), c(9), c(4)] }
   const mine = (g: GuideState) => g.units.map(u => `${u.card.rank}${u.lane ? 'R' : 'L'}`).join(' ')
-  const two = playCard(playCard(base, 0, 0), 0, 1) // the 2 left, the 3 right; the 6 and 7 drawn
+  const two = playCard(playCard(base, 0, 0), 1, 1) // the 2 left, the 3 right; the 6 and 7 drawn (each new card comes in on the left of the hand)
   check(mine(switchCards(two, 't2-0', 't3-0')) === '3L 2R', 'two placed cards in different lanes switch lanes')
-  const same = playCard(playCard(base, 0, 0), 0, 0)
+  const same = playCard(playCard(base, 0, 0), 1, 0)
   check(mine(switchCards(same, 't3-0', 't2-0')) === '3L 2L', 'two placed cards in one slot switch order: the one now first fights first')
   const sw = switchCards(two, 't2-0', 't6-0') // the 6 from the hand takes the 2's place; the 2 comes back (a big card uses 2 of the budget, a small one 1)
   check(mine(sw) === '6L 3R' && sw.P.elixir === two.P.elixir - 1 && sw.P.hand.some(x => x.id === 't2-0') && sw.P.hand.length === HAND_SIZE && sw.P.queue.length === two.P.queue.length,
