@@ -11,11 +11,12 @@ import { quick, useFx } from './fx'
 import { AnimatePresence, motion, useAnimate, useReducedMotion } from 'framer-motion'
 import type { Variants } from 'framer-motion'
 import type { Pop } from './fx'
+import { isMusicOff, music, setMusicOff } from './music'
 import { isMuted, setMuted, sfx } from './sfx'
 import { BookOpen, Castle as CastleIcon, Crown, Droplet, FastForward, Layers, Lightbulb, ListChecks, Redo2, Repeat, Shield, Swords, Undo2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { CardText, Choice, GameMenu, HowToPlay, InstallLink, RulesSheet } from './Menu'
+import { CardText, Choice, GameMenu, HowToPlay, InstallLink, RulesSheet, Section } from './Menu'
 import type { Topic } from './Menu'
 import { CastleArt, PlayingCard, TCard } from './Pieces'
 import { useViewport } from '@/hooks/use-viewport'
@@ -631,6 +632,13 @@ export default function App() {
   useEffect(() => { setSetupStep(0) }, [screen])
   const [muted, setMutedState] = useState(isMuted)
   const toggleMute = () => { setMuted(!muted); setMutedState(!muted); if (muted) sfx('tap') }
+  const [musicOff, setMusicOffState] = useState(isMusicOff)
+  const toggleMusic = () => { setMusicOff(!musicOff); setMusicOffState(!musicOff) }
+  // the title theme on the title and setup pages, a game's loop while playing (louder once a king stands open: a side tower has
+  // fallen), and quiet once the game is over, so its fanfare plays alone
+  const scene = screen !== 'play' || !game ? 'title' : game.stage === 'over' ? 'none' : 'game'
+  const kingOpen = !!game && (['L', 'R'] as const).some(k => !game.P.towers[k].length || !game.E.towers[k].length)
+  useEffect(() => { music(scene, kingOpen) }, [scene, kingOpen])
   // the hint and drop-target pulses beat together: every one is pinned to the page clock, whenever it appeared
   useEffect(() => {
     for (const a of document.getAnimations()) if (a instanceof CSSAnimation && PULSES.includes(a.animationName) && a.startTime !== 0) a.startTime = 0
@@ -805,7 +813,7 @@ export default function App() {
       <span className="modechip">{mode === 'play' ? 'On screen' : 'Real cards'}</span>
       {mid}
       <span className="spacer" />
-      <GameMenu topics={RULES} muted={muted} toggleMute={toggleMute} onLeave={reset} />
+      <GameMenu topics={RULES} muted={muted} toggleMute={toggleMute} musicOff={musicOff} toggleMusic={toggleMusic} onLeave={reset} />
     </div>
   )
 
@@ -814,6 +822,7 @@ export default function App() {
     const fan = ['1-0', '13-1', '12-2'].map(byId)
     return (
       <div className="title">
+        <span className="titlemenu"><GameMenu topics={RULES} muted={muted} toggleMute={toggleMute} musicOff={musicOff} toggleMusic={toggleMusic} /></span>
         <div className="titlefan" aria-hidden>{fan.map(c => <PlayingCard key={c.id} card={c} />)}</div>
         <Logo />
         <p className="tagline">A lane battle for one player and a deck of cards</p>
@@ -1024,35 +1033,37 @@ export default function App() {
       <TCard tid={c.id} card={c} down={false} side="P" showCost selected={sel === i} dim={!open(i)} onClick={() => tapHand(i)} />
     </div>
   ))
-  // the Hints page of the menu: two switches, then only what they say about this turn
-  const hints = (close: () => void) => (
+  // the Hints page of the menu: what the hints say about this turn, then the two switches that turn them on
+  const hints = () => (
     <>
-      <Choice id="explain" title="Explain my options" description="List every card you can play and where" checked={explainOn} onChange={setExplainOn} />
-      <Choice id="suggest" title="Suggest moves" description="The suggested card and lane glow green, or the ✓ button does" checked={suggestOn} onChange={setSuggestOn} />
-      <div className="mt-2 font-heading text-sm tracking-widest text-muted-foreground uppercase">This turn</div>
-      {stage !== 'my_play' ? <p className="m-0 text-muted-foreground">Hints show here on your turn.</p>
-        : help === 'off' && <p className="m-0 text-muted-foreground">Turn on a switch above and its hint shows here.</p>}
-      {advice && (
-        <Alert className="border-(--gold-d) bg-black/25 px-3 py-2.5 text-base">
-          <Lightbulb className="text-primary" />
-          <AlertTitle className="font-heading text-lg font-normal tracking-wide">
-            {advice.kind === 'play' ? <>Play <CardText text={label(g.P.hand[advice.handIndex])} /> in the {advice.lane === 0 ? 'left' : 'right'} lane</> : 'End your turn'}
-          </AlertTitle>
-          <AlertDescription className="text-base text-foreground/90">
-            <p className="m-0"><CardText text={advice.reason} /></p>
-            <p className="m-0 mt-1 text-sm text-muted-foreground">It looks one round ahead at what's on the table; it can't see the enemy's face-down cards.</p>
-          </AlertDescription>
-        </Alert>
-      )}
-      {explainOn && stage === 'my_play' && (
-        <ul className="m-0 list-none rounded-xl border bg-black/25 px-3 py-1">
-          {options(g).map((o, i) => { const [card, ...rest] = o.split(': '); return (
-            <li key={i} className={`flex items-start gap-2.5 border-t border-white/10 py-2 leading-snug first:border-t-0 ${o.includes("can't afford") ? 'opacity-50' : ''}`}><span className="w-11 shrink-0"><CardText text={card} /></span><span>{rest.join(': ')}</span></li>
-          ) })}
-        </ul>
-      )}
-      {help !== 'off' && g.why.length > 0 && <p className="m-0 text-sm text-muted-foreground"><b className="text-foreground">Why:</b> <CardText text={g.why.join(' ')} /></p>}
-      <Button variant="secondary" size="xl" className="mt-2" onClick={() => { setTipsSeen([]); writeJSON(TIPS_KEY, []); close() }}><Lightbulb /> Show the first-game tips again</Button>
+      <Section title="This turn">
+        {stage !== 'my_play' ? <p className="m-0 text-muted-foreground">Hints show here on your turn.</p>
+          : help === 'off' && <p className="m-0 text-muted-foreground">Turn on a switch below and its hint shows here.</p>}
+        {advice && (
+          <Alert className="border-(--gold-d) bg-black/25 px-3 py-2.5 text-base">
+            <Lightbulb className="text-primary" />
+            <AlertTitle className="font-heading text-lg font-normal tracking-wide">
+              {advice.kind === 'play' ? <>Play <CardText text={label(g.P.hand[advice.handIndex])} /> in the {advice.lane === 0 ? 'left' : 'right'} lane</> : 'End your turn'}
+            </AlertTitle>
+            <AlertDescription className="text-base text-foreground/90">
+              <p className="m-0"><CardText text={advice.reason} /></p>
+              <p className="m-0 mt-1 text-sm text-muted-foreground">It looks one round ahead at what's on the table; it can't see the enemy's face-down cards.</p>
+            </AlertDescription>
+          </Alert>
+        )}
+        {explainOn && stage === 'my_play' && (
+          <ul className="m-0 list-none rounded-xl border bg-black/25 px-3 py-1">
+            {options(g).map((o, i) => { const [card, ...rest] = o.split(': '); return (
+              <li key={i} className={`flex items-start gap-2.5 border-t border-white/10 py-2 leading-snug first:border-t-0 ${o.includes("can't afford") ? 'opacity-50' : ''}`}><span className="w-11 shrink-0"><CardText text={card} /></span><span>{rest.join(': ')}</span></li>
+            ) })}
+          </ul>
+        )}
+        {help !== 'off' && g.why.length > 0 && <p className="m-0 text-sm text-muted-foreground"><b className="text-foreground">Why:</b> <CardText text={g.why.join(' ')} /></p>}
+      </Section>
+      <Section title="Turn on">
+        <Choice id="explain" title="Explain my options" description="List every card you can play and where" checked={explainOn} onChange={setExplainOn} />
+        <Choice id="suggest" title="Suggest moves" description="The suggested card and lane glow green, or the ✓ button does" checked={suggestOn} onChange={setSuggestOn} />
+      </Section>
     </>
   )
   // the whole log as a text file, to keep or send
@@ -1208,9 +1219,11 @@ export default function App() {
       <Button variant="secondary" size="icon-lg" aria-label="Redo" title="Redo" onClick={redo} disabled={!future.length}><Redo2 /></Button>
     </>
     const settings = mode === 'play'
-      ? <Choice id="fast" icon={<FastForward />} title="Fast enemy turns" description="Its steps go by twice as quickly. Tapping the field skips ahead any time." checked={fast} onChange={setFast} />
-      : <Choice id="batch" icon={<ListChecks />} title="Fights in one list" description="A round's fights, moves and tower hits as one checklist with one Done" checked={batchOn} onChange={setBatch} />
-    const menu = <GameMenu topics={RULES} muted={muted} toggleMute={toggleMute} onLeave={reset} log={g.log} onExport={exportLog} hints={hints} settings={settings} />
+      ? <Choice id="fast" icon={<FastForward />} title="Fast enemy turns" checked={fast} onChange={setFast} />
+      : <Choice id="batch" icon={<ListChecks />} title="Fights in one list" description="Each round's fights and tower hits as one checklist" checked={batchOn} onChange={setBatch} />
+    const tipsAgain = () => { setTipsSeen([]); writeJSON(TIPS_KEY, []) }
+    const menu = <GameMenu topics={RULES} muted={muted} toggleMute={toggleMute} musicOff={musicOff} toggleMusic={toggleMusic} onLeave={reset} log={g.log} onExport={exportLog}
+      hints={hints} hintsOn={help !== 'off'} settings={settings} onTipsAgain={tipsAgain} />
     const round = <RoundChip n={g.round} />
     const discard = (owner: 'P' | 'E') => {
       const d = g.discard.filter(x => x.owner === owner)

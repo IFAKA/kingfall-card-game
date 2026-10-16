@@ -807,3 +807,6 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .cheat .scard { --cw: 40px; }
 .mc { --cw: 26px; }
 @media (min-width: 700px) { .mc { --cw: 32px; } }
+/* the title screen's menu: the top right corner, as on every other screen */
+.title { position: relative; }
+.titlemenu { position: absolute; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); }

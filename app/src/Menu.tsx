@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ComponentProps, ReactElement, ReactNode, Ref } from 'react'
-import { BookOpen, Download as SaveIcon, Castle, ChevronRight, Download, Hand, Lightbulb, LogOut, Menu as MenuIcon, ScrollText, Share, Shield, SquarePlus, Swords, Volume2, VolumeX } from 'lucide-react'
+import { BookOpen, Download as SaveIcon, Castle, ChevronRight, Download, Hand, Lightbulb, LogOut, Menu as MenuIcon, Music, ScrollText, Share, Shield, SquarePlus, Swords, Volume2, VolumeX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from '@/components/ui/item'
@@ -38,14 +38,24 @@ function Panel({ title, description, footer, children, turn, pageRef }: {
 const row = 'min-h-14 bg-black/25 text-left hover:bg-black/35'
 const rowTitle = 'font-heading text-lg font-normal tracking-wide'
 
-// a menu row that turns the menu to one of its pages
-function PageRow({ icon, title, description, onOpen }: { icon: ReactNode; title: string; description: string; onOpen: () => void }) {
+// a menu row that turns the menu to one of its pages; status: what's set inside it ("On"), shown before the arrow
+function PageRow({ icon, title, description, status, onOpen }: { icon: ReactNode; title: string; description?: string; status?: string; onOpen: () => void }) {
   return (
     <Item variant="outline" className={row} render={<button onClick={onOpen} />}>
       <ItemMedia variant="icon" className="h-7 translate-y-px! text-primary [&_svg]:size-5!">{icon}</ItemMedia>
-      <ItemContent><ItemTitle className={rowTitle}>{title}</ItemTitle><ItemDescription>{description}</ItemDescription></ItemContent>
-      <ItemActions><ChevronRight className="size-5 opacity-60" /></ItemActions>
+      <ItemContent><ItemTitle className={rowTitle}>{title}</ItemTitle>{description && <ItemDescription>{description}</ItemDescription>}</ItemContent>
+      <ItemActions>{status && <span className="text-sm text-muted-foreground">{status}</span>}<ChevronRight className="size-5 opacity-60" /></ItemActions>
     </Item>
+  )
+}
+
+// a few rows under a small heading: the menu's groups, the Hints page's parts
+export function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-3 not-first:mt-2">
+      <h3 className="m-0 font-heading text-sm font-normal tracking-widest text-muted-foreground uppercase">{title}</h3>
+      {children}
+    </section>
   )
 }
 
@@ -135,17 +145,6 @@ const iosSteps = (
     <li className="flex items-center gap-3"><Castle className="size-6 shrink-0 text-primary" /><span>Open Kingfall from its icon: full screen, and it plays without a connection.</span></li>
   </ol>
 )
-function InstallRow({ onOpen }: { onOpen: () => void }) {
-  const { how, install } = useInstall()
-  if (how === 'prompt') return (
-    <Item variant="outline" className={row} render={<button onClick={install} />}>
-      <ItemMedia variant="icon" className="h-7 translate-y-px! text-primary [&_svg]:size-5!"><Download /></ItemMedia>
-      <ItemContent><ItemTitle className={rowTitle}>Install the app</ItemTitle><ItemDescription>On your home screen, plays offline</ItemDescription></ItemContent>
-    </Item>
-  )
-  if (how === 'ios') return <PageRow icon={<Download />} title="Install the app" description="On your home screen, plays offline" onOpen={onOpen} />
-  return null
-}
 // the title screen's quiet offer under the big buttons
 export function InstallLink() {
   const { how, install } = useInstall()
@@ -188,27 +187,35 @@ function usePages(up: (page: string) => string | null) {
   return { open, close: () => setOpen(false), page, go, panel: { turn, pageRef }, onOpenChange, reset }
 }
 
-// One menu for every screen, behind the ☰ button: rules, the log and hints while playing, sound, and leaving the game.
-// Its pages open inside the same drawer: Back (or Escape, or the phone's back gesture) returns to the page above.
+// One menu for every screen, behind the ☰ button, in two groups: Game (the rules, and while playing the log and the hints) and
+// Settings (music, sounds and the switches of this kind of game). Its pages open inside the same drawer: Back (or Escape, or the
+// phone's back gesture) returns to the page above. Closing it is the big button; leaving the game is a quiet one, and asks first.
 // settings: the switches that belong to this kind of game (on screen, fast enemy turns; with real cards, the fights in one list)
-export function GameMenu({ topics, log, onExport, hints, settings, muted, toggleMute, onLeave }: {
-  topics: Topic[]; log?: string[]; onExport?: () => void; hints?: (close: () => void) => ReactNode; settings?: ReactNode; muted: boolean; toggleMute: () => void; onLeave?: () => void
+// hintsOn: whether a hint switch is on, shown on the Hints row; onTipsAgain: bring the first-game tips back (under the rules)
+export function GameMenu({ topics, log, onExport, hints, hintsOn, settings, muted, toggleMute, musicOff, toggleMusic, onLeave, onTipsAgain }: {
+  topics: Topic[]; log?: string[]; onExport?: () => void; hints?: () => ReactNode; hintsOn?: boolean; settings?: ReactNode
+  muted: boolean; toggleMute: () => void; musicOff: boolean; toggleMusic: () => void; onLeave?: () => void; onTipsAgain?: () => void
 }) {
   const { open, close, page, go, panel, onOpenChange, reset } = usePages(p => p.startsWith('rule:') ? 'rules' : null)
   const [leaving, setLeaving] = useState(false) // leave only once the menu has slid away, so the screen doesn't change under it
+  const playing = !!log
   const back = <Button variant="secondary" size="xl" onClick={() => go(null)}>Back</Button>
+  const tipsAgain = onTipsAgain && <Button variant="link" size="lg" className="self-center text-base text-muted-foreground" onClick={() => { onTipsAgain(); close() }}><Lightbulb /> Show the first-game tips again</Button>
   const pages: Record<string, { title: string; description?: string; body?: ReactNode; footer: ReactNode }> = {
-    rules: { title: 'How to play', description: HOW_TO_PLAY, body: <TopicList topics={topics} onOpen={id => go(`rule:${id}`)} />, footer: back },
+    rules: { title: 'How to play', description: HOW_TO_PLAY, body: <><TopicList topics={topics} onOpen={id => go(`rule:${id}`)} />{tipsAgain}</>, footer: back },
     ...Object.fromEntries(topics.map(t => [`rule:${t.id}`, { title: t.title, body: <Rules rules={t.body} />, footer: <Button variant="secondary" size="xl" onClick={() => go('rules')}>Back</Button> }])),
     log: { title: 'What happened', body: <LogView log={log ?? []} />, footer: <>{onExport && <Button variant="success" size="xl" onClick={onExport}><SaveIcon /> Save log as a file</Button>}{back}</> },
-    hints: { title: 'Hints', body: hints?.(close), footer: back },
-    install: { title: 'Install the app', body: iosSteps, footer: back },
-    leave: { title: 'Back to the title screen?', description: 'This game will be discarded.', footer: <>
+    hints: { title: 'Hints', body: hints?.(), footer: back },
+    leave: { title: playing ? 'Leave this game?' : 'Back to the title screen?', description: playing ? 'It will be discarded.' : 'This game will be discarded.', footer: <>
       <Button variant="success" size="xl" onClick={() => go(null)}>Keep playing</Button>
-      <Button variant="destructive" size="xl" onClick={() => { setLeaving(true); close() }}>Back to title</Button>
+      <Button variant="destructive" size="xl" onClick={() => { setLeaving(true); close() }}>{playing ? 'Leave game' : 'Back to title'}</Button>
     </> },
   }
   const shown = page && pages[page]
+  const footer = <>
+    <DrawerClose render={<Button variant="success" size="xl" />}>{playing ? 'Keep playing' : 'Close'}</DrawerClose>
+    {onLeave && <Button variant="link" size="lg" className="text-base text-muted-foreground" onClick={() => go('leave')}><LogOut /> {playing ? 'Leave game' : 'Back to title'}</Button>}
+  </>
   return (
     <Sheet open={open} onOpenChange={onOpenChange}
       onOpenChangeComplete={o => {
@@ -218,15 +225,21 @@ export function GameMenu({ topics, log, onExport, hints, settings, muted, toggle
       }}>
       <DrawerTrigger render={<Button variant="secondary" size="icon-lg" aria-label="Menu" title="Menu" />}><MenuIcon /></DrawerTrigger>
       {shown ? <Panel title={shown.title} description={shown.description} footer={shown.footer} {...panel}>{shown.body}</Panel> : (
-        <Panel title="Menu" {...panel} footer={onLeave && <Button variant="destructive" size="xl" onClick={() => go('leave')}><LogOut /> Back to title</Button>}>
-          <ItemGroup className="gap-3">
-            <PageRow icon={<BookOpen />} title="How to play" description="The whole game, one rule per line" onOpen={() => go('rules')} />
-            {log && <PageRow icon={<ScrollText />} title="What happened" description="Every play and fight so far" onOpen={() => go('log')} />}
-            {hints && <PageRow icon={<Lightbulb />} title="Hints" description="Explain options, suggest moves, tips" onOpen={() => go('hints')} />}
-          </ItemGroup>
-          <InstallRow onOpen={() => go('install')} />
-          {settings}
-          <Choice id="sound" icon={muted ? <VolumeX /> : <Volume2 />} title="Sound" description="Plays, fights and falling towers" checked={!muted} onChange={toggleMute} />
+        <Panel title="Menu" {...panel} footer={footer}>
+          <Section title="Game">
+            <ItemGroup className="gap-3">
+              <PageRow icon={<BookOpen />} title="How to play" onOpen={() => go('rules')} />
+              {log && <PageRow icon={<ScrollText />} title="What happened" onOpen={() => go('log')} />}
+              {hints && <PageRow icon={<Lightbulb />} title="Hints" status={hintsOn ? 'On' : 'Off'} onOpen={() => go('hints')} />}
+            </ItemGroup>
+          </Section>
+          <Section title="Settings">
+            <div className="grid grid-cols-2 gap-3">
+              <Choice id="music" icon={<Music />} title="Music" checked={!musicOff} onChange={toggleMusic} />
+              <Choice id="sound" icon={muted ? <VolumeX /> : <Volume2 />} title="Sound" checked={!muted} onChange={toggleMute} />
+            </div>
+            {settings}
+          </Section>
         </Panel>
       )}
     </Sheet>

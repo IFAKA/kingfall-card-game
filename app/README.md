@@ -41,7 +41,7 @@ When the rules change in a way that makes old saved games invalid, bump `STORAGE
 - `src/engine.ts`: cards, costs, deal and a compact rules engine (used by the quick balance checks).
 - `src/guide.ts`: the guided rules engine the app runs: every step of a round, the instructions shown for the physical cards, the events each step reports for the screen to animate (`GameEvent`, with `describe` putting each one into words), and the suggestion lookahead.
 - `src/App.tsx`: title, setup screens, the arena both modes play in (with the real-cards table panel and card picker) and the first-game tips; `src/ErrorBoundary.tsx` recovers from an unreadable saved game.
-- `src/fx.ts`: turns each step's events into pop-ups, board shake and sounds, placed on board elements marked `data-anchor`; `src/sfx.ts` synthesizes the sounds with Web Audio (no audio files) and keeps the mute setting.
+- `src/fx.ts`: turns each step's events into pop-ups, board shake and sounds, placed on board elements marked `data-anchor`; `src/sfx.ts` synthesizes the sounds with Web Audio (no audio files) and keeps the mute setting; `src/music.ts` plays the music the same way (the title theme, a game's loop and its tension layer), and `node scripts/music.ts` renders it to WAV files to listen to.
 - `scripts/check.ts`: the automated rules and balance checks behind `npm test`.
 - `scripts/rulebook.ts`: rebuilds the printable rulebook, `../print/Kingfall-Rulebook.pdf`, from `../RULEBOOK.md` (`npm run rulebook`, uses Google Chrome).
 

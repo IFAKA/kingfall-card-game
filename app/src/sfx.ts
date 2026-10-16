@@ -18,7 +18,7 @@ export function setMuted(m: boolean) {
 
 interface Mix { master: AudioNode; room: AudioNode; noise: AudioBuffer }
 
-function audio() {
+export function audio() {
   if (!ctx) {
     const a = new AudioContext()
     const limit = a.createDynamicsCompressor()
@@ -40,7 +40,7 @@ function audio() {
 }
 
 // the reverb's echo: decaying stereo noise whose highs die first, like a small stone hall
-function roomEcho(a: BaseAudioContext, secs: number) {
+export function roomEcho(a: BaseAudioContext, secs: number) {
   const len = Math.ceil(a.sampleRate * secs), buf = a.createBuffer(2, len, a.sampleRate)
   for (let ch = 0; ch < 2; ch++) {
     const d = buf.getChannelData(ch)
@@ -55,7 +55,7 @@ function roomEcho(a: BaseAudioContext, secs: number) {
 }
 
 // one shared noise buffer; each burst starts at a random point in it, so no two are the same
-function whiteNoise(a: BaseAudioContext, secs: number) {
+export function whiteNoise(a: BaseAudioContext, secs: number) {
   const buf = a.createBuffer(1, Math.ceil(a.sampleRate * secs), a.sampleRate)
   const d = buf.getChannelData(0)
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1
