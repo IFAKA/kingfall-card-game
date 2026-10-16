@@ -815,7 +815,8 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .titlemenu { position: absolute; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); }
 
 /* the two Next cards (yours, then the enemy's) sit left of the hand, so the field stays free */
-.handrow .nexts { display: flex; align-items: flex-end; gap: 12px; flex: none; margin-right: 12px; } /* space between the two, and between the pair and the hand */
+.handrow .nexts { display: flex; align-items: flex-end; gap: 14px; flex: none; margin-right: 12px; } /* the pair and the done button are each set off from the hand by the same extra 12px */
+.handrow .endturn { margin-left: 12px; }
 .handrow .nextcard { --nl: max(10px, calc(var(--ch) * .15)); --nh: calc(var(--ch) - var(--nl) - 4px); align-self: flex-end; justify-content: flex-end; gap: 4px; height: var(--ch); margin: 0; } /* label + card are as tall as a hand card */
 .handrow .nextcard span { font-family: var(--display); font-size: var(--nl); line-height: 1; color: rgba(255,255,255,.8); text-transform: uppercase; }
 .handrow .nextcard .tcard { width: calc(var(--nh) * .714); height: var(--nh); font-size: calc(var(--nh) * .2); }
