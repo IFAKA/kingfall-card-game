@@ -22,12 +22,27 @@ _Written 2026-10-16 for this game as it is today. Update it when a step is done 
 
 **➡️ Next step: 8** (posts), once your Reddit account has a few days of comments. Steps 5 and 7 are done. Steps 1, 2, 4 and 6 are done; step 3 is optional for now.
 
-### While you wait (do these now, they make later steps work)
+### Before you post anything (tick each one)
 
-- [ ] **Reddit account.** If you don't have one, make it now and use it normally for 1–2 weeks: comment on other people's games in r/WebGames, r/playmygame, r/cardgames and r/soloboardgaming. Reddit often hides posts from new accounts that have never commented.
-- [ ] **Read each subreddit's rules** (the "About" or "Rules" tab on the right, or under the name on the phone). Claude can't open Reddit's pages; the rule notes below come from a rules index read in October 2026.
+- [x] Stats work (Umami shows a played game) and `?nostats` is opened on your own devices.
+- [x] itch.io page is public and the game runs in fullscreen.
+- [x] The screenshots on GitHub and itch show SUITKEEP, not the old name.
+- [ ] **Tax interview on itch.io** done (Settings → Tax information → Exit Interview), so donations can be paid out.
+- [ ] **About 10 comments** on other people's games in r/playmygame and r/WebGames (2–3 days). No Suitkeep, no links in them. Details below, under "How to leave the comments".
+- [ ] **Table photo** taken (cards in both lanes, towers fanned, the row of 10 elixir cards visible, daylight, no flash). Needed for the card-game posts (step 9), not for r/playmygame.
+- [ ] **A quick game on your phone** at suitkeep.vercel.app, to check it feels right.
+- [ ] **Read r/playmygame's Community Highlighted Posts** once, and post only with their **Make A Post** button.
 - [ ] **Watch both trailers** (`trailer/out/`) and tell Claude if anything should change.
-- [ ] **Take the table photo** for step 9 (see [Photo for the tabletop posts](#photo-for-the-tabletop-posts)).
+
+### How to leave the comments
+
+Why: Reddit hides posts from accounts that only promote. A history of real comments shows you take part.
+1. Open reddit.com/r/playmygame and set the sort to **New**.
+2. Click a post whose link opens a game in the browser (skip downloads).
+3. Play it for 2–3 minutes.
+4. Comment under the post with something specific: one thing that worked and one that confused you. Example: "The first level taught the jump without text, nice. I didn't realise the red blocks hurt until I died twice."
+5. Do 3–4 a day, then the same in r/WebGames, until you have about 10.
+6. Never mention your own game or paste a link in these comments.
 
 ---
 
