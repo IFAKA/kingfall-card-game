@@ -7,9 +7,9 @@
 Free, no sign-up, works on phones and desktops.
 
 <p align="center">
-  <img src="docs/screenshots/arena.png" alt="Suitkeep on screen: red enemy castles at the top with the left one fallen, blue castles at the bottom, your cards in both lanes, an enemy card that came in free, the enemy's face-up next card in the middle, and your hand with the Done button and elixir bar below" width="300" />
+  <img src="docs/screenshots/arena.png?v=2" alt="Suitkeep on screen: red enemy castles at the top with the left one fallen, blue castles at the bottom, your cards in both lanes, an enemy card that came in free, the enemy's face-up next card in the middle, and your hand with the Done button and elixir bar below" width="300" />
   &nbsp;
-  <img src="docs/screenshots/title.png" alt="Suitkeep title screen with a gold crown logo and the Play, Play with real cards and How to play buttons" width="520" />
+  <img src="docs/screenshots/title.png?v=2" alt="Suitkeep title screen with a gold crown logo and the Play, Play with real cards and How to play buttons" width="520" />
 </p>
 
 ## Two ways to play
@@ -46,9 +46,9 @@ Full rules: [RULEBOOK.md](RULEBOOK.md) · Printable rulebook (3 pages, A4): [pri
 - **Balanced by simulation:** thousands of simulated games tuned the rules. Games last about 12–17 rounds. Random play wins about 10%, a simple rule-follower about half, the app's suggestions about 80%, and every kind of deck (all cheap, mixed, all heavy) wins about as often: skill is in the playing.
 
 <p align="center">
-  <img src="docs/screenshots/deck.png" alt="Suitkeep deck building screen: the 8 deck cards on top, the three towers with two armor cards each under blue castles, and the average elixir cost meter with Start the game at the bottom" width="420" />
+  <img src="docs/screenshots/deck.png?v=2" alt="Suitkeep deck building screen: the 8 deck cards on top, the three towers with two armor cards each under blue castles, and the average elixir cost meter with Start the game at the bottom" width="420" />
   &nbsp;
-  <img src="docs/screenshots/real-cards-setup.png" alt="Suitkeep real-cards setup step: a row of 10 face-down cards as your elixir bar with the 5th card turned sideways as the marker" width="420" />
+  <img src="docs/screenshots/real-cards-setup.png?v=2" alt="Suitkeep real-cards setup step: a row of 10 face-down cards as your elixir bar with the 5th card turned sideways as the marker" width="420" />
 </p>
 
 ## Run it locally
