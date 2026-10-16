@@ -262,7 +262,7 @@ function ArenaLane({ idx, units, fighting, laneLen, blocked, dragging, hint, sug
       ))}
       <div className={`spot slot mine ${blocked ? 'blocked' : ''} ${dragging || hint || suggested ? 'droppable' : ''} ${dragging && over ? 'over' : ''} ${suggested ? 'suggested' : ''}`} data-lane={idx} data-anchor={`lane-${idx}`} onClick={hint || suggested ? onPlace : undefined}>
         {here(u => u.pos === 0 || (u.side === 'E' && u.pos < 0))}
-        {(dragging || hint || suggested) && <span className="droptag">{suggested && '★ '}{idx === 0 ? 'LEFT' : 'RIGHT'}</span>}
+        {suggested && <span className="droptag" title="Suggested: play it here">★</span>}
       </div>
       <div className="spot atk" />
     </div>
