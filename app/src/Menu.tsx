@@ -1,12 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ComponentProps, ReactElement, ReactNode, Ref } from 'react'
-import { BookOpen, Download as SaveIcon, Castle, ChevronRight, Download, Hand, Lightbulb, LogOut, Menu as MenuIcon, Music, ScrollText, Share, Shield, SquarePlus, Swords, Volume2, VolumeX } from 'lucide-react'
+import { BookOpen, Download as SaveIcon, History, Castle, ChevronRight, Download, Hand, Lightbulb, LogOut, Menu as MenuIcon, Music, ScrollText, Share, Shield, SquarePlus, Swords, Volume2, VolumeX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from '@/components/ui/item'
 import { Switch } from '@/components/ui/switch'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useInstall } from './pwa'
+import { downloadText, logName } from './history'
+import type { PastGame } from './history'
 
 // every drawer of the menu: up from the bottom on phones, in from the right on wide screens
 type SheetProps = ComponentProps<typeof Drawer>
@@ -105,6 +107,21 @@ function LogView({ log }: { log: string[] }) {
   ))
 }
 
+// finished games, newest first: the result, when and how it was played, and its log to download
+function PastGames({ past }: { past: PastGame[] }) {
+  if (!past.length) return <p className="py-6 text-center text-muted-foreground">No finished games yet. Every game you finish is kept here, with its log to download.</p>
+  const result = { win: 'Win', loss: 'Loss', draw: 'Draw' }
+  return <ItemGroup className="gap-3">{past.map(p => (
+    <Item key={p.at} variant="outline" className={row}>
+      <ItemContent>
+        <ItemTitle className={`${rowTitle} ${p.result === 'win' ? 'text-primary' : ''}`}>{result[p.result]} · {p.rounds} {p.rounds === 1 ? 'round' : 'rounds'}</ItemTitle>
+        <ItemDescription>{new Date(p.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} · {p.mode === 'play' ? 'On screen' : 'Real cards'}</ItemDescription>
+      </ItemContent>
+      <ItemActions><Button variant="secondary" size="icon-lg" aria-label="Download log" title="Download log" onClick={() => downloadText(logName(p.at), p.text)}><SaveIcon /></Button></ItemActions>
+    </Item>
+  ))}</ItemGroup>
+}
+
 const Rules = ({ rules }: { rules: ReactNode }) => <div className="leading-relaxed [&_li]:my-2 [&_ul]:list-disc [&_ul]:pl-5">{rules}</div>
 
 // one rule of the game: its row in How to play says it in a line (all the rows together are the whole game), its page says the rest
@@ -187,13 +204,13 @@ function usePages(up: (page: string) => string | null) {
   return { open, close: () => setOpen(false), page, go, panel: { turn, pageRef }, onOpenChange, reset }
 }
 
-// One menu for every screen, behind the ☰ button, in two groups: Game (the rules, and while playing the log and the hints) and
+// One menu for every screen, behind the ☰ button, in two groups: Game (the rules, past games, and while playing the log and the hints) and
 // Settings (music, sounds and the switches of this kind of game). Its pages open inside the same drawer: Back (or Escape, or the
 // phone's back gesture) returns to the page above. Closing it is the big button; leaving the game is a quiet one, and asks first.
 // settings: the switches that belong to this kind of game (on screen, fast enemy turns; with real cards, the fights in one list)
 // hintsOn: whether a hint switch is on, shown on the Hints row; onTipsAgain: bring the first-game tips back (under the rules)
-export function GameMenu({ topics = [], log, onExport, hints, hintsOn, settings, muted, toggleMute, musicOff, toggleMusic, onLeave, onTipsAgain }: {
-  topics?: Topic[]; log?: string[]; onExport?: () => void; hints?: () => ReactNode; hintsOn?: boolean; settings?: ReactNode
+export function GameMenu({ topics = [], log, onExport, past, hints, hintsOn, settings, muted, toggleMute, musicOff, toggleMusic, onLeave, onTipsAgain }: {
+  topics?: Topic[]; log?: string[]; onExport?: () => void; past?: PastGame[]; hints?: () => ReactNode; hintsOn?: boolean; settings?: ReactNode
   muted: boolean; toggleMute: () => void; musicOff: boolean; toggleMusic: () => void; onLeave?: () => void; onTipsAgain?: () => void
 }) {
   const { open, close, page, go, panel, onOpenChange, reset } = usePages(p => p.startsWith('rule:') ? 'rules' : null)
@@ -205,6 +222,9 @@ export function GameMenu({ topics = [], log, onExport, hints, hintsOn, settings,
     ...Object.fromEntries(topics.map(t => [`rule:${t.id}`, { title: t.title, body: <Rules rules={t.body} />, footer: <Button variant="secondary" size="xl" onClick={() => go('rules')}>Back</Button> }])),
     log: { title: 'What happened', body: <LogView log={log ?? []} />, footer: <>{onExport && <Button variant="success" size="xl" onClick={onExport}><SaveIcon /> Save log as a file</Button>}{back}</> },
     hints: { title: 'Hints', body: hints?.(), footer: back },
+    past: { title: 'Past games', description: past?.length ? `Your last ${past.length} finished ${past.length === 1 ? 'game' : 'games'}, kept on this device.` : undefined, body: <PastGames past={past ?? []} />, footer: <>
+      {!!past?.length && <Button variant="success" size="xl" onClick={() => downloadText('suitkeep-logs.txt', past.map(p => p.text).join('\n\n'))}><SaveIcon /> Save all in one file</Button>}{back}
+    </> },
     leave: { title: 'Leave this game?', description: 'It will be discarded.', footer: <>
       <Button variant="success" size="xl" onClick={() => go(null)}>Keep playing</Button>
       <Button variant="destructive" size="xl" onClick={() => { setLeaving(true); close() }}>Leave game</Button>
@@ -226,11 +246,12 @@ export function GameMenu({ topics = [], log, onExport, hints, hintsOn, settings,
       <DrawerTrigger render={<Button variant="secondary" size="icon-lg" aria-label="Menu" title="Menu" />}><MenuIcon /></DrawerTrigger>
       {shown ? <Panel title={shown.title} description={shown.description} footer={shown.footer} {...panel}>{shown.body}</Panel> : (
         <Panel title="Menu" {...panel} footer={footer}>
-          {(topics.length > 0 || log || hints) && <Section title="Game">
+          {(topics.length > 0 || log || hints || past) && <Section title="Game">
             <ItemGroup className="gap-3">
               {topics.length > 0 && <PageRow icon={<BookOpen />} title="How to play" onOpen={() => go('rules')} />}
               {log && <PageRow icon={<ScrollText />} title="What happened" onOpen={() => go('log')} />}
               {hints && <PageRow icon={<Lightbulb />} title="Hints" status={hintsOn ? 'On' : 'Off'} onOpen={() => go('hints')} />}
+              {past && <PageRow icon={<History />} title="Past games" status={past.length ? String(past.length) : undefined} onOpen={() => go('past')} />}
             </ItemGroup>
           </Section>}
           <Section title="Settings">
