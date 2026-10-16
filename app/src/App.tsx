@@ -471,15 +471,13 @@ function RoundChip({ n }: { n: number }) {
   )
 }
 
-// the one thing you look up mid-game, without going through the menu
-const R = ({ c }: { c: string }) => <span className="rs">{c}</span>
 // three short pages, one rule each: the cards say it, the words only name it
 const CHEAT_PAGES = ['Suit ×2', 'Higher', 'Ace'] as const
 // g: the game in progress, for examples from its cards; without one (How to play on the title screen), invented ones
 function Cheat({ g }: { g?: GuideState }) {
   const [page, setPage] = useState(0)
   const pools = g ? gamePools(g) : [], [ace, pics] = acePair(pools), wheel = g?.rules.wheel ?? DEFAULT_RULES.wheel
-  const [x, y] = [0, 1].map(i => wheelPair(WHEEL[i][0], WHEEL[i][1], wheel, pools))
+  const x = wheelPair(WHEEL[0][0], WHEEL[0][1], wheel, pools)
   return (<div className="cheat">
     <div className="cheat-tabs" role="tablist">{CHEAT_PAGES.map((t, i) => <button key={t} role="tab" aria-selected={page === i} onClick={() => setPage(i)}>{t}</button>)}</div>
     {page === 1 && <>
@@ -488,9 +486,12 @@ function Cheat({ g }: { g?: GuideState }) {
       <p><small>A=1 · J=11 · Q=12 · K=13. Same number: both lost.</small></p>
     </>}
     {page === 0 && <>
-      <p className="loop" role="img" aria-label="Spades beat hearts, hearts beat diamonds, diamonds beat clubs, clubs beat spades">♠ → <R c="♥" /> → <R c="♦" /> → ♣ ↺</p>
-      <p><b>The winning suit counts ×2.</b></p>
-      <div className="suitwheel">{[x, y].map(([p, q], i) => <Beats key={i} win={show(p)} lose={show(q)} winText={<>{p.rank} ×{wheel} = <b>{p.rank * wheel}</b></>} loseText={q.rank} />)}</div>
+      <div className="loop" role="img" aria-label="Spades beat hearts, hearts beat diamonds, diamonds beat clubs, clubs beat spades">
+        {WHEEL.map(([w, l]) => <span key={w}><b className={isRed({ id: '', rank: 1, suit: w }) ? 'rs' : ''}>{SUITS[w]}</b> beats <b className={isRed({ id: '', rank: 1, suit: l }) ? 'rs' : ''}>{SUITS[l]}</b></span>)}
+      </div>
+      <p><b>The suit that beats the other doubles its number.</b></p>
+      <div className="suitwheel"><Beats win={show(x[0])} lose={show(x[1])} winText={<>{x[0].rank} ×{wheel} = <b>{x[0].rank * wheel}</b></>} loseText={x[1].rank} /></div>
+      <p><small>{SUITS[x[0].suit]} beats {SUITS[x[1].suit]}, so the {RANKS[x[0].rank]} counts {x[0].rank * wheel}. {x[0].rank * wheel} is more than {x[1].rank}, so the {SUITS[x[0].suit]} wins.</small></p>
     </>}
     {page === 2 && <>
       <p><b>Ace beats King.</b></p>
