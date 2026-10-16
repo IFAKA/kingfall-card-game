@@ -1,6 +1,6 @@
 // Guide engine: you play with real cards; this runs the rules and tells you what to do physically.
 // The enemy's face-down cards are unknown (null) until you flip them and tell the app.
-import { DECK_SIZE, DEFAULT_RULES, RANKS, SUITS, armored, atTower, breaksTower, compare, cost, defendLane, effective, label, playerLaneInfo, shuffle, towersFromSlots, aceWins } from './engine.ts'
+import { DECK_SIZE, DEFAULT_RULES, HAND_SIZE, RANKS, SUITS, armored, atTower, breaksTower, cost, defendLane, effective, fightResult, label, playerLaneInfo, shuffle, towersFromSlots, aceWins } from './engine.ts'
 import type { Card, Rules, StackKey, Towers, Unit } from './engine.ts'
 
 export type Stage =
@@ -78,7 +78,7 @@ export function makeGame(deck: Card[], towerSlots: Card[], dealt: Card[], rules:
     round: 0,
     units: [],
     nextUid: 1,
-    P: { hand: d.slice(0, 4), queue: d.slice(4), elixir: rules.startElixir, towers: towersFromSlots(towerSlots) },
+    P: { hand: d.slice(0, HAND_SIZE), queue: d.slice(HAND_SIZE), elixir: rules.startElixir, towers: towersFromSlots(towerSlots) },
     E: {
       queue: Array.from({ length: DECK_SIZE }, (_, i) => ({ tid: `ep${i}`, card: null })),
       towers: { L: [{ tid: 'et0', card: null }], R: [{ tid: 'et1', card: null }], K: [{ tid: 'et2', card: null }] },
@@ -164,7 +164,7 @@ export function canPlay(g: GuideState, i: number) {
 
 function refill(g: GuideState): string[] {
   const out: string[] = []
-  while (g.P.hand.length < 4 && g.P.queue.length) {
+  while (g.P.hand.length < HAND_SIZE && g.P.queue.length) {
     const c = g.P.queue.shift()!
     g.P.hand.push(c)
     out.push(`Draw ${label(c)} from the top of your queue into your hand.`)
@@ -496,7 +496,7 @@ function resolveNext(g: GuideState): GuideState {
     const f = facing(g, lane)
     if (!f) continue
     const { p, e } = f
-    const r = compare(p.card, e.card, g.rules)
+    const r = fightResult(p.card, e.card, g.rules)
     const ace = aceWins(p.card, e.card, g.rules) || aceWins(e.card, p.card, g.rules)
     const pv = effective(p.card, e.card, g.rules.wheel), ev = effective(e.card, p.card, g.rules.wheel)
     emit(g, {
@@ -519,7 +519,7 @@ function resolveNext(g: GuideState): GuideState {
         g.stats.overkills.push(`In round ${g.round} your ${label(p.card)}, a big card that takes your whole turn, beat a ${label(e.card)}. A small card would have won too, with room for a second one.`)
       }
     } else {
-      res = [`The ENEMY ${label(e.card)} WINS and stays where it is.`, ...kill(g, p)]
+      res = [pv === ev && !ace ? `Equal, and the enemy wins ties: the ENEMY ${label(e.card)} WINS and stays where it is.` : `The ENEMY ${label(e.card)} WINS and stays where it is.`, ...kill(g, p)]
       g.log.push(`Enemy ${label(e.card)} beats your ${label(p.card)}.`)
       if (aceWins(e.card, p.card, g.rules)) {
         (g.stats.aceLosses ??= []).push(`The enemy ${label(e.card)} beat your ${label(p.card)}: an ace beats a king. When the enemy's next card is an ace, meet it with a cheap card, not a king.`)
@@ -531,7 +531,7 @@ function resolveNext(g: GuideState): GuideState {
     g.lines = [head, ...res]
     g.why = [ace
       ? 'An ace beats a king, whatever the suits. The winner stays and fights the next card; the loser goes to the bottom of its pile.'
-      : 'The front cards fight where they stand. Higher rank wins; a card of the suit that beats the other counts double. The winner stays and fights the next card; the loser goes to the bottom of its pile.']
+      : `The front cards fight where they stand. Higher rank wins; a card of the suit that beats the other counts double${g.rules.enemyWinsTies ? '; equal, and the enemy wins' : ''}. The winner stays and fights the next card; the loser goes to the bottom of its pile.`]
     return g
   }
   const ms = movers(g)
@@ -624,7 +624,7 @@ function resolveHit(g: GuideState, u: Unit, k: StackKey): GuideState {
   const topId = mineHit ? g.E.towers[k][0].tid : g.P.towers[k][0].id
   const cracked = g.cracked ?? []
   const wasCracked = cracked.includes(topId)
-  const won = breaksTower(u.card, top, g.rules)
+  const won = breaksTower(u.card, top, g.rules, u.side)
   const armorHolds = won && armored(g, topId) // armor: a winning hit on a whole card only cracks it, and the attacker stays
   const broken = wasCracked || (won && !armorHolds)
   const av = effective(u.card, top, g.rules.wheel), tv = effective(top, u.card, g.rules.wheel)
@@ -754,7 +754,7 @@ function finishRound(g: GuideState): GuideState {
 export type Advice = { kind: 'play'; handIndex: number; lane: 0 | 1; reason: string; short: string } | { kind: 'wait'; reason: string; short: string }
 
 function beats(g: GuideState, a: Card, b: Card) {
-  return compare(a, b, g.rules) > 0
+  return fightResult(a, b, g.rules) > 0
 }
 
 export function options(g: GuideState): string[] {
@@ -772,7 +772,7 @@ export function options(g: GuideState): string[] {
 function laneOutcome(g: GuideState, mine: Card[], theirs: Card[]) {
   let i = 0, j = 0
   while (i < mine.length && j < theirs.length) {
-    const r = compare(mine[i], theirs[j], g.rules)
+    const r = fightResult(mine[i], theirs[j], g.rules)
     if (r >= 0) j++
     if (r <= 0) i++
   }
@@ -886,6 +886,7 @@ export function describe(e: GameEvent): string | null {
       const { mine, theirs } = e
       const head = e.winner === 'P' ? `Your ${label(mine.card)} beats ${label(theirs.card)}` : e.winner === 'E' ? `Enemy ${label(theirs.card)} beats your ${label(mine.card)}` : `${label(mine.card)} ties ${label(theirs.card)} (${mine.value} vs ${theirs.value}): both are removed`
       if (e.ace) return `${head}: an ace beats a king.`
+      if (e.winner === 'E' && mine.value === theirs.value) return `${head}: equal (${mine.value} vs ${theirs.value}), and the enemy wins ties.`
       if (e.double) {
         const [d, o] = e.double === 'P' ? [mine, theirs] : [theirs, mine]
         return `${head}: ${SUITS[d.card.suit]} beats ${SUITS[o.card.suit]}, so ${RANKS[d.card.rank]} counts double (${d.value} vs ${o.value}).`

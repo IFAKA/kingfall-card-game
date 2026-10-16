@@ -5,10 +5,10 @@ import { DECK_SIZE, freshDeck } from './engine.ts'
 import type { Card } from './engine.ts'
 
 export const TUTORIAL = {
-  mine: ['11-3', '8-0', '11-0', '4-0', '12-3', '1-0', '6-0', '10-0', '7-0', '1-3', '2-3'], // your 11 cards (the first game skips the deck screen: the usual suggested split)
-  deck: ['10-0', '2-3', '11-3', '12-3', '1-3', '11-0', '1-0', '4-0'], // 10♠ 2♣ J♣ Q♣ A♣ J♠ A♠ 4♠: your deck in draw order, the first 4 are your opening hand
-  enemyPile: ['6-2', '2-2', '10-1', '13-1', '3-1', '5-1', '4-1', '12-2'], // 6♦ 2♦ 10♥ K♥ 3♥ 5♥ 4♥ Q♦: the order it plays them
-  enemyTowers: ['9-2', '11-1', '7-2'], // 9♦ J♥ 7♦: slot order L R K
+  mine: ['6-0', '10-0', '3-3', '12-3', '11-3', '5-0', '2-0', '12-0', '13-0', '1-3', '4-3'], // your 11 cards (the first game skips the deck screen: the usual suggested split)
+  deck: ['12-3', '11-3', '12-0', '1-3', '4-3', '3-3', '2-0', '13-0'], // Q♣ J♣ Q♠ A♣ 4♣ 3♣ 2♠ K♠: your deck in draw order, the first 3 are your opening hand
+  enemyPile: ['3-1', '11-2', '12-1', '7-2', '13-1', '4-1', '5-1', '7-1'], // 3♥ J♦ Q♥ 7♦ K♥ 4♥ 5♥ 7♥: the order it plays them
+  enemyTowers: ['6-1', '10-2', '4-2'], // 6♥ 10♦ 4♦: slot order L R K
 }
 
 const byId = (id: string): Card => freshDeck().find(c => c.id === id)!

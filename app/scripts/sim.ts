@@ -76,10 +76,14 @@ export function playOut(g0: GuideState, real: Map<string, Card>, player: Player,
   return g
 }
 
-export interface Setup { enemyMin?: number; rules?: Partial<Rules>; enemy?: EnemySetup; player?: Player; deck?: DeckPolicy }
+export interface Setup {
+  enemyMin?: number; rules?: Partial<Rules>; enemy?: EnemySetup; player?: Player; deck?: DeckPolicy
+  keep?: (mine: Card[]) => boolean // on screen you may deal again: deal until your 11 cards pass this (a player hunting a hand they like)
+}
 export interface Result {
   n: number; wins: number; rounds: number; unfinished: number
   easy: number        // wins in 12 rounds or fewer with at least 5 of your 6 tower cards still standing
+  untouched: number   // games the enemy never cracked or broke one of your tower cards
   standing: number    // your tower cards left, summed over the wins
   aceKillsP: number; aceKillsE: number
   byAces: Record<number, [number, number]> // [wins, games] by the number of aces in your 11 cards
@@ -90,9 +94,10 @@ export function run(n: number, setup: Setup, seed: number): Result {
   const rnd = mulberry(seed + 1)
   const rules = { ...DEFAULT_RULES, ...setup.rules }
   const player = setup.player ?? suggestions
-  const r: Result = { n: 0, wins: 0, rounds: 0, unfinished: 0, easy: 0, standing: 0, aceKillsP: 0, aceKillsE: 0, byAces: {} }
+  const r: Result = { n: 0, wins: 0, rounds: 0, unfinished: 0, easy: 0, untouched: 0, standing: 0, aceKillsP: 0, aceKillsE: 0, byAces: {} }
   for (let k = 0; k < n; k++) {
-    const d = shuffle(freshDeck())
+    let d = shuffle(freshDeck())
+    for (let tries = 0; setup.keep && !setup.keep(splitDeal(d).mine) && tries < 1000; tries++) d = shuffle(freshDeck())
     let { mine, theirs } = splitDeal(d)
     if (setup.enemyMin && setup.enemyMin > 1) { // the enemy's cards come only from this rank up (the low cards are set aside before it is dealt)
       theirs = d.filter(c => isRed(c) && c.rank >= setup.enemyMin!).slice(0, PER_SIDE)
@@ -106,6 +111,7 @@ export function run(n: number, setup: Setup, seed: number): Result {
     const g = playOut(startRound(makeGame(deck, myTowers, mine, rules)), real, player, rnd, e => { if (e.type === 'fight' && e.ace && e.winner === e.ace) { if (e.ace === 'P') r.aceKillsP++; else r.aceKillsE++ } })
     if (g.stage !== 'over') { r.unfinished++; continue }
     r.n++; r.rounds += g.round
+    if (!g.stats.mineBroken && !g.cracked?.some(id => mine.some(c => c.id === id))) r.untouched++
     const aces = mine.filter(c => c.rank === 1).length
     const b = (r.byAces[aces] ??= [0, 0]); b[1]++
     if (g.winner === 'P') {

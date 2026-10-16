@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import confetti from 'canvas-confetti'
-import { DECK_SIZE, DEFAULT_RULES, PER_SIDE, RANKS, SUITS, aceWins, compare, cost, deal, effective, freshDeck, isRed, label, randomSetup, secureRandom, shuffle, suggestSetup } from './engine'
+import { DECK_SIZE, DEFAULT_RULES, HAND_SIZE, PER_SIDE, RANKS, SUITS, aceWins, compare, cost, deal, effective, fightResult, freshDeck, isRed, label, randomSetup, secureRandom, shuffle, suggestSetup } from './engine'
 import type { Card, Rules, Unit } from './engine'
 import {
   advise, adviseLastStand, autoReveal, canPlay, describe, endMyTurn, extendBatch, fightingNext, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary, switchCards, takeBack,
@@ -151,8 +151,8 @@ const CHIP: Variants = {
 // The fight between the card you hold and an enemy card, in words for the line under the field:
 // why it goes that way (an ace, the suit that counts double, or just the ranks), then who wins.
 function fightLine(m: Card, t: Card, rules: Rules) {
-  const res = compare(m, t, rules)
-  const who = res > 0 ? 'you win' : res < 0 ? `${label(t)} wins` : 'a tie, both are removed'
+  const res = fightResult(m, t, rules)
+  const who = res > 0 ? 'you win' : res < 0 ? `${label(t)} wins${compare(m, t, rules) === 0 ? ' (equal: the enemy wins ties)' : ''}` : 'a tie, both are removed'
   const mv = effective(m, t, rules.wheel), tv = effective(t, m, rules.wheel)
   const why = aceWins(m, t, rules) || aceWins(t, m, rules) ? 'Aces beat Kings'
     : mv > m.rank ? `${SUITS[m.suit]} beats ${SUITS[t.suit]}, your ${label(m)} counts ${mv} vs ${tv}`
@@ -166,7 +166,7 @@ function Castle({ k, items, own, cracked, fx, shake }: { k: 'L' | 'R' | 'K'; ite
   const known = top?.card
   return (
     <div className={`castle ${own ? 'mine' : 'theirs'} ${k === 'K' ? 'king' : ''} ${items.length ? '' : 'fallen'} ${shake ? 'tremble' : ''}`} data-anchor={`tower-${own ? 'P' : 'E'}-${k}`}
-      title={!items.length ? `${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower has fallen` : `${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower: ${items.length} card${items.length === 1 ? '' : 's'} of armor${known ? `; a soldier must win or tie a fight against its top card, ${label(known)}, to break it` : ''}`}>
+      title={!items.length ? `${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower has fallen` : `${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower: ${items.length} card${items.length === 1 ? '' : 's'} of armor${known ? `; a soldier must win a fight against its top card, ${label(known)}, to stay for the hit that breaks it` : ''}`}>
       <CastleArt king={k === 'K'} fallen={!items.length} />
       <div className="armor"><AnimatePresence initial={false}>{items.map(it => <motion.i key={it.tid} layout className={cracked.includes(it.tid) ? 'crk' : ''}
         exit={{ scale: 0, opacity: 0, transition: { duration: 0.3 } }} />)}</AnimatePresence></div>
@@ -324,6 +324,8 @@ function Said({ text }: { text: string }) {
 
 // Telling the app a card you flipped at the table: tap its rank and its suit, in either order. Cards already known are greyed out.
 // the enemy plays the red cards, you the black ones
+// your deck at the table: the hand's places, then the queue's (top card first)
+const HANDS = Array.from({ length: HAND_SIZE }, (_, i) => i), QUEUE = Array.from({ length: DECK_SIZE - HAND_SIZE }, (_, i) => HAND_SIZE + i)
 const RED = [1, 2], BLACK = [0, 3]
 function FlipPicker({ known, onPick }: { known: Set<string>; onPick: (c: Card) => void }) {
   const [rank, setRank] = useState<number | null>(null)
@@ -473,7 +475,7 @@ function Cheat({ g }: { g?: GuideState }) {
     {page === 1 && <>
       <p><b>Higher number wins.</b></p>
       <div className="fights"><Beats win={show({ id: 'h9', rank: 9, suit: 0 })} lose={show({ id: 'h4', rank: 4, suit: 3 })} winText="9" loseText="4" /></div>
-      <p><small>A=1 · J=11 · Q=12 · K=13. Same number: both lost.</small></p>
+      <p><small>A=1 · J=11 · Q=12 · K=13. Same number: the enemy wins.</small></p>
     </>}
     {page === 0 && <>
       <div className="loop" role="img" aria-label="Spades beat hearts, hearts beat diamonds, diamonds beat clubs, clubs beat spades">
@@ -519,9 +521,9 @@ const RULES: Topic[] = [
     <p>A tower card is <b>armored</b>: the first hit only <b>cracks</b> it (turn it sideways), and the next hit <b>breaks</b> it, whatever card hits it.</p>
     <p>A hit is still a fight against the tower card, and suit ×2 and aces count here too. It decides what happens to your soldier:</p>
     {towerFight({ id: 't9-0', rank: 9, suit: 0 }, 'soldier: stays', { id: 't7-2', rank: 7, suit: 2 }, 'tower: cracks')}
-    <p><b>Win or tie:</b> your soldier stays, turned sideways (wounded), and hits once more next round: that hit breaks the cracked card. Then it goes back to its pile.</p>
+    <p><b>Win:</b> your soldier stays, turned sideways (wounded), and hits once more next round: that hit breaks the cracked card. Then it goes back to its pile.</p>
     {towerFight({ id: 't12-2', rank: 12, suit: 2 }, 'tower: cracks', { id: 't5-0', rank: 5, suit: 0 }, 'soldier: shot back')}
-    <p><b>Lose:</b> the tower shoots it back to its pile, but the tower card cracks anyway, so the next hit breaks it.</p>
+    <p><b>Lose or tie</b> (ties go to the enemy): the tower shoots it back to its pile, but the tower card cracks anyway, so the next hit breaks it.</p>
   </> },
   { id: 'stand', icon: <Shield />, title: 'Last stand', line: 'Lose a side tower, and you place one card there for free.', body: <>
     <p>When a left or right tower falls, its owner immediately places one card in that lane for free: it isn't part of anyone's turn.</p>
@@ -544,7 +546,7 @@ const TIPS: Record<TipId, string> = {
   turn: 'The purple number is how much of your turn a card uses: big cards 2, small cards 1. Done? Press ✓ and the enemy moves.',
   change: 'Changed your mind? Before ✓, drag a placed card back to your hand or to the other lane.',
   enemy2: 'The enemy plays 2 cards a round: the first defends the lane where you have more cards, the second goes into the other lane. Its Next card is its first.',
-  rank: 'Cards fight where they meet: the higher rank wins. The loser goes back to its pile.',
+  rank: 'Cards fight where they meet: the higher rank wins. Equal? The enemy wins. The loser goes back to its pile.',
   suit: 'Suits beat each other in a circle:\n♠ beats ♥ beats ♦ beats ♣ beats ♠. The winning suit counts ×2. The ⚔ button, top left, shows it again.',
   ace: 'Aces beat Kings! A small ace kills a big King.',
   armor: 'Tower cards are armored: the first hit cracks them, the next breaks them. A card that wins its hit stays for that next hit. The king is safe until its side tower falls.',
@@ -578,6 +580,7 @@ const autoDelay = (events: number, fast = false) => Math.min(4000, 700 + 600 * e
 const FAST_KEY = 'suitkeep-fast'
 const BATCH_KEY = 'suitkeep-batch' // real cards: a round's fights and moves as one checklist (unset: on after 2 games at the table)
 const RECORD_KEY = 'suitkeep-record'
+const DEAL_KEY = 'suitkeep-deal' // on screen: the deal you were given and haven't played yet
 const STARTED_KEY = 'suitkeep-games-started' // games begun, every mode together: the stats count first and second games
 const modeName = (m: 'guide' | 'play') => (m === 'play' ? 'screen' : 'cards')
 // your own results, every mode together: shown on the title and at the end of a game, never as a streak to keep
@@ -595,7 +598,7 @@ export default function App() {
   const [explainOn, setExplainOn] = useState(saved ? saved.help === 'explain' : false)
   const [suggestOn, setSuggestOn] = useState(saved ? saved.help === 'suggest' : false)
   const help: Help = suggestOn ? 'suggest' : explainOn ? 'explain' : 'off'
-  // with real cards the player shuffles their own deck and taps its 8 cards here as they come: 4 hand cards, then the queue top first
+  // with real cards the player shuffles their own deck and taps its 8 cards here as they come: the hand cards, then the queue top first
   const [order, setOrder] = useState<string[]>(saved?.order ?? [])
   const [game, setGame] = useState<GuideState | null>(saved?.game ?? null)
   const [history, setHistory] = useState<GuideState[]>(saved?.history ?? [])
@@ -790,6 +793,7 @@ export default function App() {
   // the game begins. A player's first game: on screen, suggestions are on (a first game is hard to win, and each suggestion says
   // why); with real cards for the first time, every step says why. Their next game turns that off again.
   const begin = (g: GuideState, m: 'play' | 'guide') => {
+    if (m === 'play') writeJSON(DEAL_KEY, null) // the deal is played: the next game deals anew
     const help = m === 'play' ? novice : played.guide === 0
     if (help) { if (m === 'play') setSuggestOn(true); else setExplainOn(true) }
     setIntro(novice || help ? { deck: novice, help } : null)
@@ -807,13 +811,20 @@ export default function App() {
 
   const setSplit = ({ deckIds, slotIds }: { deckIds: string[]; slotIds: string[] }) => { setDeckIds(deckIds); setSlotIds(slotIds) }
   // on-screen play: deal both hands at random; the enemy's cards stay hidden inside the app (tid ep0-7 = pile, et0-2 = towers)
+  // One deal per game, as at the table: a deal you leave without playing is still yours next time you tap Play, so dealing
+  // again until you like your cards isn't a way to win (it was, and the players who found it stopped meeting the real game).
   const startOnScreen = () => {
     if (novice) return startTutorial()
-    const d = deal(secureRandom)
-    const enemy = shuffle(d.theirs, secureRandom)
-    setSecret(Object.fromEntries(enemy.map((c, i) => [i < DECK_SIZE ? `ep${i}` : `et${i - DECK_SIZE}`, c])))
-    setMode('play'); setDealt(d.mine.map(c => c.id))
-    setSplit(randomSetup(d.mine, secureRandom)); setScreen('draft')
+    const kept = readJSON<{ mine: string[]; secret: Record<string, Card> } | null>(DEAL_KEY, null)
+    const d = kept ?? (() => {
+      const { mine, theirs } = deal(secureRandom)
+      const enemy = shuffle(theirs, secureRandom)
+      return { mine: mine.map(c => c.id), secret: Object.fromEntries(enemy.map((c, i) => [i < DECK_SIZE ? `ep${i}` : `et${i - DECK_SIZE}`, c])) }
+    })()
+    if (!kept) writeJSON(DEAL_KEY, d)
+    setSecret(d.secret)
+    setMode('play'); setDealt(d.mine)
+    setSplit(randomSetup(d.mine.map(byId), secureRandom)); setScreen('draft')
   }
   // a first game on screen is always the same deal (src/tutorial.ts), so the tips teach the rules in the same order for everyone.
   // It skips the deck screen, whose choices mean nothing before you know the rules: it starts on the suggested split.
@@ -915,7 +926,7 @@ export default function App() {
     const go = mode === 'play'
       ? <button className="big" onClick={() => begin(makeGame(deck, slotIds.map(byId), mine, DEFAULT_RULES), 'play')}>Start the game</button>
       : <button className="big" onClick={() => { setOrder([]); setScreen('table') }}>Next: set up the table</button>
-    return <DeckBuilder mine={mine} deckIds={deckIds} slotIds={slotIds} onChange={(d, t) => { setDeckIds(d); setSlotIds(t) }} onRedeal={mode === 'play' ? startOnScreen : undefined}
+    return <DeckBuilder mine={mine} deckIds={deckIds} slotIds={slotIds} onChange={(d, t) => { setDeckIds(d); setSlotIds(t) }}
       title={mode === 'play' ? 'Build your deck' : '3. Build your deck'} bar={bar} start={go} />
   }
 
@@ -930,12 +941,12 @@ export default function App() {
       { title: 'Build your three towers', pic: <div className="mcols">{stack('Left', g.P.towers.L)}{stack('King', g.P.towers.K)}{stack('Right', g.P.towers.R)}</div>,
         body: <p>{novice && <>For your first game I picked your deck and towers; next game you build your own. </>}Put three cards <b>face-up</b> in a row in front of you: <b>Left</b> {g.P.towers.L.map(label).join(' · ')}, <b>King</b> {g.P.towers.K.map(label).join(' · ')} in the middle, <b>Right</b> {g.P.towers.R.map(label).join(' · ')}. Each one is a tower.</p> },
       { title: 'Your hand and your queue', ready: n === DECK_SIZE,
-        pic: <div className="mbars"><span className="mlbl">Hand, face-up</span><div className="row">{[0, 1, 2, 3].map(i => <PlayingCard key={i} card={tapped[i] ? byId(tapped[i]) : undefined} showCost={!!tapped[i]} className={tapped[i] ? '' : 'mtodo'} />)}</div>
-          <span className="mlbl">Queue, face-up stack, top card first</span><div className="mrow">{[4, 5, 6, 7].map(i => <PlayingCard key={i} card={tapped[i] ? byId(tapped[i]) : undefined} className={`mc${tapped[i] ? '' : ' mtodo'}`} />)}</div></div>,
+        pic: <div className="mbars"><span className="mlbl">Hand, face-up</span><div className="row">{HANDS.map(i => <PlayingCard key={i} card={tapped[i] ? byId(tapped[i]) : undefined} showCost={!!tapped[i]} className={tapped[i] ? '' : 'mtodo'} />)}</div>
+          <span className="mlbl">Queue, face-up stack, top card first</span><div className="mrow">{QUEUE.map(i => <PlayingCard key={i} card={tapped[i] ? byId(tapped[i]) : undefined} className={`mc${tapped[i] ? '' : ' mtodo'}`} />)}</div></div>,
         body: <>
-          <p><b>Shuffle your 8 deck cards</b> and take the top <b>4 into your hand</b>. Put the other <b>4 face-up</b> in a stack: that's your queue, and its top card is the one you draw next.</p>
-          <p>{n < 4 ? <>Tap your <b>4 hand cards</b> here ({n}/4).</>
-            : n < DECK_SIZE ? <>Now fan your queue and tap its cards, <b>top card first</b> ({n - 4}/4). Then square it again.</>
+          <p><b>Shuffle your 8 deck cards</b> and take the top <b>{HAND_SIZE} into your hand</b>. Put the other <b>{DECK_SIZE - HAND_SIZE} face-up</b> in a stack: that's your queue, and its top card is the one you draw next.</p>
+          <p>{n < HAND_SIZE ? <>Tap your <b>{HAND_SIZE} hand cards</b> here ({n}/{HAND_SIZE}).</>
+            : n < DECK_SIZE ? <>Now fan your queue and tap its cards, <b>top card first</b> ({n - HAND_SIZE}/{DECK_SIZE - HAND_SIZE}). Then square it again.</>
             : <>Got it: I know your hand and the order of your queue.</>}</p>
           <div className="picker"><div className="prow">{deck.map(c => (
             <button key={c.id} disabled={!tapped.includes(c.id) && n >= DECK_SIZE} className={`pbtn ${isRed(c) ? 'red' : ''} ${tapped.includes(c.id) ? 'sel' : ''}`} onClick={() => tap(c.id)}>{RANKS[c.rank]}{SUITS[c.suit]}</button>
@@ -1168,7 +1179,7 @@ export default function App() {
     const wide = mode === 'guide' && view.sw >= 860 && view.sw >= view.sh * 1.3
     const ch = mode === 'guide'
       ? wide
-        ? Math.max(44, Math.min((view.sh - 168) / 6.9, (Math.min(view.sw - 460, 760) - 60) / 8.9 / 0.714, (420 - 32 - 40 - 8) / 5 / 0.714, 128)) // the hand (4 cards + Done, 10px apart) fits the 420px column inside its 16px padding
+        ? Math.max(44, Math.min((view.sh - 168) / 6.9, (Math.min(view.sw - 460, 760) - 60) / 8.9 / 0.714, (420 - 32 - 10 * HAND_SIZE - 8) / (HAND_SIZE + 1) / 0.714, 128)) // the hand (its cards + Done, 10px apart) fits the 420px column inside its 16px padding
         : Math.max(44, Math.min((view.sh - 308) / 7.84, (aw - 60) / 8.9 / 0.714, 128))
       : Math.max(48, Math.min((view.sh - 226) / 7.9, (aw - 72) / 4.75 / 0.714, 128))
     const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px` } as CSSProperties
