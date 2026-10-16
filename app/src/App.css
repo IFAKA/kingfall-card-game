@@ -791,9 +791,11 @@ button.fkey:disabled { opacity: .25; filter: none; }
    rank over suit in the top-left corner like a real card, the elixir cost on a ball at the middle of the bottom edge;
    all in em of the card's font-size, which is a share of its width, so every card is the same picture at its own size */
 .tcard .corner { position: absolute; top: .2em; left: .24em; font-weight: 800; font-size: 1.1em; line-height: .95; text-align: center; letter-spacing: -.05em; }
-.tcard .cost { position: absolute; z-index: 3; left: 50%; bottom: 0; translate: -50% 50%; box-sizing: border-box; display: flex; align-items: center; gap: 3px; padding: 2px; font-size: 1.05em;
-  border-radius: 8px; border: 2px solid #3b4a78; background: #0b1220; box-shadow: 0 0 0 1.5px #fff; }
-.tcard .cost i { width: .95em; height: .6em; border-radius: 5px; background: linear-gradient(#fff1b8, #ffd36b 55%, #d99a1c); box-shadow: 0 0 4px rgba(255,211,107,.7); }
+/* the energy bar and the badges on the cards share one thickness: --eseg, the lit segment's width, with a 1.5px border and 2px of room round it */
+.tcard, .turncard { --eseg: clamp(4px, calc(var(--cw) * .1), 8px); }
+.tcard .cost { position: absolute; z-index: 3; left: 50%; bottom: 0; translate: -50% 50%; box-sizing: border-box; display: flex; align-items: center; gap: 2px; padding: 2px;
+  border-radius: 6px; border: 1.5px solid #3b4a78; background: #0b1220; box-shadow: 0 0 0 1px #fff; }
+.tcard .cost i { width: calc(var(--eseg) * 2.4); height: var(--eseg); border-radius: calc(var(--eseg) / 2); background: linear-gradient(#fff1b8, #ffd36b 55%, #d99a1c); box-shadow: 0 0 3px rgba(255,211,107,.7); }
 .tcard .cost i:not(:only-child):first-child { border-top-right-radius: 1px; border-bottom-right-radius: 1px; } /* two halves of one bar: square where they meet */
 .tcard .cost i:not(:only-child):last-child { border-top-left-radius: 1px; border-bottom-left-radius: 1px; } /* the energy bar, lying down: a small card one half, any other both */
 /* a card that stays put brings its own size; the place it is shown in can set another --cw */
@@ -807,7 +809,7 @@ button.fkey:disabled { opacity: .25; filter: none; }
 
 /* your turn as a card-shaped bar left of the hand: two halves, lit while you may still play; the top half is spent first.
    A card you hold rings the half or halves it would use (red when you can't afford it) */
-.turncard { flex: none; align-self: flex-end; box-sizing: border-box; width: calc(var(--cw) * .27 * 1.05 * .62 + 8px); height: var(--ch); display: flex; flex-direction: column-reverse; gap: 3px; padding: 2px; border-radius: 8px; background: #0b1220; border: 2px solid #3b4a78; }
+.turncard { flex: none; align-self: flex-end; box-sizing: border-box; width: calc(var(--eseg) + 7px); height: var(--ch); display: flex; flex-direction: column-reverse; gap: 2px; padding: 2px; border-radius: 6px; background: #0b1220; border: 1.5px solid #3b4a78; }
 .tp { flex: 1; border-radius: 5px; background: transparent; /* an empty half is just the dark frame around the lit one, so the lit half's rounded corners show as the frame's inverted corners */ transition: background .3s var(--ease-out), box-shadow .3s var(--ease-out); }
 .tp.on { background: linear-gradient(#fff1b8, #ffd36b 55%, #d99a1c); box-shadow: 0 0 8px rgba(255,211,107,.7); }
 .tp.on.spend { background: #ffd36b55; box-shadow: none; } /* the half a held card would use: dimmed, no outline */
@@ -832,7 +834,7 @@ button.fkey:disabled { opacity: .25; filter: none; }
 
 /* the hand (and the turn bar and done button beside it) is drawn bigger than the field's cards */
 .handrow { --cw: var(--hcw); --ch: var(--hch); }
-.turncard { box-shadow: 0 0 0 1.5px #fff; } /* a thin white line around the bar's own border, as on the cards */
+.turncard { box-shadow: 0 0 0 1px #fff; } /* a thin white line around the bar's own border, as on the cards */
 
 /* your Next card sits between the turn bar and the hand: label above, the card as tall as a hand card together */
 .handrow .nextcard.mine { --nl: max(10px, calc(var(--ch) * .13)); --nh: calc(var(--ch) - var(--nl) - 4px); align-self: flex-end; justify-content: flex-end; gap: 4px; height: var(--ch); margin: 0; } /* label + card are as tall as a hand card */
