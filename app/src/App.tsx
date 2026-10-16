@@ -217,8 +217,8 @@ function TablePile({ top, down, side, n, name, flip, faces }: { top?: ESlot; dow
 function TurnBar({ n, spend, max }: { n: number; spend: number; max: number }) {
   const [a, b] = spendRange(n, spend, max)
   const left = n === max ? 'play 1 card, or 2 small cards (A to 5)' : n > 0 ? 'you may still play 1 small card (A to 5)' : 'your play is done'
-  return ( // a card-shaped bar of two halves: the top half is used first (a small card), the bottom one next; a big card uses both
-    <div className={`turncard${n === max ? ' full' : ''}`} role="meter" aria-valuemin={0} aria-valuemax={max} aria-valuenow={n} aria-label={`Your turn: ${left}`} title={`Your turn: ${left}`}>
+  return ( // a card-shaped bar of two halves, one piece while both halves share a state (full, or both red for a card you can't afford): the top half is used first (a small card), the bottom one next; a big card uses both
+    <div className={`turncard${n === max || (spend >= max && spend > n) ? ' full' : ''}`} role="meter" aria-valuemin={0} aria-valuemax={max} aria-valuenow={n} aria-label={`Your turn: ${left}`} title={`Your turn: ${left}`}>
       {Array.from({ length: max }, (_, i) => <span key={i} className={`tp${i < n ? ' on' : ''}${spend > 0 && i >= a && i < b ? (spend > n ? ' short' : ' spend') : ''}`} />)}
     </div>
   )

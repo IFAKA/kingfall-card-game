@@ -806,10 +806,10 @@ button.fkey:disabled { opacity: .25; filter: none; }
 /* your turn as a card-shaped bar left of the hand: two halves, lit while you may still play; the top half is spent first.
    A card you hold rings the half or halves it would use (red when you can't afford it) */
 .turncard { flex: none; align-self: flex-end; box-sizing: border-box; width: var(--cw); height: var(--ch); display: flex; flex-direction: column-reverse; gap: 3px; padding: 3px; margin-right: 6px; border-radius: 8px; background: #0b1220; border: 2px solid #3b4a78; }
-.tp { flex: 1; border-radius: 5px; background: #1b2540; transition: background .3s var(--ease-out), box-shadow .3s var(--ease-out); }
+.tp { flex: 1; border-radius: 5px; background: transparent; /* an empty half is just the dark frame around the lit one, so the lit half's rounded corners show as the frame's inverted corners */ transition: background .3s var(--ease-out), box-shadow .3s var(--ease-out); }
 .tp.on { background: linear-gradient(#fff1b8, #ffd36b 55%, #d99a1c); box-shadow: 0 0 8px rgba(255,211,107,.7); }
-.tp.on.spend { background: #ffd36b33; box-shadow: inset 0 0 0 2px #ffd36b; }
-.tp.short { background: #b3261e55; box-shadow: inset 0 0 0 2px #ff6b61; }
+.tp.on.spend { background: #ffd36b55; box-shadow: none; } /* the half a held card would use: dimmed, no outline */
+.tp.short, .tp.on.short { background: #b3261e99; box-shadow: none; } /* not enough left for it: red fill, no outline */
 
 /* the round sits in the field's top-left corner, level with the buttons on the right */
 .field > .corner.left { display: flex; align-items: center; height: 32px; }
