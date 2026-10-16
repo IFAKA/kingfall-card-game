@@ -877,3 +877,9 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .spot.slot.droppable.over > .half { background: rgba(255,207,58,.38); }
 .droptag { opacity: 0; transition: opacity .25s ease; }
 .spot.slot.suggested .droptag { opacity: 1; }
+
+/* an empty Next or hand spot keeps its place as a dashed outline, so the row never shifts when cards run out */
+.cardph { flex: none; box-sizing: border-box; border: 2px dashed rgba(255,255,255,.25); border-radius: 8px; background: rgba(0,0,0,.1); }
+.cardph.hand { width: var(--cw); height: var(--ch); }
+.nextcard.mine .cardph { width: calc(var(--nh) * .714); height: var(--nh); }
+.lanes .mid .nextcard .cardph { --nh: calc(var(--ch) - max(11px, calc(var(--ch) * .17)) - 8px); width: calc(var(--nh) * .714); height: var(--nh); }
