@@ -7,7 +7,7 @@
 Free, no sign-up, works on phones and desktops.
 
 <p align="center">
-  <img src="docs/screenshots/arena.png" alt="Suitkeep on screen: red enemy castles at the top with cracked tower cards, blue castles at the bottom with one fallen, your card attacking an enemy tower, a ×2 suit bonus pop-up in the left lane, the enemy's face-up next card in the middle and your hand with the next card and the Done button below" width="300" />
+  <img src="docs/screenshots/arena.png" alt="Suitkeep on screen: red enemy castles at the top with the left one fallen, blue castles at the bottom, your cards in both lanes, an enemy card that came in free, the enemy's face-up next card in the middle, and your hand with the Done button and elixir bar below" width="300" />
   &nbsp;
   <img src="docs/screenshots/title.png" alt="Suitkeep title screen with a gold crown logo and the Play, Play with real cards and How to play buttons" width="520" />
 </p>
