@@ -194,15 +194,21 @@ function TowerFan({ k, items, own, cracked, flip, shake }: { k: 'L' | 'R' | 'K';
 }
 
 // With real cards, elixir is drawn like the bar on the table: 10 face-down cards in a row, overlapping so each number shows, the marker flipped face-up.
-// A card you pick frames the cards it would spend.
-function CardBar({ n, spend = 0 }: { n: number; spend?: number }) {
+// A card you pick frames the cards it would spend. When the marker moves, both cards turn over top to bottom, as you flip them at the
+// table, and while the step that says so is up (show) they glow.
+function CardBar({ n, spend = 0, show = false }: { n: number; spend?: number; show?: boolean }) {
   const [a, b] = spendRange(n, spend)
+  const [moved, setMoved] = useState({ n, from: n })
+  if (moved.n !== n) setMoved({ n, from: moved.n })
+  const flipme = (i: number) => show && moved.from !== n && (i === moved.from - 1 || i === n - 1)
   return (
     <div className="cbar mine" role="meter" aria-valuemin={0} aria-valuemax={10} aria-valuenow={n} aria-label="Your elixir" title={`Your elixir bar: ${n ? `the face-up card is number ${n}` : 'no card face-up'}, so ${n} elixir`}>
       <div className="drop">{n}</div>
       <div className="cslots">
         {Array.from({ length: 10 }, (_, i) => (
-          <div key={i} className={`bc ${i === n - 1 ? 'mark' : ''} ${spend > 0 && i >= a && i < b ? (spend > n ? 'short' : 'spend') : ''}`}><span>{i + 1}</span></div>
+          <div key={i} className={`bc ${i === n - 1 ? 'mark' : ''} ${spend > 0 && i >= a && i < b ? (spend > n ? 'short' : 'spend') : ''} ${flipme(i) ? 'flipme' : ''}`}>
+            <div className="bci"><span className="bcb">{i + 1}</span><span className="bcf">{i + 1}</span></div>
+          </div>
         ))}
       </div>
     </div>
@@ -834,7 +840,7 @@ export default function App() {
         body: <p>Deal <b>10 face-down in a row</b> for your elixir bar, with a small gap after the 5th card. Put the <b>other 14 cards back in the box</b> without looking: they sit this game out. The enemy has no elixir bar: it plays one card per round.</p> },
       { title: 'Set the marker at 5', pic: <div className="mbars"><span className="mlbl">Your elixir: 5</span><div className="mrow">{backs(10, 5, 4)}</div></div>,
         body: <>
-          <p>Flip the <b>5th card face-up</b>, so you see its number. That's the <b>marker</b>: its position is your elixir, so you start at 5. Spending or gaining just moves the marker left or right.</p>
+          <p>Flip the <b>5th card face-up</b>, so you see its number. That's the <b>marker</b>: its position is your elixir, so you start at 5. To spend or gain, flip the card that many places left or right face-up, then flip the old one face-down.</p>
           <HowToPlay topics={RULES}><Button variant="secondary" className="mt-2"><BookOpen /> How to play</Button></HowToPlay>
         </> },
     ]
@@ -1232,7 +1238,7 @@ export default function App() {
             {(['L', 'K', 'R'] as const).map(k => <TowerFan key={k} k={k} items={mineSlots(k)} own cracked={g.cracked ?? []} shake={fighting.includes(`tower-P-${k}`)} />)}
             {discard('P')}
           </div>
-          <CardBar n={g.P.elixir} spend={spend} />
+          <CardBar n={g.P.elixir} spend={spend} show={doNow || stage === 'round_start'} />
         </div>
       </>
     )

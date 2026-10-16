@@ -102,15 +102,16 @@ export function excludedIds(g: GuideState): Set<string> {
 
 // ---------- elixir marker ----------
 // Each physical bar is 10 face-down cards; the one flipped face-up marks the elixir (its position from the left, 0 = none).
-const markerAt = (n: number) => n ? `card ${n} face-up` : 'no card face-up (turn it back over)'
+// Moving it is two flips: the card that many places left or right face-up, then the old marker face-down.
+const flips = (before: number, after: number) => [after && `card ${after} face-up`, before && `card ${before} face-down`].filter(Boolean).join(', then ')
 
 function gainLine(before: number, after: number, cap: number) {
-  if (after === before) return `Your bar is full, the marker stays on card ${after}.`
-  return `Move your marker ${after - before} to the right, to ${markerAt(after)}${after === cap ? ' (the bar is full)' : ''}. You now have ${after} elixir.`
+  if (after === before) return `Your bar is full: card ${after} stays face-up.`
+  return `Flip ${flips(before, after)} (${after - before} to the right${after === cap ? ', the bar is full' : ''}). You now have ${after} elixir.`
 }
 
 function spendLine(k: number, after: number) {
-  return `Move your marker ${k} to the left, to ${markerAt(after)} (${after} elixir left).`
+  return `Flip ${flips(after + k, after)} (${k} to the left${after ? '' : ', no card face-up'}). You have ${after} elixir left.`
 }
 
 // ---------- round flow ----------
@@ -666,13 +667,13 @@ function resolveHit(g: GuideState, u: Unit, k: StackKey): GuideState {
 }
 
 // ---------- last stand ----------
-// When a princess stack falls, its owner immediately places one card in that lane for free (no elixir, the marker doesn't move).
+// When a princess stack falls, its owner immediately places one card in that lane for free (no elixir, the bar stays as it is).
 function lastStandStep(g: GuideState): GuideState {
   const { side, lane } = g.lastStand!
   if (side === 'P') {
     if (!g.P.hand.length) { g.lastStand = null; g.lines = ['Your hand is empty, so there is no last stand.']; g.why = []; return g }
     g.stage = 'my_last_stand'
-    g.lines = [`LAST STAND: your ${stackName(lane === 0 ? 'L' : 'R')} fell. Pick ANY card from your hand: it goes FREE into the ${laneName(lane)} lane, slot nearest YOU, on your (left) half. Don't move your marker.`]
+    g.lines = [`LAST STAND: your ${stackName(lane === 0 ? 'L' : 'R')} fell. Pick ANY card from your hand: it goes FREE into the ${laneName(lane)} lane, slot nearest YOU, on your (left) half. Leave your elixir bar as it is.`]
     g.why = ['When a princess tower falls, its defenders fight back: the owner places one card in that lane for free. Losing a tower hurts, but it is not the end of the game.']
     return g
   }
@@ -694,7 +695,7 @@ function enemyLastStand(g: GuideState): GuideState {
   g.units.push({ uid: g.nextUid++, card: c, side: 'E', lane, pos: g.rules.laneLen - 1, tid: slot.tid, free: true })
   g.lastStand = null
   g.stage = 'tower_result'
-  g.lines = [`ENEMY LAST STAND: place ${label(c)} FREE in the ${laneName(lane)} lane, slot nearest the ENEMY, on its (right) half. Don't move its marker.`]
+  g.lines = [`ENEMY LAST STAND: place ${label(c)} FREE in the ${laneName(lane)} lane, slot nearest the ENEMY, on its (right) half.`]
   g.why = ['When a princess tower falls, its owner places one card in that lane for free. The enemy always uses the top card of its pile, so a face-up top card tells you what is coming.']
   g.log.push(`Enemy last stand: ${label(c)} enters the ${laneName(lane).toLowerCase()} lane for free.`)
   emit(g, { type: 'play', side: 'E', tid: slot.tid, card: c, lane, cost: 0, free: true })
@@ -710,7 +711,7 @@ export function lastStandPlay(g0: GuideState, i: number): GuideState {
   g.stats.placed++
   g.lastStand = null
   g.stage = 'tower_result'
-  g.lines = [`Place ${label(c)} FREE in the ${laneName(lane)} lane, slot nearest YOU, on your (left) half. Don't move your marker.`, ...refill(g)]
+  g.lines = [`Place ${label(c)} FREE in the ${laneName(lane)} lane, slot nearest YOU, on your (left) half. Leave your elixir bar as it is.`, ...refill(g)]
   g.why = []
   g.log.push(`Your last stand: ${label(c)} enters the ${laneName(lane).toLowerCase()} lane for free.`)
   emit(g, { type: 'play', side: 'P', tid: c.id, card: c, lane, cost: 0, free: true })

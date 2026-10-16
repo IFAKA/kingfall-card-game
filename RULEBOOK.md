@@ -42,14 +42,14 @@ The enemy has **no elixir**: it plays exactly one card per round, whatever it co
 3. Shuffle your 8 deck cards. Take 4 as your **hand**; the other 4 are your **queue**, a face-up stack: its top card is the next one you draw.
 4. **Enemy 14:** without looking, shuffle them. 8 form its **pile** (face-down); 6 form its towers (**2 / 2 / 2**), face-down. Turn the **top card of its pile face-up**: the enemy's top card is always face-up, so you always know its next play.
 5. **Elixir:** lay your bar as a row of 10 face-down cards with a small gap after the 5th, so positions read at a glance. Flip the **5th card face-up**. That face-up card is the **marker**: elixir = its position, counted from the left (1–10). No card face-up = 0 elixir.
-   - To gain or spend elixir, flip the marker back face-down and flip the card that many places right or left face-up instead. Never past 10.
+   - To gain or spend elixir, flip the card that many places right or left face-up, then flip the old marker face-down. Never past 10.
    - Tip: do the sums in your head and move the marker **once per round**: your new elixir = min(10, old + 3) − what you spent.
 6. **Table:** your towers in a row in front of you (left, king, right), your queue on their left and your discard on their right; the enemy's the same way across the table (its pile on your left, its discard on your right). Two lanes (left, right) between the tower rows. Each lane has **2 slots**: slot 1 next to you, slot 2 next to the enemy. Several cards may share a slot. Cards in a lane are **units**.
    - Each lane has **two halves**: the **left half is yours**, the **right half is the enemy's**. A card always stays on its owner's half, also when it moves, so where it lies tells you whose it is.
 
 ## A round
-1. **Elixir.** Your marker moves **3** to the right. Max 10.
-2. **You play.** As many cards as you like and can afford: move your marker left by the cost, put the card in **slot 1** of a lane, on your (left) half, refill your hand to 4 from the top of your queue. You may play nothing.
+1. **Elixir.** Your marker moves **3** to the right: flip the card 3 places right face-up, then the old one face-down. Max 10.
+2. **You play.** As many cards as you like and can afford: move your marker left by the cost (flip the card that many places left face-up, then the old one face-down), put the card in **slot 1** of a lane, on your (left) half, refill your hand to 4 from the top of your queue. You may play nothing.
 3. **Enemy plays (automaton).** It plays **exactly one card**: its face-up top card, whatever it costs. The card goes to **slot 2 of the lane where you have more units**, on its (right) half (tie: the lane with your highest-ranked unit, an ace counting as the lowest rank; still tied, left), so the enemy always defends against your biggest push. Then turn its next top card face-up: that is its play next round.
 4. **Fight.** In each lane with units from both sides, your front-most unit fights the enemy's front-most where they stand (front-most = furthest advanced; in a shared slot, the one that got there first). Nothing has moved yet. They fight as in **Fights**.
    - The winner stays where it is. The next unit behind the loser **steps up one slot** (that is its move this round; if an enemy card is in its own slot, it stays) and fights the winner, and so on until one side has no units left in that lane.
