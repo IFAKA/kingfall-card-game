@@ -823,7 +823,7 @@ button.fkey:disabled { opacity: .25; filter: none; }
 
 /* the round sits in the field's top-left corner, level with the buttons on the right */
 .field > .corner.left { display: flex; align-items: center; height: 32px; }
-.field > .corner.left .round { box-sizing: border-box; height: 32px; padding: 0 12px; } /* as tall as the buttons across from it */
+.field > .corner.left .round { box-sizing: border-box; height: 32px; padding: 0 14px; border-radius: 999px; } /* as tall as the buttons across from it */
 .field > .corner.right { display: flex; align-items: center; gap: 4px; height: 32px; }
 .field > .corner.right button { width: 32px; height: 32px; } /* four buttons (with undo/redo) still clear the king tower on a phone */
 .field > .corner .undoredo { display: contents; }
