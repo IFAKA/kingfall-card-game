@@ -466,7 +466,7 @@ h3 { margin: 18px 0 8px; }
 .elixrow .big { padding: 7px 16px; font-size: 16px; }
 /* the hand and your elixir bar share one width: the bar runs from the first hand card to Done */
 .handwrap { align-self: center; display: flex; flex-direction: column; gap: 5px; max-width: 100%; }
-.handrow { display: flex; align-items: flex-end; justify-content: center; gap: 14px; padding-top: 8px; padding-bottom: 22px; min-height: var(--ch); }
+.handrow { display: flex; align-items: flex-end; justify-content: center; gap: 14px; padding-top: 8px; padding-bottom: 8px; min-height: var(--ch); }
 .handrow .hdrag { flex: none; }
 .arena.turn-enemy .handrow { opacity: .6; }
 .nextcard { display: flex; flex-direction: column; align-items: center; gap: 2px; }
@@ -827,3 +827,7 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .castle .guard .tslot { margin: 0; }
 .castle .cart.hurt { filter: brightness(.86) saturate(.85) drop-shadow(0 3px 0 rgba(0,0,0,.35)); } /* a cracked tower: cracks across the wall and a duller colour */
 .castle .cart.hurt .crack { stroke: #1a1a1a; stroke-width: 2; stroke-linecap: round; }
+
+/* the hand (and the turn bar and done button beside it) is drawn bigger than the field's cards */
+.handrow { --cw: var(--hcw); --ch: var(--hch); }
+.turncard { box-shadow: 0 0 0 1.5px #fff; } /* a thin white line around the bar's own border, as on the cards */

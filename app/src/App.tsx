@@ -1165,6 +1165,8 @@ export default function App() {
     </div>
   )
 
+  const HAND_BIG = 1.3 // your hand's cards are this much bigger than the cards on the field, so the two are easy to tell apart
+
   // the arena; card size follows the window so the whole field, the bar and the hand always fit
   const arena = () => {
     const aw = Math.min(view.sw, 640)
@@ -1175,8 +1177,8 @@ export default function App() {
       ? wide
         ? Math.max(44, Math.min((view.sh - 168) / 6.9, (Math.min(view.sw - 460, 760) - 60) / 8.9 / 0.714, (420 - 32 - 10 * HAND_SIZE - 8) / (HAND_SIZE + 1) / 0.714, 128)) // the hand (its cards + Done, 10px apart) fits the 420px column inside its 16px padding
         : Math.max(44, Math.min((view.sh - 308) / 7.84, (aw - 60) / 8.9 / 0.714, 128))
-      : Math.max(48, Math.min((view.sh - 226) / 7.9, (aw - 72) / 4.75 / 0.714, 128))
-    const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px` } as CSSProperties
+      : Math.max(48, Math.min((view.sh - 195) / (6.9 + HAND_BIG), (aw - 80) / (3 + 3 * HAND_BIG) / 0.714, 128)) // the field, plus a hand HAND_BIG times its size
+    const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px`, '--hcw': `${ch * 0.714 * HAND_BIG}px`, '--hch': `${ch * HAND_BIG}px` } as CSSProperties
     // the tips teach how to play a card, what ✓ does and what a turn holds, and the river shows the round: the line only says whose turn it is
     const prompt = stage === 'my_play' ? 'Your turn: 1 card, or 2 small ones.' : standing ? TITLES[stage] : stage === 'round_start' ? 'New round.' : 'Enemy turn…'
     // the enemy's last-stand card came in during its turn: your turn still says where it came from, until it has fought
