@@ -1302,8 +1302,8 @@ export default function App() {
           <div className="handwrap">
             <div className={`handrow${doNow && !atTable ? ' wait' : ''}`}>
               <div className="nexts" title="Next: the cards that come up. Yours joins your hand when you play one; the enemy plays two cards a round, this one first.">
-                {g.P.queue[0] && <div className="nextcard mine"><span>Next</span><ArenaPile slots={g.P.queue.map(c => ({ tid: c.id, card: c }))} side="P" /></div>}
                 {eNext && <div className="nextcard enemy"><span>Enemy</span><ArenaPile slots={g.E.queue} side="E" /></div>}
+                {g.P.queue[0] && <div className="nextcard mine"><span>Next</span><ArenaPile slots={g.P.queue.map(c => ({ tid: c.id, card: c }))} side="P" /></div>}
               </div>
               {handCards}
               <button className={`big done endturn ${advice?.kind === 'wait' ? 'suggested' : ''}`} title={advice?.kind === 'wait' ? advice.reason : 'End turn'} disabled={stage !== 'my_play'} aria-label="End turn" onClick={() => commit(endMyTurn(g))}><svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg></button>
