@@ -2,7 +2,7 @@
 // Off until UMAMI_ID is set, and only on the real site (and an itch.io embed): local tests never count.
 // The tracker loads and reports through suitkeep.vercel.app (rewrites in vercel.json), so fewer ad blockers drop it.
 // Open the site once with ?nostats and that browser stops counting (?stats turns it back on): for your own plays.
-const UMAMI_ID = ''
+const UMAMI_ID = '6ffc9650-8a7b-425d-a355-29114394dc9f'
 const HOST = 'https://suitkeep.vercel.app/stats'
 const counts = (host: string) => host === 'suitkeep.vercel.app' || host.endsWith('.itch.zone')
 

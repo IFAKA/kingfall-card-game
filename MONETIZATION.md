@@ -20,7 +20,7 @@ _Written 2026-10-16 for this game as it is today. Update it when a step is done 
 - **You** = things only you can do (accounts, payments, posting, photos). **Claude** = things Claude does.
 - Tick the box when a step is done.
 
-**➡️ Next step: 5.** Claude's part is built; only your part is left (5.1–5.3, about 5 minutes). Steps 1, 2, 4 and 6 are done; step 3 is optional for now.
+**➡️ Next step: 5.8** (play one game, check Umami Events), then 5.9. Steps 1, 2, 4 and 6 are done; step 3 is optional for now.
 
 ### While you wait (do these now, they make later steps work)
 
@@ -61,13 +61,13 @@ Without stats, posting the game teaches you nothing.
 
 - [ ] **5. Add anonymous stats.** _Claude builds it, you make the account._
   Needs: the renamed game from step 4. Uses **Umami**: free, no cookies (so no cookie pop-up), no names, no ads. Vercel's free stats only count page visits, not games, so they aren't used.
-  - [ ] **5.1 You:** sign up at **cloud.umami.is** with your email and pick the free plan. If it asks for a card, stop and tell Claude.
-  - [ ] **5.2 You:** click **Add website**. Name: `Suitkeep`. Domain: `suitkeep.vercel.app`.
-  - [ ] **5.3 You:** open that website's settings, copy the **Website ID** (looks like `a1b2c3d4-…`) and paste it to Claude.
+  - [x] **5.1 You:** sign up at **cloud.umami.is** with your email and pick the free plan. If it asks for a card, stop and tell Claude.
+  - [x] **5.2 You:** click **Add website**. Name: `Suitkeep`. Domain: `suitkeep.vercel.app`.
+  - [x] **5.3 You:** open that website's settings, copy the **Website ID** (looks like `a1b2c3d4-…`) and paste it to Claude.
   - [x] **5.4 Claude:** the stats code (`app/src/stats.ts`). It only counts on suitkeep.vercel.app and the itch.io version, never on test copies. ✅ 2026-10-16
   - [x] **5.5 Claude:** the stats load through suitkeep.vercel.app (`app/vercel.json`), so fewer ad blockers hide players. ✅ 2026-10-16
   - [x] **5.6 Claude:** what it counts: page visits, `cards-open` (real-cards mode opened), `game-start` (mode, which game number), `first-game`, `second-game`, `round` (every round a game reaches), `game-end` (win/loss/draw and rounds), `game-leave` (left from the menu, which round), `setup-leave` (left during setup, which step). ✅ 2026-10-16, tested offline.
-  - [ ] **5.7 Claude:** put your ID in `app/src/stats.ts`, check, push (Vercel updates the site by itself), and rebuild the itch.io file.
+  - [x] **5.7 Claude:** ID set in `app/src/stats.ts`, checked, pushed, itch.io file rebuilt. ✅ 2026-10-16
   - [ ] **5.8 You:** play one whole game on suitkeep.vercel.app, then open Umami → your website → **Events**. Your game should be there.
   - [ ] **5.9 You:** so your own games stop counting, open **suitkeep.vercel.app/?nostats** once on each phone and computer you play on (open **suitkeep.vercel.app/?stats** to count again).
   Done when: 5.8 shows your game. How to read it at Checkpoint A: **finish rate** = people with `game-end` ÷ people with `game-start`. **Come-back rate** = `second-game` ÷ `first-game`. **Where people stop** = the `n` values of the `round` event.
