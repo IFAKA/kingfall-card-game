@@ -551,7 +551,7 @@ const TIPS: Record<TipId, string> = {
   ace: 'Aces beat Kings! A small ace kills a big King.',
   armor: 'Tower cards are armored: the first hit cracks them, the next breaks them. A card that wins its hit stays for that next hit. The king is safe until its side tower falls.',
   crack: 'Lost at a tower? The card goes back to its pile, but the tower card still cracks: the next hit breaks it.',
-  next: 'The Next card, between your lanes, joins your hand when you play. Cards that die come back later.',
+  next: 'The Next card, left of your hand, joins your hand when you play (the enemy\'s is beside it). Cards that die come back later.',
   stand: 'LAST STAND! When a side tower falls, its owner puts one card into that lane for free.',
 }
 // with real cards the towers are the fanned cards on the table, not castles
@@ -1281,13 +1281,7 @@ export default function App() {
         <div className="lanes">
           <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} />
           <div className="mid rows">
-            <div className="sidechip enemy" title="The next card of the enemy pile (face-down until you have seen it). The enemy plays two cards per round: this one first.">
-              {eNext && <div className="nextcard"><ArenaPile slots={g.E.queue} side="E" /><span>Next</span></div>}
-            </div>
             {round}
-            <div className="sidechip mine" title="Your next card: it comes into your hand when you play one">
-              {g.P.queue[0] && <div className="nextcard"><span>Next</span><ArenaPile slots={g.P.queue.map(c => ({ tid: c.id, card: c }))} side="P" /></div>}
-            </div>
           </div>
           <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} />
         </div>
@@ -1307,6 +1301,10 @@ export default function App() {
             </div>}
           <div className="handwrap">
             <div className={`handrow${doNow && !atTable ? ' wait' : ''}`}>
+              <div className="nexts" title="Next: the cards that come up. Yours joins your hand when you play one; the enemy plays two cards a round, this one first.">
+                {g.P.queue[0] && <div className="nextcard mine"><span>Next</span><ArenaPile slots={g.P.queue.map(c => ({ tid: c.id, card: c }))} side="P" /></div>}
+                {eNext && <div className="nextcard enemy"><span>Enemy</span><ArenaPile slots={g.E.queue} side="E" /></div>}
+              </div>
               {handCards}
               <button className={`big done endturn ${advice?.kind === 'wait' ? 'suggested' : ''}`} title={advice?.kind === 'wait' ? advice.reason : 'End turn'} disabled={stage !== 'my_play'} aria-label="End turn" onClick={() => commit(endMyTurn(g))}><svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg></button>
             </div>
