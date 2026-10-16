@@ -851,8 +851,8 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .turncard { box-shadow: 0 0 0 1px #fff; } /* a thin white line around the bar's own border, as on the cards */
 
 /* your Next card sits between the turn bar and the hand: the small size, on the row's bottom edge, its label above it */
-.handrow .nextcard.mine { --nl: calc(var(--scw) / 2.3); position: relative; align-self: flex-end; height: var(--sch); margin: 0; }
-.handrow .nextcard.mine span { position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); font-family: var(--display); font-size: var(--nl); line-height: 1; color: rgba(255,255,255,.8); text-transform: uppercase; white-space: nowrap; }
+.handrow .nextcard.mine { --nl: calc(var(--scw) / 2.3); position: relative; align-self: flex-end; height: var(--sch); margin: 0 0 calc(var(--nl) + 8px); }
+.handrow .nextcard.mine span { position: absolute; left: 50%; top: calc(100% + 8px); transform: translateX(-50%); font-family: var(--display); font-size: var(--nl); line-height: 1; color: rgba(255,255,255,.8); text-transform: uppercase; white-space: nowrap; }
 .handrow .nextcard.mine .tcard, .handrow .nextcard.mine .cardph { width: var(--scw); height: var(--sch); font-size: calc(var(--scw) * .27); }
 .handrow { padding-top: calc(max(10px, var(--ch) * .13) + 6px); }
 
