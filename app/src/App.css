@@ -446,7 +446,7 @@ h3 { margin: 18px 0 8px; }
 .spot.slot.droppable > .half { position: relative; border-radius: 10px; background: rgba(255,207,58,.16); outline: 2px dashed var(--gold); outline-offset: -2px; }
 .spot.slot.droppable > .half::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 14px rgba(255,207,58,.6); opacity: 0; pointer-events: none; animation: droppulse 1.1s ease-in-out infinite; }
 .spot.slot.over > .half { background: rgba(255,207,58,.38); }
-.droptag { position: absolute; bottom: 3px; left: 25%; translate: -50% 0; white-space: nowrap; font-family: var(--display); font-size: 11px; color: var(--gold); text-shadow: 0 1px 0 #000; pointer-events: none; }
+.droptag { position: absolute; bottom: 0; left: 50%; translate: -50% 50%; z-index: 4; /* centred on the slot's bottom border */ white-space: nowrap; font-family: var(--display); font-size: 11px; color: var(--gold); text-shadow: 0 1px 0 #000; pointer-events: none; }
 @keyframes droppulse { 50% { opacity: 1; } }
 /* suggested move: the card and its lane glow green, or End turn does when waiting is best */
 /* the lane keeps the gold drop-target look (green vanishes on the field); a solid border and a green ★ tag set it apart from the other lane while dragging */
