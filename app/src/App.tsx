@@ -807,8 +807,8 @@ export default function App() {
   }
   const settle = (g: GuideState) => (mode === 'play' ? autoReveal(g, secret) : g)
   const commit = (g: GuideState) => { if (fx.striking()) return fx.land(); setHistory(h => [...h, game!]); setFuture([]); advance(settle(g)); setSel(null); setBad(null); setPick(null) }
-  const undo = () => { if (fx.striking()) return fx.land(); if (!history.length || !game) return; browsing.current = true; setFuture(f => [...f, game]); setGame(history[history.length - 1]); setHistory(h => h.slice(0, -1)); setSel(null); setBad(null) }
-  const redo = () => { if (fx.striking()) return fx.land(); if (!future.length || !game) return; browsing.current = true; setHistory(h => [...h, game]); setGame(future[future.length - 1]); setFuture(f => f.slice(0, -1)); setSel(null); setBad(null) }
+  const undo = () => { if (fx.striking()) return fx.land(); if (!history.length || !game) return; browsing.current = true; fresh.current = null; if (history[history.length - 1].stage === 'over') { setOverSeen(true); setResultViewed(true) } setFuture(f => [...f, game]); setGame(history[history.length - 1]); setHistory(h => h.slice(0, -1)); setSel(null); setBad(null) }
+  const redo = () => { if (fx.striking()) return fx.land(); if (!future.length || !game) return; browsing.current = true; fresh.current = null; if (future[future.length - 1].stage === 'over') { setOverSeen(true); setResultViewed(true) } setHistory(h => [...h, game]); setGame(future[future.length - 1]); setFuture(f => f.slice(0, -1)); setSel(null); setBad(null) }
 
   const setSplit = ({ deckIds, slotIds }: { deckIds: string[]; slotIds: string[] }) => { setDeckIds(deckIds); setSlotIds(slotIds) }
   // on-screen play: deal both hands at random; the enemy's cards stay hidden inside the app (tid ep0-7 = pile, et0-2 = towers)
