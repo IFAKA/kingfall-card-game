@@ -281,6 +281,15 @@ function ArenaPile({ slots, side }: { slots: { tid: string; card: Card | null }[
   )
 }
 
+// One side's Next card with its pile under it and the label below: the same component for the enemy (between the lanes) and for you (beside your hand), only the cards differ.
+function NextPile({ slots, side }: { slots: { tid: string; card: Card | null }[]; side: 'P' | 'E' }) {
+  return (
+    <div className={`nextcard${side === 'P' ? ' mine' : ''}`} title={side === 'P' ? 'Your next card: it comes into your hand when you play one' : undefined}>
+      {slots.length ? <ArenaPile slots={slots} side={side} /> : <div className="cardph" />}<span>Next</span>
+    </div>
+  )
+}
+
 // ---------- setup at the real table: one step per screen, each with a picture ----------
 // Mini cards for the pictures: face-down by default, or a known card face-up.
 function Mc({ card, hot }: { card?: Card; hot?: boolean }) {
@@ -1290,7 +1299,7 @@ export default function App() {
           <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} />
           <div className="mid rows">
             <div className="sidechip enemy" title="The next card of the enemy pile (face-down until you have seen it). The enemy plays two cards per round: this one first.">
-              <div className="nextcard">{eNext ? <ArenaPile slots={g.E.queue} side="E" /> : <div className="cardph" />}<span>Next</span></div>
+              <NextPile slots={eNext ? g.E.queue : []} side="E" />
             </div>
           </div>
           <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} />
@@ -1313,7 +1322,7 @@ export default function App() {
             <div className={`handrow${doNow && !atTable ? ' wait' : ''}`}>
               <TurnBar n={g.P.elixir} spend={spend} max={g.rules.cap} />
               <div className="handgroup">
-                <div className="nextcard mine" title="Your next card: it comes into your hand when you play one"><span>Next</span>{g.P.queue[0] ? <ArenaPile slots={g.P.queue.map(c => ({ tid: c.id, card: c }))} side="P" /> : <div className="cardph" />}</div>
+                <NextPile slots={g.P.queue.map(c => ({ tid: c.id, card: c }))} side="P" />
                 {handCards}
                 {Array.from({ length: Math.max(0, 3 - g.P.hand.length) }, (_, i) => <div key={`ph${i}`} className="cardph hand" />)}
               </div>
