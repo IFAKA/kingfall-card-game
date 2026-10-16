@@ -152,13 +152,13 @@ const CHIP: Variants = {
 // why it goes that way (an ace, the suit that counts double, or just the ranks), then who wins.
 function fightLine(m: Card, t: Card, rules: Rules) {
   const res = fightResult(m, t, rules)
-  const who = res > 0 ? 'you win' : res < 0 ? `${label(t)} wins${compare(m, t, rules) === 0 ? ' (equal: the enemy wins ties)' : ''}` : 'a tie, both are removed'
+  const who = res > 0 ? 'you win' : res < 0 ? `${label(t)} wins${compare(m, t, rules) === 0 ? ' (tie: enemy wins)' : ''}` : 'a tie, both are removed'
   const mv = effective(m, t, rules.wheel), tv = effective(t, m, rules.wheel)
   const why = aceWins(m, t, rules) || aceWins(t, m, rules) ? 'Aces beat Kings'
-    : mv > m.rank ? `${SUITS[m.suit]} beats ${SUITS[t.suit]}, your ${label(m)} counts ${mv} vs ${tv}`
-    : tv > t.rank ? `${SUITS[t.suit]} beats ${SUITS[m.suit]}, ${label(t)} counts ${tv} vs your ${mv}`
+    : mv > m.rank ? `${SUITS[m.suit]} beats ${SUITS[t.suit]}: ${label(m)} = ${mv} vs ${tv}`
+    : tv > t.rank ? `${SUITS[t.suit]} beats ${SUITS[m.suit]}: ${label(t)} = ${tv} vs ${mv}`
     : `${label(m)} vs ${label(t)}${[m, t].some(c => c.rank === 1 || c.rank > 10) ? ` is ${mv} vs ${tv}` : ''}` // an ace or a picture's number isn't on the card
-  return `${why}: ${who}.`
+  return `${why}, ${who}.`
 }
 
 function Castle({ k, items, own, cracked, fx, shake }: { k: 'L' | 'R' | 'K'; items: ESlot[]; own: boolean; cracked: string[]; fx?: TowerFx; shake?: boolean }) {
