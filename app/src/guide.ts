@@ -101,8 +101,8 @@ export function excludedIds(g: GuideState): Set<string> {
 }
 
 // ---------- elixir marker ----------
-// Each physical bar is 10 face-down cards; the one turned sideways marks the elixir (its position from the left, 0 = none).
-const markerAt = (n: number) => n ? `card ${n} sideways` : 'no card sideways (straighten it)'
+// Each physical bar is 10 face-down cards; the one flipped face-up marks the elixir (its position from the left, 0 = none).
+const markerAt = (n: number) => n ? `card ${n} face-up` : 'no card face-up (turn it back over)'
 
 function gainLine(before: number, after: number, cap: number) {
   if (after === before) return `Your bar is full, the marker stays on card ${after}.`
@@ -125,7 +125,7 @@ function newRound(g: GuideState): GuideState {
   g.stage = 'round_start'
   g.lastAction = []
   g.lines = [gainLine(p0, g.P.elixir, g.rules.cap)]
-  g.why = ['Elixir is the position of the sideways card in a bar, counted from the left (no card sideways = 0). It refills a little every round, never past 10, and is what limits how much you can play.']
+  g.why = ['Elixir is the position of the face-up card in a bar, counted from the left (no card face-up = 0). It refills a little every round, never past 10, and is what limits how much you can play.']
   g.log.push(`— Round ${g.round} —`)
   emit(g, { type: 'round', round: g.round, gain: g.P.elixir - p0 })
   return g
@@ -203,7 +203,7 @@ function place(g: GuideState, i: number, lane: 0 | 1) {
   ;(g.turn ??= []).push({ id: c.id, lane, at: i, drew: drawn.length })
   g.lastAction = [
     spendLine(k, g.P.elixir),
-    `Place ${label(c)} in the ${laneName(lane)} lane, slot nearest YOU.`,
+    `Place ${label(c)} in the ${laneName(lane)} lane, slot nearest YOU, on your half (the left one).`,
     ...drawn,
   ]
   g.log.push(playLog(c, lane))
@@ -355,7 +355,7 @@ function enemyDecide(g: GuideState): GuideState {
   g.stage = 'enemy_play'
   g.lines = [
     `ENEMY PLAYS ${label(c)}.`,
-    `Place ${label(c)} in the ${laneName(lane)} lane, slot nearest the ENEMY. That is its one card this round.`,
+    `Place ${label(c)} in the ${laneName(lane)} lane, slot nearest the ENEMY, on its half (the right one). That is its one card this round.`,
   ]
   const rk = (r: number) => ['', 'ace', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'jack', 'queen', 'king'][r]
   const tieNote = mine[0] !== mine[1] ? '' : best[0] !== best[1]
@@ -426,7 +426,7 @@ function stepForward(g: GuideState, moved: Unit[]) {
   g.units = [...g.units.filter(u => !moved.includes(u)), ...moved]
 }
 
-const slotName = (g: GuideState, u: Unit) => atTower(g, u) ? `the ${u.side === 'P' ? 'enemy' : 'your'} tower` : u.pos === 0 ? 'the slot nearest YOU' : 'the slot nearest the ENEMY'
+const slotName = (g: GuideState, u: Unit) => atTower(g, u) ? `the ${u.side === 'P' ? 'enemy' : 'your'} tower` : `${u.pos === 0 ? 'the slot nearest YOU' : 'the slot nearest the ENEMY'}, still on ${u.side === 'P' ? 'your (left)' : 'its (right)'} half`
 const whose = (u: Unit) => (u.side === 'P' ? 'your' : 'the enemy')
 
 /** What meets on the very next step, so the screen can show it squaring up first: the two cards that fight next (one fight per step,
@@ -539,7 +539,7 @@ function resolveNext(g: GuideState): GuideState {
     if (go.length) {
       g.stage = 'move'
       g.lines = [
-        `MOVE ${go.map(u => `${whose(u)} ${label(u.card)}`).join(', ')} one slot toward the other side: your cards go away from you, enemy cards come toward you.`,
+        `MOVE ${go.map(u => `${whose(u)} ${label(u.card)}`).join(', ')} one slot toward the other side, each on its own half: your cards go away from you, enemy cards come toward you.`,
         'A card that moves past the last slot is now "at the tower" (the board shows it in the slot next to that tower). Cards already at a tower stay there.',
       ]
       g.why = ['When the fights are over, every card that hasn\'t moved yet this round steps one slot. A card at a tower stays there until an enemy card beats it.']
@@ -672,7 +672,7 @@ function lastStandStep(g: GuideState): GuideState {
   if (side === 'P') {
     if (!g.P.hand.length) { g.lastStand = null; g.lines = ['Your hand is empty, so there is no last stand.']; g.why = []; return g }
     g.stage = 'my_last_stand'
-    g.lines = [`LAST STAND: your ${stackName(lane === 0 ? 'L' : 'R')} fell. Pick ANY card from your hand: it goes FREE into the ${laneName(lane)} lane, slot nearest YOU. Don't move your marker.`]
+    g.lines = [`LAST STAND: your ${stackName(lane === 0 ? 'L' : 'R')} fell. Pick ANY card from your hand: it goes FREE into the ${laneName(lane)} lane, slot nearest YOU, on your (left) half. Don't move your marker.`]
     g.why = ['When a princess tower falls, its defenders fight back: the owner places one card in that lane for free. Losing a tower hurts, but it is not the end of the game.']
     return g
   }
@@ -694,7 +694,7 @@ function enemyLastStand(g: GuideState): GuideState {
   g.units.push({ uid: g.nextUid++, card: c, side: 'E', lane, pos: g.rules.laneLen - 1, tid: slot.tid, free: true })
   g.lastStand = null
   g.stage = 'tower_result'
-  g.lines = [`ENEMY LAST STAND: place ${label(c)} FREE in the ${laneName(lane)} lane, slot nearest the ENEMY. Don't move its marker.`]
+  g.lines = [`ENEMY LAST STAND: place ${label(c)} FREE in the ${laneName(lane)} lane, slot nearest the ENEMY, on its (right) half. Don't move its marker.`]
   g.why = ['When a princess tower falls, its owner places one card in that lane for free. The enemy always uses the top card of its pile, so a face-up top card tells you what is coming.']
   g.log.push(`Enemy last stand: ${label(c)} enters the ${laneName(lane).toLowerCase()} lane for free.`)
   emit(g, { type: 'play', side: 'E', tid: slot.tid, card: c, lane, cost: 0, free: true })
@@ -710,7 +710,7 @@ export function lastStandPlay(g0: GuideState, i: number): GuideState {
   g.stats.placed++
   g.lastStand = null
   g.stage = 'tower_result'
-  g.lines = [`Place ${label(c)} FREE in the ${laneName(lane)} lane, slot nearest YOU. Don't move your marker.`, ...refill(g)]
+  g.lines = [`Place ${label(c)} FREE in the ${laneName(lane)} lane, slot nearest YOU, on your (left) half. Don't move your marker.`, ...refill(g)]
   g.why = []
   g.log.push(`Your last stand: ${label(c)} enters the ${laneName(lane).toLowerCase()} lane for free.`)
   emit(g, { type: 'play', side: 'P', tid: c.id, card: c, lane, cost: 0, free: true })

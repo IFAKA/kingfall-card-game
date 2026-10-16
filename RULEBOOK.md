@@ -41,18 +41,19 @@ The enemy has **no elixir**: it plays exactly one card per round, whatever it co
    - Tip: any kind of deck can win. In testing, all-cheap, mixed and all-heavy decks win about as often; how you play decides the game.
 3. Shuffle your 8 deck cards. Take 4 as your **hand**; the other 4 are your **queue**, a face-up stack: its top card is the next one you draw.
 4. **Enemy 14:** without looking, shuffle them. 8 form its **pile** (face-down); 6 form its towers (**2 / 2 / 2**), face-down. Turn the **top card of its pile face-up**: the enemy's top card is always face-up, so you always know its next play.
-5. **Elixir:** lay your bar as a row of 10 face-down cards with a small gap after the 5th, so positions read at a glance. Turn the **5th card sideways** (still face-down). That sideways card is the **marker**: elixir = its position, counted from the left (1–10). No card sideways = 0 elixir.
-   - To gain or spend elixir, straighten the marker and turn the card that many places right or left sideways instead. Never past 10.
+5. **Elixir:** lay your bar as a row of 10 face-down cards with a small gap after the 5th, so positions read at a glance. Flip the **5th card face-up**. That face-up card is the **marker**: elixir = its position, counted from the left (1–10). No card face-up = 0 elixir.
+   - To gain or spend elixir, flip the marker back face-down and flip the card that many places right or left face-up instead. Never past 10.
    - Tip: do the sums in your head and move the marker **once per round**: your new elixir = min(10, old + 3) − what you spent.
-6. **Table:** two lanes (left, right) between the tower rows. Each lane has **2 slots**: slot 1 next to you, slot 2 next to the enemy. Several cards may share a slot. Cards in a lane are **units**.
+6. **Table:** your towers in a row in front of you (left, king, right), your queue on their left and your discard on their right; the enemy's the same way across the table (its pile on your left, its discard on your right). Two lanes (left, right) between the tower rows. Each lane has **2 slots**: slot 1 next to you, slot 2 next to the enemy. Several cards may share a slot. Cards in a lane are **units**.
+   - Each lane has **two halves**: the **left half is yours**, the **right half is the enemy's**. A card always stays on its owner's half, also when it moves, so where it lies tells you whose it is.
 
 ## A round
 1. **Elixir.** Your marker moves **3** to the right. Max 10.
-2. **You play.** As many cards as you like and can afford: move your marker left by the cost, put the card in **slot 1** of a lane, refill your hand to 4 from the top of your queue. You may play nothing.
-3. **Enemy plays (automaton).** It plays **exactly one card**: its face-up top card, whatever it costs. The card goes to **slot 2 of the lane where you have more units** (tie: the lane with your highest-ranked unit, an ace counting as the lowest rank; still tied, left), so the enemy always defends against your biggest push. Then turn its next top card face-up: that is its play next round.
+2. **You play.** As many cards as you like and can afford: move your marker left by the cost, put the card in **slot 1** of a lane, on your (left) half, refill your hand to 4 from the top of your queue. You may play nothing.
+3. **Enemy plays (automaton).** It plays **exactly one card**: its face-up top card, whatever it costs. The card goes to **slot 2 of the lane where you have more units**, on its (right) half (tie: the lane with your highest-ranked unit, an ace counting as the lowest rank; still tied, left), so the enemy always defends against your biggest push. Then turn its next top card face-up: that is its play next round.
 4. **Fight.** In each lane with units from both sides, your front-most unit fights the enemy's front-most where they stand (front-most = furthest advanced; in a shared slot, the one that got there first). Nothing has moved yet. They fight as in **Fights**.
    - The winner stays where it is. The next unit behind the loser **steps up one slot** (that is its move this round; if an enemy card is in its own slot, it stays) and fights the winner, and so on until one side has no units left in that lane.
-5. **Move.** Every unit that hasn't moved this round steps one slot toward the other side. Cards never pass through each other. A unit that steps past the last slot is **at the tower**. Units already at a tower stay there.
+5. **Move.** Every unit that hasn't moved this round steps one slot toward the other side, staying on its own half. Cards never pass through each other. A unit that steps past the last slot is **at the tower**. Units already at a tower stay there.
 6. **Tower hits.** Left lane first, then right. Every unit at the tower hits that lane's princess stack, or the king stack if that princess stack is empty. **The king can only be hit once that lane's princess stack is gone.** Each hit is resolved as in **Towers**; a side tower that loses its last card gets a **Last stand**.
 7. **End.** A king stack empty ends the game (see **Goal**). Otherwise start the next round.
 
@@ -63,7 +64,7 @@ Turn the top tower card face-up: **a tower hit is a fight** against that card, w
 - The enemy hits your towers the same way. You know your own cards.
 
 ## Last stand
-When a left or right tower loses its last card, its owner immediately places **one card in that lane for free** (the marker doesn't move). You pick any card from your hand, put it in slot 1 and refill your hand. The enemy puts its face-up top card in slot 2, then turns its next top card face-up. The king has no last stand.
+When a left or right tower loses its last card, its owner immediately places **one card in that lane for free** (the marker doesn't move). You pick any card from your hand, put it in slot 1 (your half) and refill your hand. The enemy puts its face-up top card in slot 2 (its half), then turns its next top card face-up. The king has no last stand.
 
 ## Your pile
 A card that loses a fight, is shot back by a tower, or is a wounded unit after its second hit goes to the **bottom of its owner's pile** (the enemy's goes face-up: you know it now). Whenever one of your cards returns to your queue, refill your hand to 4.

@@ -175,6 +175,7 @@ function Castle({ k, items, own, cracked, fx, shake }: { k: 'L' | 'R' | 'K'; ite
 }
 
 // With real cards, a tower is drawn as the cards on the table: a fan, top card (hit first) in front. Yours face-up, the enemy's face-down until flipped.
+// The front card (hit first) on the right, each card behind it peeking out on the left, so every card's rank and suit show.
 function TowerFan({ k, items, own, cracked, flip, shake }: { k: 'L' | 'R' | 'K'; items: ESlot[]; own: boolean; cracked: string[]; flip?: boolean; shake?: boolean }) {
   const n = items.length
   return (
@@ -182,7 +183,7 @@ function TowerFan({ k, items, own, cracked, flip, shake }: { k: 'L' | 'R' | 'K';
       title={`${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower: ${n} card${n === 1 ? '' : 's'}; the front card is hit first. A cracked card (sideways at the table) breaks on any hit.`}>
       <div className="fancards" style={{ width: `calc(var(--cw) + ${Math.max(0, n - 1)} * var(--toff))` }}>
         {items.map((it, i) => (
-          <div key={it.tid} className={`fc ${cracked.includes(it.tid) ? 'cracked' : ''}`} style={{ left: `calc(${i} * var(--toff))`, zIndex: n - i }}>
+          <div key={it.tid} className={`fc ${cracked.includes(it.tid) ? 'cracked' : ''}`} style={{ left: `calc(${n - 1 - i} * var(--toff))`, zIndex: n - i }}>
             <TCard tid={it.tid} card={it.card} down={!it.card} side={own ? 'P' : 'E'} />
           </div>
         ))}
@@ -192,12 +193,12 @@ function TowerFan({ k, items, own, cracked, flip, shake }: { k: 'L' | 'R' | 'K';
   )
 }
 
-// With real cards, elixir is drawn like the bar on the table: 10 face-down cards in a row, overlapping so each number shows, the marker turned sideways.
+// With real cards, elixir is drawn like the bar on the table: 10 face-down cards in a row, overlapping so each number shows, the marker flipped face-up.
 // A card you pick frames the cards it would spend.
 function CardBar({ n, spend = 0 }: { n: number; spend?: number }) {
   const [a, b] = spendRange(n, spend)
   return (
-    <div className="cbar mine" role="meter" aria-valuemin={0} aria-valuemax={10} aria-valuenow={n} aria-label="Your elixir" title={`Your elixir bar: ${n ? `the sideways card is number ${n}` : 'no card sideways'}, so ${n} elixir`}>
+    <div className="cbar mine" role="meter" aria-valuemin={0} aria-valuemax={10} aria-valuenow={n} aria-label="Your elixir" title={`Your elixir bar: ${n ? `the face-up card is number ${n}` : 'no card face-up'}, so ${n} elixir`}>
       <div className="drop">{n}</div>
       <div className="cslots">
         {Array.from({ length: 10 }, (_, i) => (
@@ -239,6 +240,7 @@ function ElixirBar({ n, spend }: { n: number; spend: number }) {
 }
 
 // One lane, top to bottom: your soldiers hitting the enemy tower, the enemy's slot, the river, your slot, enemy soldiers hitting your tower.
+// Each slot has two halves, as on the table: your cards on the left, the enemy's on the right, so where a card lies says whose it is.
 // A soldier at a tower is drawn smaller, against that tower; a wounded one (it broke a card, one hit left) leans like a cracked card.
 // The two cards that fight next tremble a little, so you see who meets whom before one of them is gone.
 // A card at a tower is drawn in the lane slot next to that tower, first in the slot: new cards in that lane
@@ -247,7 +249,7 @@ function ElixirBar({ n, spend }: { n: number; spend: number }) {
 // Tapped, one of them is picked (picked): tapping another card then switches the two.
 function ArenaLane({ idx, units, fighting, laneLen, blocked, dragging, hint, suggested, over, onPlace, grabbable = [], lifted, picked, onGrab, onTap }: { idx: 0 | 1; units: Unit[]; fighting: string[]; laneLen: number; blocked?: boolean; dragging: boolean; hint: boolean; suggested: boolean; over: boolean; onPlace: () => void; grabbable?: string[]; lifted?: string | null; picked?: string | null; onGrab?: (e: React.PointerEvent<HTMLElement>, tid: string) => void; onTap?: (tid: string) => void }) {
   const atTower = (u: Unit) => (u.side === 'P' && u.pos >= laneLen) || (u.side === 'E' && u.pos < 0)
-  const here = (pred: (u: Unit) => boolean) => units.filter(u => u.lane === idx && pred(u)).sort((a, b) => +atTower(b) - +atTower(a)).map(u => (
+  const cards = (pred: (u: Unit) => boolean) => units.filter(u => u.lane === idx && pred(u)).sort((a, b) => +atTower(b) - +atTower(a)).map(u => (
     <div key={u.uid} className={`unit ${u.side} ${atTower(u) ? 'atk' : ''} ${u.wounded ? 'wounded' : ''} ${u.free ? 'free' : ''} ${fighting.includes(u.tid!) ? 'tremble' : ''} ${grabbable.includes(u.tid!) ? 'grab' : ''} ${lifted === u.tid ? 'lifted' : ''}`}
       title={atTower(u) ? `${u.side === 'P' ? 'Your' : 'Enemy'} card at the tower: ${u.wounded ? 'wounded, it hits once more, then goes back to its pile' : 'it hits the tower this round'}` : u.free ? `${u.side === 'P' ? 'Your' : 'Enemy'} last stand: a tower in this lane fell, so this card came in free. It fights in the next round.` : grabbable.includes(u.tid!) ? 'Changed your mind? Drag it back to your hand or onto the other lane, or tap it, then tap another card to switch them' : undefined}
       onPointerDown={grabbable.includes(u.tid!) ? e => onGrab?.(e, u.tid!) : undefined}
@@ -255,6 +257,7 @@ function ArenaLane({ idx, units, fighting, laneLen, blocked, dragging, hint, sug
       <TCard tid={u.tid!} card={u.card} down={false} side={u.side} selected={picked === u.tid} />
     </div>
   ))
+  const here = (pred: (u: Unit) => boolean) => (['P', 'E'] as const).map(side => <div key={side} className={`half ${side}`}>{cards(u => u.side === side && pred(u))}</div>)
   return (
     <div className="alane">
       <div className="spot atk" />
@@ -282,11 +285,11 @@ function ArenaPile({ slots, side }: { slots: { tid: string; card: Card | null }[
 }
 
 // ---------- setup at the real table: one step per screen, each with a picture ----------
-// Mini cards for the pictures: face-down by default, or a known card face-up; "side" is a marker turned sideways.
-function Mc({ card, side, hot }: { card?: Card; side?: boolean; hot?: boolean }) {
-  return <PlayingCard card={card} className={`mc${side ? ' side' : ''}${hot ? ' hot' : ''}`} />
+// Mini cards for the pictures: face-down by default, or a known card face-up (the elixir marker is flipped face-up).
+function Mc({ card, hot }: { card?: Card; hot?: boolean }) {
+  return <PlayingCard card={card} className={`mc${hot ? ' hot' : ''}`} />
 }
-const backs = (n: number, gapAfter?: number, sideAt?: number) => Array.from({ length: n }, (_, i) => <Fragment key={i}>{i === gapAfter && <span className="mgap" />}<Mc side={i === sideAt} hot={i === sideAt} /></Fragment>)
+const backs = (n: number, gapAfter?: number, flipAt?: number) => Array.from({ length: n }, (_, i) => <Fragment key={i}>{i === gapAfter && <span className="mgap" />}<Mc card={i === flipAt ? { id: 'mk', rank: i + 1, suit: 0 } : undefined} hot={i === flipAt} /></Fragment>)
 
 interface SetupStep { title: string; pic: ReactNode; body: ReactNode; ready?: boolean }
 function Stepper({ steps, at, setAt, done }: { steps: SetupStep[]; at: number; setAt: (n: number) => void; done: ReactNode }) {
@@ -603,7 +606,7 @@ export default function App() {
   const [fast, setFastState] = useState<boolean>(() => readJSON(FAST_KEY, false))
   const setFast = (on: boolean) => { setFastState(on); writeJSON(FAST_KEY, on) }
   const [batchPref, setBatchPref] = useState<boolean | null>(() => readJSON<boolean | null>(BATCH_KEY, null))
-  const batchOn = batchPref ?? played.guide >= 2
+  const batchOn = batchPref ?? false // one thing to do at a time, until you ask for the whole round as a list
   const setBatch = (on: boolean) => { setBatchPref(on); writeJSON(BATCH_KEY, on) }
   const batch = (g: GuideState) => (mode === 'guide' && batchOn ? extendBatch(g) : g)
   const [future, setFuture] = useState<GuideState[]>([])
@@ -645,11 +648,21 @@ export default function App() {
   const { pops } = fx
   // a step with fights or tower hits is shown once they have struck on the board as it was (see fx.ts). Anything done during a
   // strike was meant for the step before it, so it only skips the strike to its end.
+  const [striking, setStriking] = useState(false) // real cards: the table panel stays away while the board plays a step
   const advance = (g: GuideState) => {
     if (fx.striking()) return fx.land()
     fresh.current = g
-    if (!fx.strike(g, () => setGame(g))) setGame(g)
+    if (fx.strike(g, () => { setStriking(false); setGame(g) })) setStriking(true)
+    else setGame(g)
   }
+  // real cards: a fresh step plays out on the board first, and only then asks for your hands (the panel waits a beat for the cards to settle)
+  const [openFor, setOpenFor] = useState<GuideState | null>(null)
+  useEffect(() => {
+    if (mode !== 'guide' || !game || game !== fresh.current) return
+    const t = setTimeout(() => setOpenFor(game), matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 550)
+    return () => clearTimeout(t)
+  }, [mode, game])
+  const settled = mode !== 'guide' || game !== fresh.current || game === openFor
   const [tipsSeen, setTipsSeen] = useState<string[]>(() => readJSON(TIPS_KEY, []))
   const [tip, setTip] = useState<TipId | null>(null)
   // a tip told differently at the table is seen separately there, so switching modes still teaches the table's version
@@ -821,7 +834,7 @@ export default function App() {
         body: <p>Deal <b>10 face-down in a row</b> for your elixir bar, with a small gap after the 5th card. Put the <b>other 14 cards back in the box</b> without looking: they sit this game out. The enemy has no elixir bar: it plays one card per round.</p> },
       { title: 'Set the marker at 5', pic: <div className="mbars"><span className="mlbl">Your elixir: 5</span><div className="mrow">{backs(10, 5, 4)}</div></div>,
         body: <>
-          <p>Turn the <b>5th card sideways</b>, still face-down. That's the <b>marker</b>: its position is your elixir, so you start at 5. Spending or gaining just moves the marker left or right.</p>
+          <p>Flip the <b>5th card face-up</b>, so you see its number. That's the <b>marker</b>: its position is your elixir, so you start at 5. Spending or gaining just moves the marker left or right.</p>
           <HowToPlay topics={RULES}><Button variant="secondary" className="mt-2"><BookOpen /> How to play</Button></HowToPlay>
         </> },
     ]
@@ -899,11 +912,11 @@ export default function App() {
       { title: 'The table', pic: (
           <div className="mtable">
             <span>Enemy pile</span><span className="mt-them">Enemy Left</span><span className="mt-them">Enemy King</span><span className="mt-them">Enemy Right</span><span>Enemy discard</span>
-            <span className="mt-lane l">Left lane<br />2 slots</span><span className="mt-lane r">Right lane<br />2 slots</span>
+            <span className="mt-lane l"><i>yours<br />↑</i><i className="mt-far">enemy's<br />↓</i></span><span className="mt-lane r"><i>yours<br />↑</i><i className="mt-far">enemy's<br />↓</i></span>
             <span>Your queue</span><span className="mt-me">Your Left</span><span className="mt-me">Your King</span><span className="mt-me">Your Right</span><span>Your discard</span>
             <span className="mt-bar">Your elixir bar</span>
           </div>),
-        body: <p>Your towers in a row in front of you, the enemy's across the table. Between them, <b>two lanes of 2 slots</b>: slot 1 next to you, slot 2 next to the enemy. The screen shows the table the same way, the enemy at the top.</p> },
+        body: <p>Your towers in a row in front of you, the enemy's across the table. Between them, <b>two lanes of 2 slots</b>: slot 1 next to you, slot 2 next to the enemy. Each lane has <b>two halves</b>: <b>yours on the left</b>, <b>the enemy's on the right</b>. Cards never change halves, so where a card lies says whose it is. The screen shows the table the same way, the enemy at the top.</p> },
     ]
     return (
       <div className="page">{bar()}
@@ -926,7 +939,7 @@ export default function App() {
   // with real cards, every step that moves cards on the table waits on a panel over the tray until the player taps Done;
   // after one of your own plays that is paying, placing and drawing, then the hand is free again
   const doNow = mode === 'guide' && stage === 'my_play' && g.lastAction.length > 0 && doSeen !== g.log.length
-  const atTable = mode === 'guide' && (doNow || flipping || AUTO_STAGES.includes(stage))
+  const atTable = mode === 'guide' && !striking && settled && (doNow || flipping || AUTO_STAGES.includes(stage))
   const stepTitle = doNow ? 'Now at the table' : stage === 'round_start' ? `Round ${g.round}` : g.batched ? 'Fights and moves, in order' : g.events?.some(e => e.type === 'play' && e.free) ? 'Last stand' : TITLES[stage]
   // the card to turn face-up glows on the field: the enemy's next card, or the top of the tower being hit
   const hitUnit = hitEnemy ? g.units.find(u => u.uid === g.hitQueue[0]) : undefined
@@ -1130,13 +1143,13 @@ export default function App() {
   // the arena; card size follows the window so the whole field, the bar and the hand always fit
   const arena = () => {
     const aw = Math.min(view.sw, 640)
-    // with real cards every card is the same size, as on the table: five card columns across (pile, three tower fans, discard) and five card rows down (the enemy has no elixir bar).
+    // with real cards every card is the same size, as on the table: about nine card widths across (pile, three tower fans, discard; each lane two cards wide, yours and the enemy's half) and five card rows down (the enemy has no elixir bar).
     // A wide window puts the instructions and the hand in a column beside the table; otherwise they get a fixed space under it.
     const wide = mode === 'guide' && view.sw >= 860 && view.sw >= view.sh * 1.3
     const ch = mode === 'guide'
       ? wide
-        ? Math.max(44, Math.min((view.sh - 160) / 5.9, (Math.min(view.sw - 420, 760) - 60) / 7.4 / 0.714, (380 - 40) / 5 / 0.714, 128)) // the hand (4 cards + Done) fits the 380px column
-        : Math.max(44, Math.min((view.sh - 300) / 6.84, (aw - 60) / 7.4 / 0.714, 128))
+        ? Math.max(44, Math.min((view.sh - 160) / 5.9, (Math.min(view.sw - 460, 760) - 60) / 8.9 / 0.714, (420 - 32 - 40 - 8) / 5 / 0.714, 128)) // the hand (4 cards + Done, 10px apart) fits the 420px column inside its 16px padding
+        : Math.max(44, Math.min((view.sh - 300) / 6.84, (aw - 60) / 8.9 / 0.714, 128))
       : Math.max(52, Math.min((view.sh - 218) / 6.9, (aw - 72) / 4.75 / 0.714, 128))
     const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px` } as CSSProperties
     // the tips teach how to play a card, what ✓ does and the elixir each round, and the river shows the round: the line only says whose turn it is
@@ -1201,7 +1214,7 @@ export default function App() {
     const table = (
       <>
         <div className="tbar"><span className="undoredo">{undoRedo}</span>{cheat}<span className="modechip">Real cards</span><span className="tmenu">{menu}</span></div>
-        <div className="cardtable">
+        <div className={`cardtable${striking ? ' striking' : ''}`} onPointerDown={striking ? () => fx.land() : undefined}> {/* a tap while a step plays out skips to its end */}
           <div className="trow theirs">
             <TablePile top={eNext} down={!eNext?.card} side="E" n={g.E.queue.length} name="Pile" flip={stage === 'enemy_enter' || stage === 'last_stand_enter'} />
             {(['L', 'K', 'R'] as const).map(k => <TowerFan key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} flip={flipTower === k} shake={fighting.includes(`tower-E-${k}`)} />)}
@@ -1261,7 +1274,7 @@ export default function App() {
               {lines.map((l, i) => <div key={i}>{l}</div>)}
             </div>}
           <div className="handwrap">
-            <div className="handrow">
+            <div className={`handrow${doNow && !atTable ? ' wait' : ''}`}>
               {handCards}
               <button className={`big done endturn ${advice?.kind === 'wait' ? 'suggested' : ''}`} title={advice?.kind === 'wait' ? advice.reason : 'End turn'} disabled={stage !== 'my_play'} aria-label="End turn" onClick={() => commit(endMyTurn(g))}><svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg></button>
             </div>
