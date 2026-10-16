@@ -524,7 +524,7 @@ const RULES: Topic[] = [
   </> },
   { id: 'turn', icon: <Hand />, title: 'Your turn', line: 'Play 1 card a round, or 2 small cards (A to 5).', body: <>
     <p>Each round you play <b>1 card</b>, or <b>2 small cards</b> (A to 5). You may also play nothing.</p>
-    <p>The dots on a card say how much of your turn it uses: a small card <b>one dot</b>, any other card <b>two</b>, your whole turn. The card-shaped bar left of your hand shows what is left of your turn: two halves, a small card uses one, any other card both. Nothing carries over to the next round.</p>
+    <p>The dots on a card say how much of your turn it uses: a small card <b>one dot</b>, any other card <b>two</b>, your whole turn. The card-shaped bar under the ✓ button, right of your hand, shows what is left of your turn: two halves, a small card uses one, any other card both. Nothing carries over to the next round.</p>
     <p>The enemy plays <b>2 cards every round</b>, the top two of its pile, whatever they are.</p>
   </> },
   { id: 'round', icon: <Repeat />, title: 'A round', line: 'You play, the enemy defends, the front cards fight, all move up.', body: <ol className="m-0 list-decimal pl-5">
@@ -559,15 +559,15 @@ type TipId = 'goal' | 'drag' | 'turn' | 'change' | 'enemy2' | 'rank' | 'suit' | 
 const TIPS: Record<TipId, string> = {
   goal: "Goal: break the enemy's king, the crowned castle at the top. Your cards are soldiers.",
   drag: 'Drag a card onto a lane at the bottom. Each round: 1 card, or 2 small ones (A to 5).',
-  turn: 'The dots on a card show how much of your turn it uses: big cards two, small cards one. The bar left of your hand shows what is left. Done? Press ✓ and the enemy moves.',
+  turn: 'The dots on a card show how much of your turn it uses: big cards two, small cards one. The bar under the ✓ button shows what is left of your turn. Done? Press ✓ and the enemy moves.',
   change: 'Changed your mind? Before ✓, drag a placed card back to your hand or to the other lane.',
   enemy2: 'The enemy plays 2 cards a round: the first defends the lane where you have more cards, the second goes into the other lane. Its Next card is its first.',
   rank: 'Cards fight where they meet: the higher rank wins. Equal? The enemy wins. The loser goes back to its pile.',
-  suit: 'Suits beat each other in a circle:\n♠ beats ♥ beats ♦ beats ♣ beats ♠. The winning suit counts ×2. The ⚔ button, top left, shows it again.',
+  suit: 'Suits beat each other in a circle:\n♠ beats ♥ beats ♦ beats ♣ beats ♠. The winning suit counts ×2. The ⚔ button, top right, shows it again.',
   ace: 'Aces beat Kings! A small ace kills a big King.',
   armor: 'Tower cards are armored: the first hit cracks them, the next breaks them. A card that wins its hit stays for that next hit. The king is safe until its side tower falls.',
   crack: 'Lost at a tower? The card goes back to its pile, but the tower card still cracks: the next hit breaks it.',
-  next: 'The Next card, left of your hand, joins your hand when you play (the enemy\'s is beside it). Cards that die come back later.',
+  next: 'The Next card, left of your hand, joins your hand when you play (the enemy\'s is at the top, under its king). Cards that die come back later.',
   stand: 'LAST STAND! When a side tower falls, its owner puts one card into that lane for free.',
 }
 // with real cards the towers are the fanned cards on the table, not castles
@@ -575,7 +575,7 @@ const TABLE_TIPS: Partial<Record<TipId, string>> = {
   goal: "Goal: break the enemy's king, the middle tower across the table. Your cards are soldiers.",
   drag: 'Drag a card onto a lane at the bottom. Each round: 1 card, or 2 small ones (A to 5).',
   enemy2: 'The enemy plays 2 cards a round: the first defends the lane where you have more cards, the second goes into the other lane.',
-  change: 'Wrong card? Undo, top left, takes back any step.',
+  change: 'Wrong card? Undo, top right, takes back any step.',
   armor: 'Tower cards are armored: the first hit cracks them (turn it sideways), the next breaks them. A card that wins its hit stays for that next hit. The king is safe until its side tower falls.',
   crack: 'Lost at a tower? The card goes back to its pile, but turn the tower card sideways anyway: the next hit breaks it.',
   next: 'When you play a card, draw the top of your queue. Cards that die go to the bottom of it.',
@@ -1363,7 +1363,7 @@ export default function App() {
         <div className="tray">
           {stage === 'over' && overSeen
             ? <div className="overbtns"><button className="big" onClick={playAgain}>Play again</button><button onClick={() => setOverSeen(false)}>Result</button></div>
-            : <div className={`feed${coach && !tableStep ? ' hushed' : ''}`} aria-live="polite"> {/* an open tip says it better: the line steps aside, keeping its place */}
+            : <div className="feed" aria-live="polite">
               {lines.map((l, i) => <div key={i}>{l}</div>)}
             </div>}
           <div className="handwrap">
