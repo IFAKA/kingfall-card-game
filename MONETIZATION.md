@@ -20,7 +20,7 @@ _Written 2026-10-16 for this game as it is today. Update it when a step is done 
 - **You** = things only you can do (accounts, payments, posting, photos). **Claude** = things Claude does.
 - Tick the box when a step is done.
 
-**➡️ Next step: 5.9** (open `?nostats` on your devices), then step 7 (itch.io page). Steps 1, 2, 4 and 6 are done; step 3 is optional for now.
+**➡️ Next step: 8** (posts), once your Reddit account has a few days of comments. Steps 5 and 7 are done. Steps 1, 2, 4 and 6 are done; step 3 is optional for now.
 
 ### While you wait (do these now, they make later steps work)
 
@@ -59,7 +59,7 @@ You can't post, print or build a brand on a name another card game uses.
 
 Without stats, posting the game teaches you nothing.
 
-- [ ] **5. Add anonymous stats.** _Claude builds it, you make the account._
+- [x] **5. Add anonymous stats.** _Claude builds it, you make the account._
   Needs: the renamed game from step 4. Uses **Umami**: free, no cookies (so no cookie pop-up), no names, no ads. Vercel's free stats only count page visits, not games, so they aren't used.
   - [x] **5.1 You:** sign up at **cloud.umami.is** with your email and pick the free plan. If it asks for a card, stop and tell Claude.
   - [x] **5.2 You:** click **Add website**. Name: `Suitkeep`. Domain: `suitkeep.vercel.app`.
@@ -69,7 +69,7 @@ Without stats, posting the game teaches you nothing.
   - [x] **5.6 Claude:** what it counts: page visits, `cards-open` (real-cards mode opened), `game-start` (mode, which game number), `first-game`, `second-game`, `round` (every round a game reaches), `game-end` (win/loss/draw and rounds), `game-leave` (left from the menu, which round), `setup-leave` (left during setup, which step). ✅ 2026-10-16, tested offline.
   - [x] **5.7 Claude:** ID set in `app/src/stats.ts`, checked, pushed, itch.io file rebuilt. ✅ 2026-10-16
   - [x] **5.8 You:** played one whole game, and `game-start`, `round` and `game-end` showed in Umami. ✅ 2026-10-16 (in Chrome. Brave's shields cut the counting off after round 1, so Brave players are undercounted.)
-  - [ ] **5.9 You:** so your own games stop counting, open **suitkeep.vercel.app/?nostats** once on each phone and computer you play on (open **suitkeep.vercel.app/?stats** to count again).
+  - [x] **5.9 You:** so your own games stop counting, open **suitkeep.vercel.app/?nostats** once on each phone and computer you play on (open **suitkeep.vercel.app/?stats** to count again).
   Done when: 5.8 shows your game. How to read it at Checkpoint A: **finish rate** = people with `game-end` ÷ people with `game-start`. **Come-back rate** = `second-game` ÷ `first-game`. **Where people stop** = the `n` values of the `round` event.
 
 - [x] **6. Finish the trailer with the new name.** _Claude._
@@ -81,7 +81,7 @@ Without stats, posting the game teaches you nothing.
 
 This round finds the problems for free. CrazyGames (Phase 4) only gives you one real chance, so fix things here first.
 
-- [ ] **7. itch.io page.** _You make the account, Claude writes the page._
+- [x] **7. itch.io page.** _You make the account, Claude writes the page._
   Needs: the trailer (6), the PDF (4) and the stats (5). Do: the web game playable on the page plus the rulebook PDF as "pay what you want."
   ✍️ **Ready:** the page text is in [itch.io page](#itchio-page), the cover is `docs/itch-cover.png`, the screenshots are in `docs/screenshots/`, and `cd app && npm run itch` makes the upload file `app/suitkeep-itch.zip` (Claude rebuilds it in 5.7 so the itch version counts too).
   How:
@@ -93,6 +93,7 @@ This round finds the problems for free. CrazyGames (Phase 4) only gives you one 
   6. **Cover image:** `docs/itch-cover.png`. **Screenshots:** `docs/screenshots/arena.png`, `deck.png`, `title.png`, `real-cards-setup.png`.
   7. **Genre:** Card Game. **Tags:** from [itch.io page](#itchio-page). **Visibility:** Draft. Save, open the page, play one game on it, then switch to **Public**.
   Done when: the page is public.
+  ✅ Done 2026-10-16: https://zfaka.itch.io/suitkeep
 
 - [ ] **8. Post to web game players.** _Claude writes, you post._
   Needs: the itch page (7) and the vertical trailer (6). Where: r/WebGames, r/playmygame, then TikTok / YouTube Shorts. Check each subreddit's self-promotion rules first.
