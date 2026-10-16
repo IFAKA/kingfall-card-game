@@ -847,10 +847,10 @@ button.fkey:disabled { opacity: .25; filter: none; }
 
 /* the tower is big enough to carry its card above the door: a white chip, no ring, drawn on the castle */
 .castle .cwrap { position: relative; display: flex; justify-content: center; }
-.castle .cart, .castle:not(.king) .cart { width: calc(var(--cw) * 1.4); height: calc(var(--cw) * 1.14); } /* tall enough for the card between the battlements and the door */
-.castle.king .cart { width: calc(var(--cw) * 1.7); height: calc(var(--cw) * 1.75); }
-.castle .guard { position: absolute; left: 50%; top: 37%; translate: -50% -50%; margin: 0; }
-.castle.king .guard { top: 55%; }
+.castle .cart, .castle:not(.king) .cart { width: calc(var(--cw) * 1.4); height: calc(var(--cw) * 1.2688); } /* tall enough for the card between the battlements and the door */
+.castle.king .cart { width: calc(var(--cw) * 1.7); height: calc(var(--cw) * 1.886); }
+.castle .guard { position: absolute; left: 50%; bottom: calc(var(--cw) * .718); translate: -50% 50%; margin: 0; } /* measured up from the castle's foot, so the gap to the door stays when the tower grows */
+.castle.king .guard { bottom: calc(var(--cw) * .7875); }
 .castle.mine .topcard:not(.empty), .castle.theirs .topcard:not(.empty) { box-shadow: none; }
 .castle .topcard.empty { width: 1.9em; border: 0; background: rgba(255,255,255,.88); display: grid; place-items: center; }
 .castle .topcard.empty::after { content: '?'; color: #6b6b6b; font-weight: 800; }
