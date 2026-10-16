@@ -837,14 +837,15 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .handrow { --cw: var(--hcw); --ch: var(--hch); }
 .turncard { box-shadow: 0 0 0 1px #fff; } /* a thin white line around the bar's own border, as on the cards */
 
-/* your Next card sits between the turn bar and the hand: label above, the card as tall as a hand card together */
-.handrow .nextcard.mine { --nl: max(10px, calc(var(--ch) * .13)); --nh: calc(var(--ch) - var(--nl) - 4px); align-self: flex-end; justify-content: flex-end; gap: 4px; height: var(--ch); margin: 0; } /* label + card are as tall as a hand card */
-.handrow .nextcard.mine span { font-family: var(--display); font-size: var(--nl); line-height: 1; color: rgba(255,255,255,.8); text-transform: uppercase; }
-.handrow .nextcard.mine .tcard { width: calc(var(--nh) * .714); height: var(--nh); font-size: calc(var(--nh) * .2); }
+/* your Next card sits between the turn bar and the hand: as tall as a hand card, its label above it (in the row's top padding) */
+.handrow .nextcard.mine { --nl: max(10px, calc(var(--ch) * .13)); position: relative; align-self: flex-end; height: var(--ch); margin: 0; }
+.handrow .nextcard.mine span { position: absolute; left: 50%; bottom: calc(100% + 2px); transform: translateX(-50%); font-family: var(--display); font-size: var(--nl); line-height: 1; color: rgba(255,255,255,.8); text-transform: uppercase; white-space: nowrap; }
+.handrow .nextcard.mine .tcard, .handrow .nextcard.mine .cardph { width: var(--cw); height: var(--ch); font-size: calc(var(--cw) * .27); }
+.handrow { padding-top: calc(max(10px, var(--ch) * .13) + 6px); }
 
 /* three groups spread across the row: the turn bar, your Next card with the hand, the done button */
 .handrow { justify-content: space-between; width: 100%; max-width: 470px; margin: 0 auto; box-sizing: border-box; padding-left: 4px; padding-right: 4px; }
-.handrow .handgroup { display: flex; align-items: flex-end; gap: 14px; } /* the Next card and the three hand cards, all the same distance apart */
+.handrow .handgroup { display: flex; align-items: flex-end; gap: 8px; } /* the Next card and the three hand cards, all the same distance apart */
 
 /* the tower is big enough to carry its card above the door: a white chip, no ring, drawn on the castle */
 .castle .cwrap { position: relative; display: flex; justify-content: center; }

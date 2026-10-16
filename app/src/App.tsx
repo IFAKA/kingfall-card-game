@@ -1175,7 +1175,7 @@ export default function App() {
   const HAND_BIG = 1.3 // your hand's cards are this much bigger than the cards on the field, so the two are easy to tell apart
   const HAND_MIN = 1.15 // the hand's cards stay at least this much bigger than the field's, even when the field could grow more
   const FIELD_K = 210 // the window height kept for everything but the field's rows of cards and the hand's cards (castles, status line, margins)
-  const handFit = (Math.min(view.sw, 640, 470) - 126) / 3.67 // the tallest hand card whose row (turn bar, Next, 3 cards, done) fits the width with room between its groups
+  const handFit = (Math.min(view.sw, 640, 470) - 94) / 3.57 // the tallest hand card whose row fits the width: Next, 3 cards and done are 5 cards wide, plus the turn bar, the gaps and a margin at each side (94px)
 
   // the arena; card size follows the window so the whole field, the bar and the hand always fit
   const arena = () => {
