@@ -910,7 +910,7 @@ export default function App() {
         <span className="titlemenu"><GameMenu muted={muted} toggleMute={toggleMute} musicOff={musicOff} toggleMusic={toggleMusic} past={past} /></span>
         <div className="titlefan" aria-hidden>{fan.map(c => <PlayingCard key={c.id} card={c} />)}</div>
         <Logo />
-        <p className="tagline">A lane battle for one player and a deck of cards</p>
+        <p className="tagline">A solo card battle, one deck</p>
         {record.games > 0 && <p className="record">{record.wins} {record.wins === 1 ? 'win' : 'wins'} in {record.games} {record.games === 1 ? 'game' : 'games'}{record.best !== undefined && ` · fastest win: ${record.best} rounds`}</p>}
         <div className="menu">
           <button className="big xl" onClick={startOnScreen}>Play<small>the app deals and plays the enemy</small></button>
