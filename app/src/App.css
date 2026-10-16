@@ -870,3 +870,11 @@ button.fkey:disabled { opacity: .25; filter: none; }
 
 .spot.slot { padding: 0; }
 .spot.slot { min-height: 0; } /* the slot is exactly a card tall (plus its 2px border), whatever the older rule says */
+
+/* the drop highlight fades in when you pick a card up and out when you let go (the styles are always there, only their colours change) */
+.spot.slot > .half { position: relative; border-radius: 10px; background: rgba(255,207,58,0); outline: 2px dashed rgba(255,207,58,0); outline-offset: -2px; transition: background-color .25s ease, outline-color .25s ease; }
+.spot.slot > .half::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 14px rgba(255,207,58,.6); opacity: 0; pointer-events: none; transition: opacity .25s ease; }
+.spot.slot.droppable > .half { background: rgba(255,207,58,.16); outline-color: var(--gold); }
+.spot.slot.droppable.over > .half { background: rgba(255,207,58,.38); }
+.droptag { opacity: 0; transition: opacity .25s ease; }
+.spot.slot.suggested .droptag { opacity: 1; }
