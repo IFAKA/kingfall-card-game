@@ -2,7 +2,7 @@
 // Plays each candidate deal through the app's own steps (autoReveal flips the enemy's cards, so the suggestions see what the app shows)
 // and keeps deals where following the suggestions shows each rule on its own, in teaching order, and ends in a close win.
 // Run: node scripts/tutorial.ts [candidates]   (prints the best deals as ids for src/tutorial.ts, and checks the current one)
-import { DECK_SIZE, DEFAULT_RULES, freshDeck, label, PER_SIDE, shuffle, suggestSetup } from '../src/engine.ts'
+import { DECK_SIZE, DEFAULT_RULES, freshDeck, label, shuffle, splitDeal, suggestSetup } from '../src/engine.ts'
 import type { Card } from '../src/engine.ts'
 import { advise, adviseLastStand, autoReveal, endMyTurn, lastStandPlay, makeGame, next, playCard, startRound } from '../src/guide.ts'
 import type { GameEvent, GuideState } from '../src/guide.ts'
@@ -16,7 +16,7 @@ const byId = (id: string) => freshDeck().find(c => c.id === id)!
 function dealFrom(seed: number): Deal {
   const rnd = mulberry(seed)
   const d = shuffle(freshDeck(), rnd)
-  const mine = d.slice(0, PER_SIDE), enemy = shuffle(d.slice(PER_SIDE, 2 * PER_SIDE), rnd)
+  const { mine, theirs } = splitDeal(d), enemy = shuffle(theirs, rnd)
   const s = suggestSetup(mine)
   const deck = shuffle(mine.filter(c => s.deckIds.includes(c.id)), rnd)
   return { mine, deck, slots: s.slotIds.map(byId), secret: Object.fromEntries(enemy.map((c, i) => [i < DECK_SIZE ? `ep${i}` : `et${i - DECK_SIZE}`, c])) }
@@ -69,7 +69,7 @@ export function judge(deal: Deal) {
   const L = lessons(events), r = g.round, lost = g.stats.mineBroken
   const enemyFirst = deal.secret.ep0
   const must = [
-    r >= 8 && r <= 12,                                         // long enough to see every rule, short enough to want another
+    r >= 7 && r <= 11,                                         // long enough to see every rule, short enough to want another
     enemyFirst.rank >= 3 && enemyFirst.rank <= 9,               // its first card is plain: no ace, no picture
     !!L.firstFight && !L.firstFight.double && !L.firstFight.ace && L.firstFight.winner === 'P' && L.firstFight.round <= 2, // the first fight is just "higher wins", and you win it
     L.suit > L.plainWin && L.suit <= 5 && L.suitFirstMine,      // then the suit rule, on your side

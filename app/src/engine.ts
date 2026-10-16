@@ -1,4 +1,4 @@
-// Game engine: mirrors sim/game.py (physical mode, lane length 2, suit wheel). Pure functions over a plain state object.
+// Game engine: the 22-card rules (11 black cards for you, 11 red for the enemy). Pure functions over a plain state object.
 
 export type Side = 'P' | 'E'
 export type StackKey = 'L' | 'R' | 'K'
@@ -12,7 +12,13 @@ export interface SideState {
   towers: Towers
   revealed: Record<StackKey, boolean> // top card face-up (used for the enemy)
 }
-export interface Rules { regen: number; startElixir: number; cap: number; wheel: number; laneLen: number; acesBeatPictures: boolean; aceMin?: number } // aceMin: lowest rank an ace beats (13 = kings only: the default; 11 = J, Q and K, the first rules); wheel: rank multiplier for the winning suit (1 = off)
+export interface Rules {
+  regen: number; startElixir: number; cap: number; wheel: number; laneLen: number; acesBeatPictures: boolean
+  aceMin?: number      // lowest rank an ace beats (13 = kings only: the default; 11 = J, Q and K, the first rules)
+  enemyPlays?: number  // cards the enemy plays each round (1 when missing)
+  armor?: boolean      // every tower card takes two hits: a winning hit only cracks it (false when missing)
+  enemyWinsTies?: boolean // equal cards: the enemy's wins (when missing, both go)
+} // wheel: rank multiplier for the winning suit (1 = off)
 export interface GameState {
   rules: Rules
   tick: number
@@ -28,11 +34,13 @@ export interface GameState {
 export const SUITS = ['♠', '♥', '♦', '♣']
 export const RANKS = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
 export const label = (c: Card) => `${RANKS[c.rank]}${SUITS[c.suit]}`
-// three prices you can tell at a glance: small cards (A to 5) 2, big numbers (6 to 10) 6, pictures (J, Q, K) 10
-export const cost = (rank: number) => (rank <= 5 ? 2 : rank <= 10 ? 6 : 10)
-export const isRed = (c: Card) => c.suit === 1 || c.suit === 2
+// no elixir to count: each round you play 1 card, or 2 small cards (A to 5). As a turn budget of 2: a small card uses 1, any other card 2.
+export const cost = (rank: number) => (rank <= 5 ? 1 : 2)
+export const isSmall = (c: Card) => c.rank <= 5
+export const isRed = (c: Card) => c.suit === 1 || c.suit === 2 // the enemy's colour: you play the black cards (♠ ♣)
 
-export const DEFAULT_RULES: Rules = { regen: 3, startElixir: 5, cap: 10, wheel: 2, laneLen: 2, acesBeatPictures: true, aceMin: 13 }
+// the budget refills to 2 every round and nothing carries over, so there is nothing to keep track of
+export const DEFAULT_RULES: Rules = { regen: 2, startElixir: 2, cap: 2, wheel: 2, laneLen: 3, acesBeatPictures: true, aceMin: 13, enemyPlays: 2, armor: true, enemyWinsTies: true }
 
 export function freshDeck(): Card[] {
   const d: Card[] = []
@@ -56,43 +64,44 @@ export function shuffle<T>(a: T[], rnd: () => number = Math.random): T[] {
   return x
 }
 
-/** Each side gets 14 cards: an 8-card deck and 6 tower cards (2 left, 2 right, 2 king). */
-export const PER_SIDE = 14
+/** Each side gets 11 cards: an 8-card deck and 3 towers of 1 card (left, right, king). */
+export const PER_SIDE = 11
 export const DECK_SIZE = 8
+/** Cards in your hand: the rest of your deck is your queue. */
+export const HAND_SIZE = 3
 
-/** Deal: 14 for you, 14 for the enemy. Of the other 24, 10 are your elixir bar (not modelled as cards) and 14 go back in the box unseen. */
-export function deal(rnd: () => number = Math.random) {
-  const d = shuffle(freshDeck(), rnd)
-  return { mine: d.slice(0, PER_SIDE), theirs: d.slice(PER_SIDE, 2 * PER_SIDE) }
+/** From a shuffled deck: the first 11 black cards are yours, the first 11 red ones the enemy's. The other 30 sit out unseen. */
+export function splitDeal(d: Card[]) {
+  return { mine: d.filter(c => !isRed(c)).slice(0, PER_SIDE), theirs: d.filter(isRed).slice(0, PER_SIDE) }
 }
 
-/** Default tower layout: king gets the two highest cards, princesses alternate down the rest; strongest on top. */
+export function deal(rnd: () => number = Math.random) {
+  return splitDeal(shuffle(freshDeck(), rnd))
+}
+
+/** Default tower layout: the king gets the highest card, then left and right the next two. */
 export function autoTowers(cards: Card[]): Card[] {
   const s = [...cards].sort((a, b) => b.rank - a.rank)
-  const K = s.slice(0, 2)
-  const rest = s.slice(2)
-  const L = rest.filter((_, i) => i % 2 === 0)
-  const R = rest.filter((_, i) => i % 2 === 1)
-  return [...L, ...R, ...K] // layout order: L0 L1 R0 R1 K0 K1
+  return [s[1], s[2], s[0]] // layout order: L R K
 }
 
 export function towersFromSlots(slots: Card[]): Towers {
-  return { L: slots.slice(0, 2), R: slots.slice(2, 4), K: slots.slice(4, 6) }
+  return { L: slots.slice(0, 1), R: slots.slice(1, 2), K: slots.slice(2, 3) }
 }
 
-/** Suggested draft: the 3 highest cards + the 5 lowest (what the simulator found best). */
+/** Suggested draft: the 4 highest cards + the 4 lowest (what the simulator found best); the 3 in the middle are the towers. */
 export function suggestDeck(cards: Card[]): Card[] {
   const s = [...cards].sort((a, b) => b.rank - a.rank)
-  return [...s.slice(0, 3), ...s.slice(-5)]
+  return [...s.slice(0, 4), ...s.slice(-4)]
 }
 
-// a random split of the 14 cards, as dealt: the player builds the deck from here (the suggestion is only on request)
+// a random split of the 11 cards, as dealt: the player builds the deck from here (the suggestion is only on request)
 export function randomSetup(cards: Card[], rnd: () => number = Math.random): { deckIds: string[]; slotIds: string[] } {
   const ids = shuffle(cards, rnd).map(c => c.id)
   return { deckIds: ids.slice(0, DECK_SIZE), slotIds: ids.slice(DECK_SIZE) }
 }
 
-// the suggested split of the 14 cards: the suggested deck, and the other 6 laid out as towers (ids, in tower-slot order)
+// the suggested split of the 11 cards: the suggested deck, and the other 3 laid out as towers (ids, in tower-slot order)
 // (sorted first, so equal ranks split the same way whatever order the cards come in)
 export function suggestSetup(cards: Card[]): { deckIds: string[]; slotIds: string[] } {
   const all = [...cards].sort((a, b) => b.rank - a.rank || a.suit - b.suit)
@@ -114,8 +123,8 @@ export function newGame(
   const mk = (hand: Card[], queue: Card[], towers: Towers): SideState => ({
     hand, queue, elixir: 0, towers, revealed: { L: false, R: false, K: false },
   })
-  const P = mk(myDeck.slice(0, 4), myDeck.slice(4), towersFromSlots(towerSlots))
-  const E = mk([], enemyDeck, enemyTowers) // the enemy has no elixir: it plays one card per round
+  const P = mk(myDeck.slice(0, HAND_SIZE), myDeck.slice(HAND_SIZE), towersFromSlots(towerSlots))
+  const E = mk([], enemyDeck, enemyTowers) // the enemy has no turn budget: it plays rules.enemyPlays cards a round
   // round 1 starts with the regeneration already applied (same as the simulator)
   P.elixir = Math.min(rules.cap, rules.startElixir + rules.regen)
   return {
@@ -141,15 +150,21 @@ export function effective(a: Card, b: Card, wheel: number) {
 /** Aces beat kings outright, ignoring the wheel (aceMin: the lowest rank an ace beats; 13 = kings only). */
 export const aceWins = (a: Card, b: Card, rules: Rules) => rules.acesBeatPictures && a.rank === 1 && b.rank >= (rules.aceMin ?? 13)
 
-/** Fight result for card a against card b: 1 = a wins, -1 = b wins, 0 = tie (both removed). */
+/** Fight result for card a against card b: 1 = a wins, -1 = b wins, 0 = equal. */
 export function compare(a: Card, b: Card, rules: Rules): number {
   if (aceWins(a, b, rules)) return 1
   if (aceWins(b, a, rules)) return -1
   return Math.sign(effective(a, b, rules.wheel) - effective(b, a, rules.wheel))
 }
 
+/** A fight between your card and an enemy card: 1 = yours wins, -1 = the enemy's, 0 = both go. Equal goes to the enemy when rules.enemyWinsTies. */
+export function fightResult(mine: Card, theirs: Card, rules: Rules): number {
+  const r = compare(mine, theirs, rules)
+  return r === 0 && rules.enemyWinsTies ? -1 : r
+}
+
 function refill(g: GameState) {
-  while (g.P.hand.length < 4 && g.P.queue.length) g.P.hand.push(g.P.queue.shift()!)
+  while (g.P.hand.length < HAND_SIZE && g.P.queue.length) g.P.hand.push(g.P.queue.shift()!)
 }
 
 function kill(g: GameState, u: Unit) {
@@ -187,14 +202,19 @@ export function playerLaneInfo(g: { units: Unit[] }): { count: [number, number];
   return { count: [mine(0).length, mine(1).length], best: [top(0), top(1)] }
 }
 
-/** The enemy has no elixir: each round it plays the top card of its pile, whatever it costs. */
+/** The enemy has no budget: each round it plays the top cards of its pile (rules.enemyPlays of them), whatever they are: one into the lane you pushed harder, then one into the other. */
 function enemyPlays(g: GameState) {
-  const c = g.E.queue.shift()
-  if (!c) return
-  const { count, best } = playerLaneInfo(g)
-  const lane = defendLane(count, best)
-  g.units.push({ uid: g.nextUid++, card: c, side: 'E', lane, pos: g.rules.laneLen - 1 })
-  g.log.push(`Enemy plays ${label(c)} in the ${lane === 0 ? 'left' : 'right'} lane.`)
+  let first: 0 | 1 = 0
+  for (let n = 0; n < (g.rules.enemyPlays ?? 1); n++) {
+    const c = g.E.queue.shift()
+    if (!c) return
+    const { count, best } = playerLaneInfo(g)
+    // the first card defends the lane you pushed harder, the second goes into the other lane
+    const lane: 0 | 1 = n === 0 ? defendLane(count, best) : first === 0 ? 1 : 0
+    if (n === 0) first = lane
+    g.units.push({ uid: g.nextUid++, card: c, side: 'E', lane, pos: g.rules.laneLen - 1 })
+    g.log.push(`Enemy plays ${label(c)} in the ${lane === 0 ? 'left' : 'right'} lane.`)
+  }
 }
 
 function fight(g: GameState, lane: 0 | 1) {
@@ -205,7 +225,7 @@ function fight(g: GameState, lane: 0 | 1) {
     const p = ps.reduce((a, b) => (b.pos > a.pos ? b : a))
     const e = es.reduce((a, b) => (b.pos < a.pos ? b : a))
     if (p.pos < e.pos) return
-    const res = compare(p.card, e.card, g.rules)
+    const res = fightResult(p.card, e.card, g.rules)
     const bonus = (a: Card, b: Card) => (aceWins(a, b, g.rules) ? ' (ace beats a king)' : effective(a, b, g.rules.wheel) > a.rank ? ' (suit ×2)' : '')
     if (res === 0) {
       g.log.push(`${label(p.card)}${bonus(p.card, e.card)} ties ${label(e.card)}${bonus(e.card, p.card)}: both removed.`)
@@ -224,8 +244,15 @@ function fight(g: GameState, lane: 0 | 1) {
 /** A unit past the last slot is at the enemy tower. Each round it hits once; see towerHits for when it stays. */
 export const atTower = (g: { rules: Rules }, u: Unit) => (u.side === 'P' && u.pos >= g.rules.laneLen) || (u.side === 'E' && u.pos < 0)
 
-/** A tower hit is a fight against the top tower card (the wheel and aces count): the attacker breaks it on a win or a tie. */
-export const breaksTower = (attacker: Card, top: Card, rules: Rules) => compare(attacker, top, rules) >= 0
+/** A tower hit is a fight against the top tower card (the wheel and aces count): the attacker wins it on a win, and on a tie unless
+ *  ties go to the enemy and the attacker is yours. */
+export const breaksTower = (attacker: Card, top: Card, rules: Rules, side: Side) => {
+  const r = compare(attacker, top, rules)
+  return r > 0 || (r === 0 && !(rules.enemyWinsTies && side === 'P'))
+}
+
+/** With the armor rule, a tower card that isn't cracked yet needs two hits. */
+export const armored = (g: { rules: Rules; cracked?: string[] }, id: string) => !!g.rules.armor && !(g.cracked ?? []).includes(id)
 
 /** Towers shoot back, so every attacker does limited damage: a unit that breaks a tower card stays, wounded, for one more hit;
  *  a wounded unit goes back to its pile after that hit, and so does a unit whose hit only cracks a card. At most 2 breaks per unit. */
@@ -240,7 +267,16 @@ function towerHits(g: GameState) {
     const where = k === 'K' ? 'king tower' : `${k === 'L' ? 'left' : 'right'} tower`
     if (!stack.length) continue
     if (u.side === 'P') target.revealed[k] = true
-    if (breaksTower(u.card, stack[0], g.rules) || g.cracked.includes(stack[0].id)) {
+    if (armored(g, stack[0].id) && breaksTower(u.card, stack[0], g.rules, u.side)) {
+      // armor: a winning hit on a whole card only cracks it, and the attacker stays, wounded, to finish it next round
+      g.log.push(`${who} ${label(u.card)} cracks the armored ${label(stack[0])} on the ${where}.`)
+      g.cracked.push(stack[0].id)
+      if (u.side === 'P') target.revealed[k] = false
+      if (u.wounded) kill(g, u)
+      else u.wounded = true
+      continue
+    }
+    if (breaksTower(u.card, stack[0], g.rules, u.side) || g.cracked.includes(stack[0].id)) {
       g.log.push(`${who} ${label(u.card)} breaks ${label(stack[0])} on the ${where}.`)
       g.cracked = g.cracked.filter(id => id !== stack[0].id)
       stack.shift()
@@ -259,7 +295,7 @@ function towerHits(g: GameState) {
   }
 }
 
-/** A princess stack fell: its owner places one card in that lane for free. Enemy: top of its pile. You: your strongest hand card (stand-in for your choice). */
+/** A side tower fell: its owner places one card in that lane for free. Enemy: top of its pile. You: your strongest hand card (stand-in for your choice). */
 function lastStand(g: GameState, side: Side, lane: 0 | 1) {
   const s = g[side]
   let c: Card | undefined

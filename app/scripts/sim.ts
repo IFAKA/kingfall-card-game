@@ -1,6 +1,6 @@
 // Shared by the balance scripts: plays full games through the app's own rules with different kinds of player, deck choices and rule variants.
 // Every setup sees the same deals for the same seed, so differences between setups come from the rule, not from the luck of the deal.
-import { autoTowers, cost, DECK_SIZE, DEFAULT_RULES, freshDeck, PER_SIDE, shuffle, suggestDeck } from '../src/engine.ts'
+import { autoTowers, cost, DECK_SIZE, DEFAULT_RULES, freshDeck, isRed, PER_SIDE, shuffle, splitDeal, suggestDeck } from '../src/engine.ts'
 import type { Card, Rules } from '../src/engine.ts'
 import { advise, canPlay, endMyTurn, enterEnemyCard, enterTowerCard, lastStandPlay, makeGame, next, playCard, startRound } from '../src/guide.ts'
 import type { Advice, GuideState } from '../src/guide.ts'
@@ -29,7 +29,7 @@ export const naive: Player = g => {
 }
 
 export type EnemySetup = 'random' | 'best-towers' | 'swarm' | 'heavy' | 'balanced' // swarm: its 8 cheapest cards play, the 6 best are towers; heavy: the reverse; balanced: 4 strongest + 4 cheapest play
-// the enemy's 14 cards split into its pile (8) and its towers (6, in slot order L0 L1 R0 R1 K0 K1)
+// the enemy's 11 cards split into its pile (8) and its towers (3, in slot order L R K)
 function enemySplit(theirs: Card[], how: EnemySetup) {
   if (how === 'swarm' || how === 'heavy' || how === 'balanced') {
     const s = [...theirs].sort((a, b) => b.rank - a.rank)
@@ -40,7 +40,7 @@ function enemySplit(theirs: Card[], how: EnemySetup) {
   return { pile, towers: how === 'best-towers' ? autoTowers(t) : t }
 }
 
-// how you split your 14 cards into a deck of 8 and 6 tower cards
+// how you split your 11 cards into a deck of 8 and 3 tower cards
 export type DeckPolicy = 'suggested' | 'random' | 'all-high' | 'all-low' | 'mixed' | `top${number}` // topN: the N highest cards and the (8 - N) lowest
 function mySplit(mine: Card[], how: DeckPolicy, rnd: () => number): { deck: Card[]; towers: Card[] } {
   const s = [...mine].sort((a, b) => b.rank - a.rank)
@@ -55,7 +55,7 @@ function mySplit(mine: Card[], how: DeckPolicy, rnd: () => number): { deck: Card
 }
 
 
-/** Plays a game on from any state until it ends, with `real` giving the enemy card behind each face-down tid (ep0-7 its pile, et0-5 its towers). */
+/** Plays a game on from any state until it ends, with `real` giving the enemy card behind each face-down tid (ep0-7 its pile, et0-2 its towers). */
 export function playOut(g0: GuideState, real: Map<string, Card>, player: Player, rnd: () => number, onEvent?: (e: NonNullable<GuideState['events']>[number]) => void): GuideState {
   let g = g0, steps = 0, plays = 0
   while (g.stage !== 'over' && g.round < 200 && steps++ < 60000) {
@@ -76,13 +76,17 @@ export function playOut(g0: GuideState, real: Map<string, Card>, player: Player,
   return g
 }
 
-export interface Setup { enemyMin?: number; rules?: Partial<Rules>; enemy?: EnemySetup; player?: Player; deck?: DeckPolicy }
+export interface Setup {
+  enemyMin?: number; rules?: Partial<Rules>; enemy?: EnemySetup; player?: Player; deck?: DeckPolicy
+  keep?: (mine: Card[]) => boolean // on screen you may deal again: deal until your 11 cards pass this (a player hunting a hand they like)
+}
 export interface Result {
   n: number; wins: number; rounds: number; unfinished: number
   easy: number        // wins in 12 rounds or fewer with at least 5 of your 6 tower cards still standing
+  untouched: number   // games the enemy never cracked or broke one of your tower cards
   standing: number    // your tower cards left, summed over the wins
   aceKillsP: number; aceKillsE: number
-  byAces: Record<number, [number, number]> // [wins, games] by the number of aces in your 14 cards
+  byAces: Record<number, [number, number]> // [wins, games] by the number of aces in your 11 cards
 }
 
 export function run(n: number, setup: Setup, seed: number): Result {
@@ -90,13 +94,14 @@ export function run(n: number, setup: Setup, seed: number): Result {
   const rnd = mulberry(seed + 1)
   const rules = { ...DEFAULT_RULES, ...setup.rules }
   const player = setup.player ?? suggestions
-  const r: Result = { n: 0, wins: 0, rounds: 0, unfinished: 0, easy: 0, standing: 0, aceKillsP: 0, aceKillsE: 0, byAces: {} }
+  const r: Result = { n: 0, wins: 0, rounds: 0, unfinished: 0, easy: 0, untouched: 0, standing: 0, aceKillsP: 0, aceKillsE: 0, byAces: {} }
   for (let k = 0; k < n; k++) {
-    const d = shuffle(freshDeck())
-    let mine = d.slice(0, PER_SIDE), theirs = d.slice(PER_SIDE, 2 * PER_SIDE)
+    let d = shuffle(freshDeck())
+    for (let tries = 0; setup.keep && !setup.keep(splitDeal(d).mine) && tries < 1000; tries++) d = shuffle(freshDeck())
+    let { mine, theirs } = splitDeal(d)
     if (setup.enemyMin && setup.enemyMin > 1) { // the enemy's cards come only from this rank up (the low cards are set aside before it is dealt)
-      theirs = d.filter(c => c.rank >= setup.enemyMin!).slice(0, PER_SIDE)
-      mine = d.filter(c => !theirs.includes(c)).slice(0, PER_SIDE)
+      theirs = d.filter(c => isRed(c) && c.rank >= setup.enemyMin!).slice(0, PER_SIDE)
+      mine = d.filter(c => !isRed(c)).slice(0, PER_SIDE)
     }
     const { deck, towers: myTowers } = mySplit(mine, setup.deck ?? 'suggested', rnd)
     const { pile, towers } = enemySplit(theirs, setup.enemy ?? 'random')
@@ -106,6 +111,7 @@ export function run(n: number, setup: Setup, seed: number): Result {
     const g = playOut(startRound(makeGame(deck, myTowers, mine, rules)), real, player, rnd, e => { if (e.type === 'fight' && e.ace && e.winner === e.ace) { if (e.ace === 'P') r.aceKillsP++; else r.aceKillsE++ } })
     if (g.stage !== 'over') { r.unfinished++; continue }
     r.n++; r.rounds += g.round
+    if (!g.stats.mineBroken && !g.cracked?.some(id => mine.some(c => c.id === id))) r.untouched++
     const aces = mine.filter(c => c.rank === 1).length
     const b = (r.byAces[aces] ??= [0, 0]); b[1]++
     if (g.winner === 'P') {
