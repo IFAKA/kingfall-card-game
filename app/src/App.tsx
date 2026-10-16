@@ -23,6 +23,8 @@ import { useViewport } from '@/hooks/use-viewport'
 import DeckBuilder from './DeckBuilder'
 import { tutorialCards, tutorialSecret } from './tutorial'
 import { track } from './stats'
+import { addGame, downloadText, logName, readHistory } from './history'
+import type { PastGame } from './history'
 
 type Help = 'off' | 'explain' | 'suggest'
 type Screen = 'title' | 'deal' | 'enter' | 'draft' | 'table' | 'play'
@@ -730,6 +732,21 @@ export default function App() {
     const s: Saved = { mode, secret, screen, dealt, deckIds, slotIds, help, order, game, history: history.slice(-60), intro, counted }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)) } catch { /* storage full: ignore */ }
   }, [mode, secret, screen, dealt, deckIds, slotIds, help, order, game, history, intro, counted])
+  // the whole log as text, to keep or send: what was dealt and built, the result, then every line of the game
+  const logText = (g: GuideState) => {
+    const cards = (ids: string[]) => ids.map(id => label(byId(id))).join(' ')
+    const help = mode === 'play' ? (suggestOn ? 'suggestions on' : 'suggestions off') : (explainOn ? 'explanations on' : 'explanations off')
+    const head = [
+      'Suitkeep game log', new Date().toLocaleString(), `Mode: ${mode === 'guide' ? 'real cards' : 'on screen'} (${help}${intro?.deck ? ', first game' : ''})`,
+      `Rules: aces beat kings${g.rules.aceMin === 13 ? ' only' : ''}, elixir cap ${g.rules.cap}`,
+      g.stage === 'over' ? `Result: ${g.winner === 'P' ? 'you won' : g.winner === 'E' ? 'you lost' : 'draw'} after ${g.round} rounds` : `Unfinished: round ${g.round}`,
+      `Your 14 cards: ${g.dealt.map(label).join(' ')} (${g.dealt.filter(c => c.rank === 1).length} aces)`,
+      deckIds.length ? `Your deck: ${cards(deckIds)}` : '', slotIds.length ? `Your towers (left, left, right, right, king, king): ${cards(slotIds)}` : '',
+      g.enemySeen.length ? `Enemy cards seen: ${g.enemySeen.map(label).join(' ')}` : '',
+      `Your record before this log: ${record.wins} wins in ${record.games} games`, '']
+    return [...head.filter(l => l !== '' || l === head.at(-1)), ...g.log].join('\n') + '\n'
+  }
+  const [past, setPast] = useState<PastGame[]>(readHistory)
   // a finished game counts once (not again when undo and redo pass the end)
   useEffect(() => {
     if (screen !== 'play' || game?.stage !== 'over' || counted) return
@@ -737,6 +754,7 @@ export default function App() {
     setCounted(true); setPlayed(n); writeJSON(PLAYED_KEY, n)
     const won = game.winner === 'P', best = won && (record.best === undefined || game.round < record.best)
     const rec: GameRecord = { games: record.games + 1, wins: record.wins + (won ? 1 : 0), best: best ? game.round : record.best }
+    setPast(addGame({ at: new Date().toISOString(), mode, result: won ? 'win' : game.winner === 'E' ? 'loss' : 'draw', rounds: game.round, text: logText(game) }))
     setRecord(rec); writeJSON(RECORD_KEY, rec); setNewBest(best && record.wins > 0) // a first win is its own news
     track('game-end', { mode: modeName(mode), result: won ? 'win' : game.winner === 'E' ? 'loss' : 'draw', rounds: game.round })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -832,7 +850,7 @@ export default function App() {
       <span className="modechip">{mode === 'play' ? 'On screen' : 'Real cards'}</span>
       {mid}
       <span className="spacer" />
-      <GameMenu topics={RULES} muted={muted} toggleMute={toggleMute} musicOff={musicOff} toggleMusic={toggleMusic} onLeave={reset} />
+      <GameMenu topics={RULES} muted={muted} toggleMute={toggleMute} musicOff={musicOff} toggleMusic={toggleMusic} onLeave={reset} past={past} />
     </div>
   )
 
@@ -841,7 +859,7 @@ export default function App() {
     const fan = ['1-0', '13-1', '12-2'].map(byId)
     return (
       <div className="title">
-        <span className="titlemenu"><GameMenu muted={muted} toggleMute={toggleMute} musicOff={musicOff} toggleMusic={toggleMusic} /></span>
+        <span className="titlemenu"><GameMenu muted={muted} toggleMute={toggleMute} musicOff={musicOff} toggleMusic={toggleMusic} past={past} /></span>
         <div className="titlefan" aria-hidden>{fan.map(c => <PlayingCard key={c.id} card={c} />)}</div>
         <Logo />
         <p className="tagline">A lane battle for one player and a deck of cards</p>
@@ -1084,23 +1102,7 @@ export default function App() {
       </Section>
     </>
   )
-  // the whole log as a text file, to keep or send
-  const exportLog = () => {
-    const cards = (ids: string[]) => ids.map(id => label(byId(id))).join(' ')
-    const help = mode === 'play' ? (suggestOn ? 'suggestions on' : 'suggestions off') : (explainOn ? 'explanations on' : 'explanations off')
-    const head = [
-      'Suitkeep game log', new Date().toLocaleString(), `Mode: ${mode === 'guide' ? 'real cards' : 'on screen'} (${help}${intro?.deck ? ', first game' : ''})`,
-      `Rules: aces beat kings${g.rules.aceMin === 13 ? ' only' : ''}, elixir cap ${g.rules.cap}`,
-      stage === 'over' ? `Result: ${g.winner === 'P' ? 'you won' : g.winner === 'E' ? 'you lost' : 'draw'} after ${g.round} rounds` : `Unfinished: round ${g.round}`,
-      `Your 14 cards: ${g.dealt.map(label).join(' ')} (${g.dealt.filter(c => c.rank === 1).length} aces)`,
-      deckIds.length ? `Your deck: ${cards(deckIds)}` : '', slotIds.length ? `Your towers (left, left, right, right, king, king): ${cards(slotIds)}` : '',
-      g.enemySeen.length ? `Enemy cards seen: ${g.enemySeen.map(label).join(' ')}` : '',
-      `Your record before this log: ${record.wins} wins in ${record.games} games`, '']
-    const url = URL.createObjectURL(new Blob([[...head.filter(l => l !== '' || l === head.at(-1)), ...g.log].join('\n') + '\n'], { type: 'text/plain' }))
-    const a = Object.assign(document.createElement('a'), { href: url, download: `suitkeep-log-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.txt` })
-    a.click()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
-  }
+  const exportLog = () => downloadText(logName(new Date()), logText(g))
   const cheat = (
     <RulesSheet title="Who beats who" rules={cheatSheet(g)}>
       <Button variant="secondary" size="icon-lg" aria-label="Who beats who" title="Who beats who"><Swords /></Button>
@@ -1240,7 +1242,7 @@ export default function App() {
       ? <Choice id="fast" icon={<FastForward />} title="Fast enemy turns" checked={fast} onChange={setFast} />
       : <Choice id="batch" icon={<ListChecks />} title="Fights in one list" description="Each round's fights and tower hits as one checklist" checked={batchOn} onChange={setBatch} />
     const tipsAgain = () => { setTipsSeen([]); writeJSON(TIPS_KEY, []) }
-    const menu = <GameMenu topics={RULES} muted={muted} toggleMute={toggleMute} musicOff={musicOff} toggleMusic={toggleMusic} onLeave={reset} log={g.log} onExport={exportLog}
+    const menu = <GameMenu topics={RULES} muted={muted} toggleMute={toggleMute} musicOff={musicOff} toggleMusic={toggleMusic} onLeave={reset} log={g.log} onExport={exportLog} past={past}
       hints={hints} hintsOn={help !== 'off'} settings={settings} onTipsAgain={tipsAgain} />
     const round = <RoundChip n={g.round} />
     const discard = (owner: 'P' | 'E') => {
