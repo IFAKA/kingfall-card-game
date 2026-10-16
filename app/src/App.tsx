@@ -1177,7 +1177,7 @@ export default function App() {
       ? wide
         ? Math.max(44, Math.min((view.sh - 168) / 6.9, (Math.min(view.sw - 460, 760) - 60) / 8.9 / 0.714, (420 - 32 - 10 * HAND_SIZE - 8) / (HAND_SIZE + 1) / 0.714, 128)) // the hand (its cards + Done, 10px apart) fits the 420px column inside its 16px padding
         : Math.max(44, Math.min((view.sh - 308) / 7.84, (aw - 60) / 8.9 / 0.714, 128))
-      : Math.max(48, Math.min((view.sh - 195) / (6.9 + HAND_BIG), (aw - 80) / (3 + 3 * HAND_BIG) / 0.714, 128)) // the field, plus a hand HAND_BIG times its size
+      : Math.max(48, Math.min((view.sh - 195) / (6.9 + HAND_BIG), (Math.min(aw, 470) - 126) / (3.67 * HAND_BIG), 128)) // the field, plus a hand HAND_BIG times its size: the hand row (turn bar, Next, 3 cards, done = 3.67 card heights x HAND_BIG wide) leaves 18px between its three groups
     const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px`, '--hcw': `${ch * 0.714 * HAND_BIG}px`, '--hch': `${ch * HAND_BIG}px` } as CSSProperties
     // the tips teach how to play a card, what ✓ does and what a turn holds, and the river shows the round: the line only says whose turn it is
     const prompt = stage === 'my_play' ? 'Your turn: 1 card, or 2 small ones.' : standing ? TITLES[stage] : stage === 'round_start' ? 'New round.' : 'Enemy turn…'
@@ -1300,8 +1300,10 @@ export default function App() {
           <div className="handwrap">
             <div className={`handrow${doNow && !atTable ? ' wait' : ''}`}>
               <TurnBar n={g.P.elixir} spend={spend} max={g.rules.cap} />
-              {g.P.queue[0] && <div className="nextcard mine" title="Your next card: it comes into your hand when you play one"><span>Next</span><ArenaPile slots={g.P.queue.map(c => ({ tid: c.id, card: c }))} side="P" /></div>}
-              {handCards}
+              <div className="handgroup">
+                {g.P.queue[0] && <div className="nextcard mine" title="Your next card: it comes into your hand when you play one"><span>Next</span><ArenaPile slots={g.P.queue.map(c => ({ tid: c.id, card: c }))} side="P" /></div>}
+                {handCards}
+              </div>
               <button className={`big done endturn ${advice?.kind === 'wait' ? 'suggested' : ''}`} title={advice?.kind === 'wait' ? advice.reason : 'End turn'} disabled={stage !== 'my_play'} aria-label="End turn" onClick={() => commit(endMyTurn(g))}><svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg></button>
             </div>
           </div>

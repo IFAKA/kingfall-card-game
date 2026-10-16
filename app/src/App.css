@@ -465,7 +465,7 @@ h3 { margin: 18px 0 8px; }
 .elixrow { display: flex; align-items: center; gap: 8px; }
 .elixrow .big { padding: 7px 16px; font-size: 16px; }
 /* the hand and your elixir bar share one width: the bar runs from the first hand card to Done */
-.handwrap { align-self: center; display: flex; flex-direction: column; gap: 5px; max-width: 100%; }
+.handwrap { align-self: center; display: flex; flex-direction: column; gap: 5px; width: 100%; max-width: 470px; }
 .handrow { display: flex; align-items: flex-end; justify-content: center; gap: 10px; padding-top: 8px; padding-bottom: 8px; min-height: var(--ch); }
 .handrow .hdrag { flex: none; }
 .arena.turn-enemy .handrow { opacity: .6; }
@@ -836,3 +836,7 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .handrow .nextcard.mine { --nl: max(10px, calc(var(--ch) * .13)); --nh: calc(var(--ch) - var(--nl) - 4px); align-self: flex-end; justify-content: flex-end; gap: 4px; height: var(--ch); margin: 0; } /* label + card are as tall as a hand card */
 .handrow .nextcard.mine span { font-family: var(--display); font-size: var(--nl); line-height: 1; color: rgba(255,255,255,.8); text-transform: uppercase; }
 .handrow .nextcard.mine .tcard { width: calc(var(--nh) * .714); height: var(--nh); font-size: calc(var(--nh) * .2); }
+
+/* three groups spread across the row: the turn bar, your Next card with the hand, the done button */
+.handrow { justify-content: space-between; width: 100%; max-width: 470px; margin: 0 auto; box-sizing: border-box; padding-left: 4px; padding-right: 4px; }
+.handrow .handgroup { display: flex; align-items: flex-end; gap: 10px; }
