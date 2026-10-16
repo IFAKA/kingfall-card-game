@@ -211,9 +211,10 @@ export function GameMenu({ topics = [], log, onExport, hints, hintsOn, settings,
     </> },
   }
   const shown = page && pages[page]
-  const footer = <>
+  // on the title screen there is no game to keep or leave: no buttons, the drawer closes by tapping outside it, Escape or a swipe
+  const footer = onLeave && <>
     <DrawerClose render={<Button variant="success" size="xl" />}>Keep playing</DrawerClose>
-    {onLeave && <Button variant="outline" size="xl" onClick={() => go('leave')}><LogOut /> Leave game</Button>}
+    <Button variant="outline" size="xl" onClick={() => go('leave')}><LogOut /> Leave game</Button>
   </>
   return (
     <Sheet open={open} onOpenChange={onOpenChange}
