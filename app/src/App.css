@@ -430,10 +430,10 @@ h3 { margin: 18px 0 8px; }
 
 /* lanes */
 .lanes { position: relative; z-index: 1; flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr minmax(0, .9fr) 1fr; }
-.alane { display: grid; --rgap: calc(var(--ch) * .12); grid-template-rows: 1fr calc(var(--ch) + 8px) calc(18px + var(--rgap) * 2) calc(var(--ch) + 8px) 1fr; min-height: 0; }
+.alane { display: grid; --rgap: calc(var(--ch) * .12); grid-template-rows: 1fr calc(var(--ch) + 4px) calc(18px + var(--rgap) * 2) calc(var(--ch) + 4px) 1fr; min-height: 0; }
 .spot { position: relative; display: flex; align-items: center; justify-content: center; min-height: 0; }
 .spot.atk { z-index: 3; }
-.spot.slot { margin: 0 6px; border: 2px dashed rgba(255,255,255,.3); border-radius: 12px; background: rgba(0,0,0,.1); }
+.spot.slot { margin: 0; padding: 0; border: 2px dashed rgba(255,255,255,.3); border-radius: 12px; background: rgba(0,0,0,.1); }
 .spot.slot > .half { flex: 1 1 0; min-width: 0; align-self: stretch; display: flex; align-items: center; justify-content: center; }
 .half > .unit { flex: 0 1 var(--cw); min-width: calc(var(--cw) * .3); } .half > .unit:last-child { flex-shrink: 0; } /* a crowded half fans its cards, the newest whole */
 .alane .river { margin: var(--rgap) calc(var(--cw) * .25); background: repeating-linear-gradient(90deg, #a0703c 0 7px, #7b5129 7px 9px); border-radius: 4px; box-shadow: 0 2px 0 rgba(0,0,0,.35); z-index: 0; } /* under every lane card (z-index 1), whichever slot it moves to or from */
@@ -581,13 +581,13 @@ button.linkish:active { transform: none; }
 .castle .tslot { height: calc(max(12px, var(--cw) * .27) + 4px); display: flex; align-items: center; }
 .castle .topcard.empty { width: 2.2em; height: 100%; box-sizing: border-box; padding: 0; background: none; box-shadow: none; border: 1.5px dashed rgba(255,255,255,.5); }
 /* lanes of 3 slots: tower, slot, gap, middle slot (on the bridge), gap, slot, tower */
-.alane { grid-template-rows: 1fr calc(var(--ch) + 8px) minmax(var(--rgap), 1fr) calc(var(--ch) + 8px) minmax(var(--rgap), 1fr) calc(var(--ch) + 8px) 1fr; }
+.alane { grid-template-rows: 1fr calc(var(--ch) + 4px) minmax(var(--rgap), 1fr) calc(var(--ch) + 4px) minmax(var(--rgap), 1fr) calc(var(--ch) + 4px) 1fr; }
 .alane > * { grid-column: 1; } /* the river and the middle slot share a row: both span the lane */
 .alane > .spot.atk:first-child { grid-row: 1; } .alane > .spot.slot { grid-row: 2; } .alane > .spot.slot.middle { grid-row: 4; } .alane > .spot.slot.mine { grid-row: 6; } .alane > .spot.atk:last-child { grid-row: 7; }
 .alane > .river { grid-row: 4; align-self: center; height: 18px; margin: 0 calc(var(--cw) * .25); }
 .spot.slot.middle { background: rgba(0,0,0,.18); }
 /* the middle column uses the lanes' rows: each side's next card is centered on its slots' row, the round on the bridge */
-.lanes .mid.rows { --rgap: calc(var(--ch) * .12); position: relative; display: grid; grid-template-rows: 1fr calc(var(--ch) + 8px) minmax(var(--rgap), 1fr) calc(var(--ch) + 8px) minmax(var(--rgap), 1fr) calc(var(--ch) + 8px) 1fr; justify-items: center; gap: 0; min-height: 0; }
+.lanes .mid.rows { --rgap: calc(var(--ch) * .12); position: relative; display: grid; grid-template-rows: 1fr calc(var(--ch) + 4px) minmax(var(--rgap), 1fr) calc(var(--ch) + 4px) minmax(var(--rgap), 1fr) calc(var(--ch) + 4px) 1fr; justify-items: center; gap: 0; min-height: 0; }
 .mid.rows > .sidechip { grid-row: 2; align-self: center; }
 .mid.rows > .sidechip.mine { grid-row: 6; } /* your next card mirrors the enemy's, centered on your slots' row */
 .mid.rows > .round { grid-row: 4; align-self: center; }
@@ -859,7 +859,14 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .lanes .mid .nextcard .tcard { width: var(--cw); height: var(--ch); font-size: calc(var(--cw) * .27); }
 .mid.rows > .sidechip.enemy { align-self: start; margin-top: 4px; }
 
-/* the cards in the lanes (not the towers' cards, not the enemy's Next) grow to the height the lanes have, as far as a lane is wide enough for two of them side by side */
-.lanes { container-type: size; }
-.alane, .lanes .mid.rows { --ch: max(var(--fch), min(calc((100cqh - 60px) / 3.24), calc(100cqw / 3.3))); --cw: calc(var(--ch) * .714); }
+/* the cards in the lanes are as big as the cards in your hand (not the towers' cards, not the enemy's Next card) */
+.alane, .lanes .mid.rows { --ch: var(--hch); --cw: var(--hcw); }
 .lanes .mid .nextcard .tcard { width: var(--fcw); height: var(--fch); font-size: calc(var(--fcw) * .27); }
+
+/* a slot's cards are stacked, each shifted right by --s so its rank and suit stay readable (the newest on top); with more cards the shift gets smaller, to stay inside the slot */
+.spot.slot { container-type: inline-size; }
+.spot.slot > .half { display: grid; justify-content: center; align-items: center; --s: max(calc(var(--cw) * .3), min(calc(var(--cw) * .6), calc((100cqw - var(--cw)) / max(1, var(--n, 1) - 1)))); }
+.half > .unit { grid-area: 1 / 1; width: var(--cw); min-width: 0; margin-left: calc(var(--i, 0) * var(--s)); }
+
+.spot.slot { padding: 0; }
+.spot.slot { min-height: 0; } /* the slot is exactly a card tall (plus its 2px border), whatever the older rule says */

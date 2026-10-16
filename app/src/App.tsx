@@ -236,16 +236,21 @@ function TurnBar({ n, spend, max }: { n: number; spend: number; max: number }) {
 // Tapped, one of them is picked (picked): tapping another card then switches the two.
 function ArenaLane({ idx, units, fighting, laneLen, blocked, dragging, hint, suggested, over, onPlace, grabbable = [], lifted, picked, onGrab, onTap }: { idx: 0 | 1; units: Unit[]; fighting: string[]; laneLen: number; blocked?: boolean; dragging: boolean; hint: boolean; suggested: boolean; over: boolean; onPlace: () => void; grabbable?: string[]; lifted?: string | null; picked?: string | null; onGrab?: (e: React.PointerEvent<HTMLElement>, tid: string) => void; onTap?: (tid: string) => void }) {
   const atTower = (u: Unit) => (u.side === 'P' && u.pos >= laneLen) || (u.side === 'E' && u.pos < 0)
-  const cards = (pred: (u: Unit) => boolean) => units.filter(u => u.lane === idx && pred(u)).sort((a, b) => +atTower(b) - +atTower(a)).map(u => (
-    <div key={u.uid} className={`unit ${u.side} ${atTower(u) ? 'atk' : ''} ${u.wounded ? 'wounded' : ''} ${u.free ? 'free' : ''} ${fighting.includes(u.tid!) ? 'tremble' : ''} ${grabbable.includes(u.tid!) ? 'grab' : ''} ${lifted === u.tid ? 'lifted' : ''}`}
+  const cards = (pred: (u: Unit) => boolean) => units.filter(u => u.lane === idx && pred(u)).sort((a, b) => +atTower(b) - +atTower(a))
+  const card = (u: Unit, i: number) => (
+    <div key={u.uid} style={{ '--i': i } as CSSProperties} className={`unit ${u.side} ${atTower(u) ? 'atk' : ''} ${u.wounded ? 'wounded' : ''} ${u.free ? 'free' : ''} ${fighting.includes(u.tid!) ? 'tremble' : ''} ${grabbable.includes(u.tid!) ? 'grab' : ''} ${lifted === u.tid ? 'lifted' : ''}`}
       title={atTower(u) ? `${u.side === 'P' ? 'Your' : 'Enemy'} card at the tower: ${u.wounded ? 'wounded, it hits once more, then goes back to its pile' : 'it hits the tower this round'}` : u.free ? `${u.side === 'P' ? 'Your' : 'Enemy'} last stand: a tower in this lane fell, so this card came in free. It fights in the next round.` : grabbable.includes(u.tid!) ? 'Changed your mind? Drag it back to your hand or onto the other lane, or tap it, then tap another card to switch them' : undefined}
       onPointerDown={grabbable.includes(u.tid!) ? e => onGrab?.(e, u.tid!) : undefined}
       onClick={grabbable.includes(u.tid!) ? e => { e.stopPropagation(); onTap?.(u.tid!) } : undefined}>
       <TCard tid={u.tid!} card={u.card} down={false} side={u.side} selected={picked === u.tid} />
     </div>
-  ))
+  )
   // one shared space per slot: the colour says whose card it is (yours black, the enemy's red); yours first, then the enemy's
-  const here = (pred: (u: Unit) => boolean) => <div className="half">{cards(u => u.side === 'P' && pred(u))}{cards(u => u.side === 'E' && pred(u))}</div>
+  // the cards of a slot are stacked, each shifted right so its rank and suit show; a crowded slot spreads them less
+  const here = (pred: (u: Unit) => boolean) => {
+    const list = [...cards(u => u.side === 'P' && pred(u)), ...cards(u => u.side === 'E' && pred(u))]
+    return <div className="half" style={{ '--n': list.length } as CSSProperties}>{list.map(card)}</div>
+  }
   return (
     <div className="alane">
       <div className="spot atk" />
