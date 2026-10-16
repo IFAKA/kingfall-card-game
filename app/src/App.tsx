@@ -1280,9 +1280,6 @@ export default function App() {
             <div className="sidechip enemy" title="The next card of the enemy pile (face-down until you have seen it). The enemy plays two cards per round: this one first.">
               {eNext && <div className="nextcard"><ArenaPile slots={g.E.queue} side="E" /><span>Next</span></div>}
             </div>
-            <div className="sidechip mine" title="Your next card: it comes into your hand when you play one">
-              {g.P.queue[0] && <div className="nextcard"><span>Next</span><ArenaPile slots={g.P.queue.map(c => ({ tid: c.id, card: c }))} side="P" /></div>}
-            </div>
           </div>
           <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} />
         </div>
@@ -1303,6 +1300,7 @@ export default function App() {
           <div className="handwrap">
             <div className={`handrow${doNow && !atTable ? ' wait' : ''}`}>
               <TurnBar n={g.P.elixir} spend={spend} max={g.rules.cap} />
+              {g.P.queue[0] && <div className="nextcard mine" title="Your next card: it comes into your hand when you play one"><span>Next</span><ArenaPile slots={g.P.queue.map(c => ({ tid: c.id, card: c }))} side="P" /></div>}
               {handCards}
               <button className={`big done endturn ${advice?.kind === 'wait' ? 'suggested' : ''}`} title={advice?.kind === 'wait' ? advice.reason : 'End turn'} disabled={stage !== 'my_play'} aria-label="End turn" onClick={() => commit(endMyTurn(g))}><svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg></button>
             </div>

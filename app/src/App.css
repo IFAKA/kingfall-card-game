@@ -831,3 +831,8 @@ button.fkey:disabled { opacity: .25; filter: none; }
 /* the hand (and the turn bar and done button beside it) is drawn bigger than the field's cards */
 .handrow { --cw: var(--hcw); --ch: var(--hch); }
 .turncard { box-shadow: 0 0 0 1.5px #fff; } /* a thin white line around the bar's own border, as on the cards */
+
+/* your Next card sits between the turn bar and the hand: label above, the card as tall as a hand card together */
+.handrow .nextcard.mine { --nl: max(10px, calc(var(--ch) * .13)); --nh: calc(var(--ch) * .78 - var(--nl) - 4px); align-self: flex-end; justify-content: flex-end; gap: 4px; height: calc(var(--ch) * .78); margin: 0; }
+.handrow .nextcard.mine span { font-family: var(--display); font-size: var(--nl); line-height: 1; color: rgba(255,255,255,.8); text-transform: uppercase; }
+.handrow .nextcard.mine .tcard { width: calc(var(--nh) * .714); height: var(--nh); font-size: calc(var(--nh) * .2); }
