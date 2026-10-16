@@ -825,3 +825,5 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .castle .guard { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 10px; } /* clears the castle, with room for the tower card's ring */
 .castle .guard .armor { margin: 0; }
 .castle .guard .tslot { margin: 0; }
+.castle .cart.hurt { filter: brightness(.86) saturate(.85) drop-shadow(0 3px 0 rgba(0,0,0,.35)); } /* a cracked tower: cracks across the wall and a duller colour */
+.castle .cart.hurt .crack { stroke: #1a1a1a; stroke-width: 2; stroke-linecap: round; }

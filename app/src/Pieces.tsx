@@ -66,9 +66,9 @@ export function TCard({ tid, card, down, side, selected, dim, showCost, fly = 0.
 
 // The picture of a tower: a crowned keep for the king, a smaller one for the left and right towers (coloured by the .castle around it).
 // A fallen tower is drawn as a ruin: its walls broken off, a crack, rubble at its foot (the king's crown lying beside it).
-export function CastleArt({ king, fallen = false }: { king: boolean; fallen?: boolean }) {
+export function CastleArt({ king, fallen = false, hurt = false }: { king: boolean; fallen?: boolean; hurt?: boolean }) {
   return (
-    <svg className="cart" viewBox={king ? '0 0 64 56' : '0 16 64 40'} aria-hidden>
+    <svg className={`cart${hurt && !fallen ? ' hurt' : ''}`} viewBox={king ? '0 0 64 56' : '0 16 64 40'} aria-hidden>
       {fallen
         ? king
           ? <path d="M6 54V22h8v6h8V14h8v6L34 26L31 31L37 34L42 30L47 35L52 32L58 38V54z" />
@@ -78,6 +78,10 @@ export function CastleArt({ king, fallen = false }: { king: boolean; fallen?: bo
           : <path d="M12 54V18h8v6h6v-6h12v6h6v-6h8v36z" />}
       {king && !fallen && <path className="crown" d="M21 10l1-8 5 5 5-6 5 6 5-5 1 8z" />}
       <path className="door" d="M27 54V42a5 5 0 0 1 10 0v12z" />
+      {hurt && !fallen && <>{/* a damaged tower: cracks across the wall */}
+        <path className="crack" d={king ? 'M18 26l4 7-3 4 5 7-2 6' : 'M18 24l4 6-3 4 4 6-2 6'} />
+        <path className="crack" d={king ? 'M46 28l-3 6 4 4-3 6' : 'M42 26l-3 6 4 4-2 8'} />
+      </>}
       {fallen && <>
         <path className="crack" d={king ? 'M14 31l3 5-2 4 3 6' : 'M18 30l3 5-2 4 3 6'} />
         <path d="M44 54l2-4 4-1 2 5z M53 54l1-4 4 1 1 3z" />
