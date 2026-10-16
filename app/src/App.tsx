@@ -167,12 +167,14 @@ function Castle({ k, items, own, cracked, fx, shake }: { k: 'L' | 'R' | 'K'; ite
   return (
     <div className={`castle ${own ? 'mine' : 'theirs'} ${k === 'K' ? 'king' : ''} ${items.length ? '' : 'fallen'} ${shake ? 'tremble' : ''}`} data-anchor={`tower-${own ? 'P' : 'E'}-${k}`}
       title={!items.length ? `${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower has fallen` : `${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower${top && cracked.includes(top.tid) ? ' (cracked: the next hit breaks it)' : ''}${known ? `; a soldier must win a fight against its top card, ${label(known)}, to stay for the hit that breaks it` : ''}`}>
+      <div className="cwrap">{/* the tower's card is written on the castle, above its door; the castle itself shows its state: whole, cracked, or fallen */}
       <CastleArt king={k === 'K'} fallen={!items.length} hurt={!!top && cracked.includes(top.tid)} />
-      <div className="guard">{/* the tower card under the castle; the castle itself shows its state: whole, cracked, or fallen */}
+      <div className="guard">
         <div className="tslot"><AnimatePresence initial={false} mode="popLayout" custom={fx}>{top
           ? <motion.div key={top.tid + (known ? '' : '?')} custom={fx} variants={CHIP} initial="enter" animate="show" exit="leave"
             className={`topcard ${known ? (isRed(known) ? 'red' : '') : 'empty'}`}>{known && <><span>{RANKS[known.rank]}</span><span>{SUITS[known.suit]}</span></>}</motion.div>
           : null}</AnimatePresence></div>
+      </div>
       </div>
     </div>
   )
@@ -1166,6 +1168,9 @@ export default function App() {
   )
 
   const HAND_BIG = 1.3 // your hand's cards are this much bigger than the cards on the field, so the two are easy to tell apart
+  const HAND_MIN = 1.15 // the hand's cards stay at least this much bigger than the field's, even when the field could grow more
+  const FIELD_K = 210 // the window height kept for everything but the field's rows of cards and the hand's cards (castles, status line, margins)
+  const handFit = (Math.min(view.sw, 640, 470) - 126) / 3.67 // the tallest hand card whose row (turn bar, Next, 3 cards, done) fits the width with room between its groups
 
   // the arena; card size follows the window so the whole field, the bar and the hand always fit
   const arena = () => {
@@ -1177,8 +1182,9 @@ export default function App() {
       ? wide
         ? Math.max(44, Math.min((view.sh - 168) / 6.9, (Math.min(view.sw - 460, 760) - 60) / 8.9 / 0.714, (420 - 32 - 10 * HAND_SIZE - 8) / (HAND_SIZE + 1) / 0.714, 128)) // the hand (its cards + Done, 10px apart) fits the 420px column inside its 16px padding
         : Math.max(44, Math.min((view.sh - 308) / 7.84, (aw - 60) / 8.9 / 0.714, 128))
-      : Math.max(48, Math.min((view.sh - 195) / (6.9 + HAND_BIG), (Math.min(aw, 470) - 126) / (3.67 * HAND_BIG), 128)) // the field, plus a hand HAND_BIG times its size: the hand row (turn bar, Next, 3 cards, done = 3.67 card heights x HAND_BIG wide) leaves 18px between its three groups
-    const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px`, '--hcw': `${ch * 0.714 * HAND_BIG}px`, '--hch': `${ch * HAND_BIG}px` } as CSSProperties
+      : Math.max(48, Math.min(Math.max((view.sh - FIELD_K) / (4.54 + HAND_BIG), (view.sh - FIELD_K - handFit) / 4.54), handFit / HAND_MIN, (aw - 72) / 4.75 / 0.714, 128)) // the field grows to fill the height, but never past the point where the hand (HAND_BIG times its cards, or as big as its row fits) is only HAND_MIN times them
+    const hch = Math.min(ch * HAND_BIG, handFit) // your hand's card height
+    const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px`, '--hcw': `${hch * 0.714}px`, '--hch': `${hch}px` } as CSSProperties
     // the tips teach how to play a card, what ✓ does and what a turn holds, and the river shows the round: the line only says whose turn it is
     const prompt = stage === 'my_play' ? 'Your turn: 1 card, or 2 small ones.' : standing ? TITLES[stage] : stage === 'round_start' ? 'New round.' : 'Enemy turn…'
     // the enemy's last-stand card came in during its turn: your turn still says where it came from, until it has fought

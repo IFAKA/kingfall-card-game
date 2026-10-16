@@ -844,3 +844,13 @@ button.fkey:disabled { opacity: .25; filter: none; }
 /* three groups spread across the row: the turn bar, your Next card with the hand, the done button */
 .handrow { justify-content: space-between; width: 100%; max-width: 470px; margin: 0 auto; box-sizing: border-box; padding-left: 4px; padding-right: 4px; }
 .handrow .handgroup { display: flex; align-items: flex-end; gap: 14px; } /* the Next card and the three hand cards, all the same distance apart */
+
+/* the tower is big enough to carry its card above the door: a white chip, no ring, drawn on the castle */
+.castle .cwrap { position: relative; display: flex; justify-content: center; }
+.castle .cart, .castle:not(.king) .cart { width: calc(var(--cw) * 1.4); height: calc(var(--cw) * 1.14); } /* tall enough for the card between the battlements and the door */
+.castle.king .cart { width: calc(var(--cw) * 1.7); height: calc(var(--cw) * 1.75); }
+.castle .guard { position: absolute; left: 50%; top: 46%; translate: -50% -50%; margin: 0; }
+.castle.king .guard { top: 62%; }
+.castle.mine .topcard:not(.empty), .castle.theirs .topcard:not(.empty) { box-shadow: none; }
+.castle .topcard.empty { width: 1.9em; border: 0; background: rgba(255,255,255,.88); display: grid; place-items: center; }
+.castle .topcard.empty::after { content: '?'; color: #6b6b6b; font-weight: 800; }
