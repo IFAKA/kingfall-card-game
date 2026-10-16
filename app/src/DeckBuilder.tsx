@@ -146,7 +146,6 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, title, b
       </div>
       <div className="dtray">
         <div className="dstats" title="How much of a turn your deck's cards use on average: 1 = all small (two a round), 2 = all big (one a round)">
-          <span className="edrop">{avg.toFixed(1)}</span>
           <div>
             <div className="dmeter"><span className="avgbar"><i style={{ transform: `translateX(${(avg - 1) * 100 - 100}%)` }} /></span><b>{speed}</b></div>
             <small title="big: 6 to K (your whole turn) · small: A to 5 (two a turn)">{big} big · {small} small</small>

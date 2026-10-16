@@ -7,12 +7,12 @@ import type { Card } from './engine'
 // Pieces shared by the deck screen and the arena.
 
 // The face of a playing card, the same on every card in the game: rank over suit in the top-left corner like a real card,
-// and (on a card you can play) its elixir cost on a ball at the middle of the bottom edge.
+// and (on a card you can play) its size in dots (a small card one, any other two) on a pill at the middle of the bottom edge.
 // Everything is sized from the card's width (--cw), so a small card is the same picture shrunk.
 function Face({ card, showCost }: { card: Card; showCost?: boolean }) {
   return <>
     <div className="corner">{RANKS[card.rank]}<br />{SUITS[card.suit]}</div>
-    {showCost && <div className="cost" title="elixir cost">{cost(card.rank)}</div>}
+    {showCost && <div className="cost" title={cost(card.rank) === 1 ? 'Small card: uses one of your two plays' : 'Uses your whole turn'}>{Array.from({ length: cost(card.rank) }, (_, i) => <i key={i} />)}</div>}
   </>
 }
 

@@ -218,7 +218,7 @@ h3 { margin: 18px 0 8px; }
 .tcard.dim { opacity: 1; }
 .tcard.dim .front { filter: grayscale(1) brightness(.6); }
 .tcard.dim .cost { background: #b3261e; }
-.tcard.dim .cost::after { content: ''; }
+.tcard.dim .cost i { background: #fff; }
 .warn { background: #5a1f1c; border: 1px solid #e0605a; border-radius: 6px; padding: 8px 10px; }
 .play { --cw: min(calc(((100 * var(--vw)) - 28px) / 17.7), calc(((52 * var(--vh)) - 70px) / 3 * .714)); }
 .board { grid-template-columns: calc(var(--cw) * 1.15) calc(var(--cw) * 2.2) calc(var(--cw) * 1.85) calc(var(--cw) * 1.1) calc(var(--cw) * 1.8) calc(var(--cw) * 1.8) calc(var(--cw) * 1.1) calc(var(--cw) * 1.85) calc(var(--cw) * 2.2) calc(var(--cw) * 1.15); }
@@ -458,24 +458,12 @@ h3 { margin: 18px 0 8px; }
 .round { font-family: var(--display); font-size: var(--mfont, 15px); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.5); background: rgba(11, 20, 48, .7); border-radius: 10px; padding: 2px 10px; }
 .sidechip { display: flex; align-items: center; gap: 6px; }
 
-/* elixir drop shared by the bar and the enemy chip */
-.edrop, .ebar .drop { display: grid; place-items: center; flex: none; width: 28px; height: 30px; border-radius: 50% 50% 50% 50% / 60% 60% 42% 42%; background: var(--elixir-fill);
-  border: 2px solid #2a0f4d; color: #fff; font-family: var(--display); font-size: 16px; text-shadow: 0 1px 0 #2a0f4d; }
-.edrop { width: 24px; height: 26px; font-size: 14px; }
-
-/* the tray: what just happened, elixir, hand */
+/* the tray: what just happened, your two lights, hand */
 .tray { flex: none; display: flex; flex-direction: column; gap: 5px; }
 .feed { min-height: 2.5em; display: flex; flex-direction: column; justify-content: center; font-size: 16px; line-height: 1.25; text-align: center; color: #fff; background: rgba(11, 20, 48, .7); border: 2px solid rgba(61, 95, 192, .6); border-radius: 12px; padding: 3px 10px; }
 .feed.hushed { visibility: hidden; }
 .elixrow { display: flex; align-items: center; gap: 8px; }
 .elixrow .big { padding: 7px 16px; font-size: 16px; }
-.ebar { flex: 1; display: flex; align-items: center; min-width: 0; }
-.ebar .drop { position: relative; z-index: 1; margin-right: -8px; }
-.ebar .segs { position: relative; flex: 1; height: 20px; background: #1d1238; border: 2px solid #0b0720; border-radius: 0 9px 9px 0; overflow: hidden; }
-.ebar .fill { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(#ec9cff, #b445e8 55%, #7d20c4); box-shadow: 0 0 10px #c35cff; width: 100%; transition: transform .4s var(--ease-out); }
-.ebar .spend { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(45deg, rgba(255,255,255,.75) 0 4px, rgba(255,255,255,.15) 4px 8px); }
-.ebar .spend.short { background: repeating-linear-gradient(45deg, rgba(255,80,80,.9) 0 4px, rgba(255,80,80,.3) 4px 8px); }
-.ebar .segs i { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(0,0,0,.4); }
 /* the hand and your elixir bar share one width: the bar runs from the first hand card to Done */
 .handwrap { align-self: center; display: flex; flex-direction: column; gap: 5px; max-width: 100%; }
 .handrow { display: flex; align-items: flex-end; justify-content: center; gap: 14px; padding-top: 8px; padding-bottom: 22px; min-height: var(--ch); }
@@ -803,8 +791,9 @@ button.fkey:disabled { opacity: .25; filter: none; }
    rank over suit in the top-left corner like a real card, the elixir cost on a ball at the middle of the bottom edge;
    all in em of the card's font-size, which is a share of its width, so every card is the same picture at its own size */
 .tcard .corner { position: absolute; top: .2em; left: .24em; font-weight: 800; font-size: 1.1em; line-height: .95; text-align: center; letter-spacing: -.05em; }
-.tcard .cost { position: absolute; z-index: 3; left: 50%; bottom: 0; translate: -50% 50%; box-sizing: border-box; width: 1.75em; height: 1.75em; font-size: 1.05em; font-weight: 700;
-  display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid #fff; background: var(--elixir-fill); color: #fff; text-shadow: 0 1px 0 #2a0f4d; }
+.tcard .cost { position: absolute; z-index: 3; left: 50%; bottom: 0; translate: -50% 50%; box-sizing: border-box; height: 1.45em; min-width: 1.45em; padding: 0 .38em; font-size: 1.05em; gap: .3em;
+  display: flex; align-items: center; justify-content: center; border-radius: 999px; border: 2px solid #fff; background: #ffd36b; }
+.tcard .cost i { width: .62em; height: .62em; border-radius: 50%; background: #3a2a05; }
 /* a card that stays put brings its own size; the place it is shown in can set another --cw */
 .scard { --cw: 46px; --ch: calc(var(--cw) / .714); font-size: calc(var(--cw) * .28); }
 .cheat .scard { --cw: 40px; }
@@ -827,3 +816,10 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .field > .corner.right { display: flex; align-items: center; gap: 4px; height: 32px; }
 .field > .corner.right button { width: 32px; height: 32px; } /* four buttons (with undo/redo) still clear the king tower on a phone */
 .field > .corner .undoredo { display: contents; }
+
+/* the two lights of your turn under the hand: lit while you may still play, the card you hold shows which it would use */
+.turnpips { flex: 1; display: flex; align-items: center; justify-content: center; gap: 22px; height: 28px; }
+.tp { width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; background: #1b2540; border: 2px solid #3b4a78; transition: background .3s var(--ease-out), box-shadow .3s var(--ease-out), border-color .3s var(--ease-out); }
+.tp.on { background: radial-gradient(circle at 35% 30%, #fff1b8, #ffd36b 55%, #d99a1c); border-color: #fff; box-shadow: 0 0 10px rgba(255,211,107,.75); }
+.tp.on.spend { background: #ffd36b33; border-color: #ffd36b; box-shadow: 0 0 0 3px #ffd36b88; }
+.tp.short { background: #b3261e55; border-color: #ff6b61; box-shadow: 0 0 0 3px #ff6b6188; }

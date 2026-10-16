@@ -216,16 +216,10 @@ function TablePile({ top, down, side, n, name, flip, faces }: { top?: ESlot; dow
 // Hovering or dragging a card shows what it would use.
 function TurnBar({ n, spend, max }: { n: number; spend: number; max: number }) {
   const [a, b] = spendRange(n, spend, max)
-  const w = 100 / max
   const left = n === max ? 'play 1 card, or 2 small cards (A to 5)' : n > 0 ? 'you may still play 1 small card (A to 5)' : 'your play is done'
   return (
-    <div className="ebar" role="meter" aria-valuemin={0} aria-valuemax={max} aria-valuenow={n} aria-label={`Your turn: ${left}`} title={`Your turn: ${left}`}>
-      <div className="drop">{n}</div>
-      <div className="segs">
-        <div className="fill" style={{ transform: `translateX(${(n - max) * w}%)` }} />
-        {spend > 0 && <div className={`spend ${spend > n ? 'short' : ''}`} style={{ left: `${a * w}%`, width: `${(b - a) * w}%` }} />}
-        {Array.from({ length: max - 1 }, (_, i) => <i key={i} style={{ left: `${(i + 1) * w}%` }} />)}
-      </div>
+    <div className="turnpips" role="meter" aria-valuemin={0} aria-valuemax={max} aria-valuenow={n} aria-label={`Your turn: ${left}`} title={`Your turn: ${left}`}>
+      {Array.from({ length: max }, (_, i) => <span key={i} className={`tp${i < n ? ' on' : ''}${spend > 0 && i >= a && i < b ? (spend > n ? ' short' : ' spend') : ''}`} />)}
     </div>
   )
 }
@@ -508,7 +502,7 @@ const RULES: Topic[] = [
   </> },
   { id: 'turn', icon: <Hand />, title: 'Your turn', line: 'Play 1 card a round, or 2 small cards (A to 5).', body: <>
     <p>Each round you play <b>1 card</b>, or <b>2 small cards</b> (A to 5). You may also play nothing.</p>
-    <p>The purple number says how much of your turn a card uses: a small card <b>1</b>, any other card <b>2</b>, your whole turn. Nothing carries over to the next round.</p>
+    <p>The dots on a card say how much of your turn it uses: a small card <b>one dot</b>, any other card <b>two</b>, your whole turn. The two lights under your hand show what is left of your turn. Nothing carries over to the next round.</p>
     <p>The enemy plays <b>2 cards every round</b>, the top two of its pile, whatever they are.</p>
   </> },
   { id: 'round', icon: <Repeat />, title: 'A round', line: 'You play, the enemy defends, the front cards fight, all move up.', body: <ol className="m-0 list-decimal pl-5">
@@ -543,7 +537,7 @@ type TipId = 'goal' | 'drag' | 'turn' | 'change' | 'enemy2' | 'rank' | 'suit' | 
 const TIPS: Record<TipId, string> = {
   goal: "Goal: break the enemy's king, the crowned castle at the top. Your cards are soldiers.",
   drag: 'Drag a card onto a lane at the bottom. Each round: 1 card, or 2 small ones (A to 5).',
-  turn: 'The purple number is how much of your turn a card uses: big cards 2, small cards 1. Done? Press ✓ and the enemy moves.',
+  turn: 'The dots on a card show how much of your turn it uses: big cards two, small cards one. The two lights show what is left. Done? Press ✓ and the enemy moves.',
   change: 'Changed your mind? Before ✓, drag a placed card back to your hand or to the other lane.',
   enemy2: 'The enemy plays 2 cards a round: the first defends the lane where you have more cards, the second goes into the other lane. Its Next card is its first.',
   rank: 'Cards fight where they meet: the higher rank wins. Equal? The enemy wins. The loser goes back to its pile.',
