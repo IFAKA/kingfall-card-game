@@ -817,3 +817,6 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .field > .corner.right { display: flex; align-items: center; gap: 4px; height: 32px; }
 .field > .corner.right button { width: 32px; height: 32px; } /* four buttons (with undo/redo) still clear the king tower on a phone */
 .field > .corner .undoredo { display: contents; }
+.turncard.full .tp:first-child { border-top-left-radius: 1px; border-top-right-radius: 1px; } /* a full bar is one piece: the halves meet square, round only at the outer corners */
+.turncard.full .tp:last-child { border-bottom-left-radius: 1px; border-bottom-right-radius: 1px; }
+.tp.on { box-shadow: 0 0 5px rgba(255,211,107,.6); } /* a tighter glow, so it doesn't fill the gap between the halves */
