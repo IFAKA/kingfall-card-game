@@ -456,7 +456,9 @@ h3 { margin: 18px 0 8px; }
 /* suggested move: the card and its lane glow green, or End turn does when waiting is best */
 /* the lane keeps the gold drop-target look (green vanishes on the field); a solid border and a green ★ tag set it apart from the other lane while dragging */
 .spot.slot.suggested > .half { outline-style: solid; }
-.spot.slot.suggested .droptag { display: grid; place-items: center; box-sizing: border-box; width: 18px; height: 18px; padding: 0; border-radius: 50%; background: var(--green-d); color: #fff; line-height: 1; box-shadow: 0 0 calc(14px * var(--pulse) * var(--on)) calc(3px * var(--pulse) * var(--on)) rgba(255,207,58,calc(.8 * var(--pulse) * var(--on))); } /* round, and it glows with the slot's own beat */
+.spot.slot.suggested .droptag { display: grid; place-items: center; box-sizing: border-box; width: 18px; height: 18px; padding: 0; border-radius: 50%; background: var(--green-d); color: #fff; line-height: 1; } /* round */
+/* its glow is the slot's own (same shadow, same opacity value), but only the bottom half of it: the half of the badge outside the slot */
+.droptag::after { content: ''; position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 14px rgba(255,207,58,.6); opacity: calc(var(--pulse) * var(--on)); clip-path: inset(50% -30px -30px -30px); pointer-events: none; z-index: -1; }
 .hdrag.suggested { animation: suggestglow 1.1s ease-in-out infinite; }
 @keyframes suggestglow { 0%, 100% { filter: drop-shadow(0 0 2px rgba(76,194,99,.6)); } 50% { filter: drop-shadow(0 0 9px var(--green)) drop-shadow(0 0 3px var(--green)); } }
 /* the end-turn button is shaped like a hand card, the last card of the row */
