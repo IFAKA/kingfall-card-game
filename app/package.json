@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "node scripts/check.ts",
     "rulebook": "node scripts/rulebook.ts",
-    "check": "npm run lint && npm run build && npm test"
+    "check": "npm run lint && npm run build && npm test",
+    "itch": "npm run build && rm -f suitkeep-itch.zip && cd dist && zip -qr ../suitkeep-itch.zip ."
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

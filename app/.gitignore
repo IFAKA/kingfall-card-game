@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# the itch.io upload (npm run itch)
+suitkeep-itch.zip

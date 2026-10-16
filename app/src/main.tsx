@@ -7,8 +7,10 @@ import './index.css'
 import App, { STORAGE_KEY } from './App.tsx'
 import ErrorBoundary from './ErrorBoundary.tsx'
 import { registerPwa } from './pwa.ts'
+import { startStats } from './stats.ts'
 
 registerPwa()
+startStats()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -18,19 +18,20 @@ npm test           # rules checks: plays hundreds of full games through the app'
 npm run check      # lint + build + tests: run this before every release
 npm run build      # production build into dist/
 npm run preview    # serve the production build locally
+npm run itch       # build + zip for itch.io: suitkeep-itch.zip
 ```
 
 ## Releasing
 
 `npm run build` produces a static site in `dist/` with relative paths, so it runs from any folder or static host:
 
-- **itch.io (HTML game):** zip the *contents* of `dist/` (not the folder itself) and upload it as an HTML project.
+- **itch.io (HTML game):** `npm run itch` zips the *contents* of `dist/` (not the folder itself) into `suitkeep-itch.zip`; upload it as an HTML project.
 - **Vercel (the live site):** the Vercel project `suitkeep` builds from this `app/` folder; every push to `main` deploys to production.
 - **Netlify / Cloudflare Pages / GitHub Pages:** publish the `dist/` folder; there is no server code.
 
-It is also an installable app (PWA): `public/manifest.webmanifest` and the icons in `public/` describe it, and the build writes `dist/sw.js`, a service worker that saves every file the game needs so it plays offline after one visit (see `vite.config.ts`; it registers only in production builds). Each build gets a new cache name, so a deploy replaces the old copy.
-
 It is also an installable app (PWA): `public/manifest.webmanifest` and the icons in `public/` describe it, and the build writes `dist/sw.js`, a service worker that saves every file of the game on the first visit so it then starts and plays offline. Each release gets a new cache, so players get the new version on their next visit. `npm run dev` doesn't register it; try it with `npm run build && npm run preview`.
+
+**Stats:** `src/stats.ts` sends anonymous play counts to Umami (no cookies, no names): games started, rounds reached, games finished or left. It only runs with its website ID set and on suitkeep.vercel.app or itch.io, never in development. The tracker loads through `/stats/` on our own site (the rewrites in `vercel.json`) so fewer ad blockers drop it. Opening the site with `?nostats` stops counting in that browser; `?stats` starts it again.
 
 The SEO tags (title, description, preview image, structured data) are in `index.html`; `public/robots.txt`, `public/sitemap.xml` and `public/og.png` go with them. Update the URLs there if the site moves to another domain.
 

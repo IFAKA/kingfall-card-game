@@ -42,6 +42,7 @@ Full rules: [RULEBOOK.md](RULEBOOK.md) · Printable rulebook (3 pages, A4): [pri
 - **Your pace:** on screen, tap the field to skip ahead while the enemy plays, or turn on fast enemy turns. With real cards, a round's fights, moves and tower hits can come as one checklist with one Done (on by default after two games at the table).
 - **Learn from each game:** the end of a game names the one thing that cost you most (an open lane, an enemy ace, the suit wheel, wasted elixir), and keeps your record: wins, games and fastest win.
 - Game saved in the browser, an optional suggested move, and a log of everything that happened.
+- **Anonymous play counts** (Umami: no cookies, no names), so we can see whether players finish a game and come back. Open the site with `?nostats` to stop counting in your browser.
 - **Balanced by simulation:** thousands of simulated games tuned the rules. Games last about 12–17 rounds. Random play wins about 10%, a simple rule-follower about half, the app's suggestions about 80%, and every kind of deck (all cheap, mixed, all heavy) wins about as often: skill is in the playing.
 
 <p align="center">

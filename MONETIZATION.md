@@ -8,7 +8,8 @@ _Written 2026-10-16 for this game as it is today. Update it when a step is done 
 - The printable rulebook exists (`print/Suitkeep-Rulebook.pdf`).
 - The trailer is finished: `trailer/out/suitkeep-trailer-tall.mp4` (vertical) and `trailer/out/suitkeep-trailer-wide.mp4` (wide), 33 seconds each.
 - **Nobody else has played it yet**, and you don't know anyone to test with.
-- **There are no stats** in the game, so you can't see what players do.
+- **The stats are built into the game but switched off** until you make the free Umami account (step 5).
+- **The posts, the itch.io page text, its cover and the upload file are ready** (see [Ready-to-post texts](#ready-to-post-texts) at the end). Nothing has been posted.
 - **The game is called Suitkeep** (renamed 2026-10-16, because a card game called "Kingfall" was announced on Steam on 2026-10-01 by an established studio). The repo is github.com/IFAKA/suitkeep, and the old kingfall-card-game.vercel.app link forwards to suitkeep.vercel.app.
 
 ## How to use this file
@@ -19,7 +20,14 @@ _Written 2026-10-16 for this game as it is today. Update it when a step is done 
 - **You** = things only you can do (accounts, payments, posting, photos). **Claude** = things Claude does.
 - Tick the box when a step is done.
 
-**➡️ Next step: 5** (add anonymous stats). Steps 1, 2, 4 and 6 are done; step 3 is optional for now.
+**➡️ Next step: 5.** Claude's part is built; only your part is left (5.1–5.3, about 5 minutes). Steps 1, 2, 4 and 6 are done; step 3 is optional for now.
+
+### While you wait (do these now, they make later steps work)
+
+- [ ] **Reddit account.** If you don't have one, make it now and use it normally for 1–2 weeks: comment on other people's games in r/WebGames, r/playmygame, r/cardgames and r/soloboardgaming. Reddit often hides posts from new accounts that have never commented.
+- [ ] **Read each subreddit's rules** (the "About" or "Rules" tab on the right, or under the name on the phone). Claude can't open Reddit's pages; the rule notes below come from a rules index read in October 2026.
+- [ ] **Watch both trailers** (`trailer/out/`) and tell Claude if anything should change.
+- [ ] **Take the table photo** for step 9 (see [Photo for the tabletop posts](#photo-for-the-tabletop-posts)).
 
 ---
 
@@ -51,9 +59,18 @@ You can't post, print or build a brand on a name another card game uses.
 
 Without stats, posting the game teaches you nothing.
 
-- [ ] **5. Add anonymous stats.** _Claude._
-  Needs: the renamed game from step 4. Do: count games started, games finished (won or lost), second games started, the round where people quit, and real-cards mode started. Use a free, privacy-friendly counter. No names, no tracking ads.
-  Done when: you play one game and see it in the stats page.
+- [ ] **5. Add anonymous stats.** _Claude builds it, you make the account._
+  Needs: the renamed game from step 4. Uses **Umami**: free, no cookies (so no cookie pop-up), no names, no ads. Vercel's free stats only count page visits, not games, so they aren't used.
+  - [ ] **5.1 You:** sign up at **cloud.umami.is** with your email and pick the free plan. If it asks for a card, stop and tell Claude.
+  - [ ] **5.2 You:** click **Add website**. Name: `Suitkeep`. Domain: `suitkeep.vercel.app`.
+  - [ ] **5.3 You:** open that website's settings, copy the **Website ID** (looks like `a1b2c3d4-…`) and paste it to Claude.
+  - [x] **5.4 Claude:** the stats code (`app/src/stats.ts`). It only counts on suitkeep.vercel.app and the itch.io version, never on test copies. ✅ 2026-10-16
+  - [x] **5.5 Claude:** the stats load through suitkeep.vercel.app (`app/vercel.json`), so fewer ad blockers hide players. ✅ 2026-10-16
+  - [x] **5.6 Claude:** what it counts: page visits, `cards-open` (real-cards mode opened), `game-start` (mode, which game number), `first-game`, `second-game`, `round` (every round a game reaches), `game-end` (win/loss/draw and rounds), `game-leave` (left from the menu, which round), `setup-leave` (left during setup, which step). ✅ 2026-10-16, tested offline.
+  - [ ] **5.7 Claude:** put your ID in `app/src/stats.ts`, check, push (Vercel updates the site by itself), and rebuild the itch.io file.
+  - [ ] **5.8 You:** play one whole game on suitkeep.vercel.app, then open Umami → your website → **Events**. Your game should be there.
+  - [ ] **5.9 You:** so your own games stop counting, open **suitkeep.vercel.app/?nostats** once on each phone and computer you play on (open **suitkeep.vercel.app/?stats** to count again).
+  Done when: 5.8 shows your game. How to read it at Checkpoint A: **finish rate** = people with `game-end` ÷ people with `game-start`. **Come-back rate** = `second-game` ÷ `first-game`. **Where people stop** = the `n` values of the `round` event.
 
 - [x] **6. Finish the trailer with the new name.** _Claude._
   Needs: the renamed game (step 4). Do: run the trailer's rebuild command.
@@ -65,19 +82,38 @@ Without stats, posting the game teaches you nothing.
 This round finds the problems for free. CrazyGames (Phase 4) only gives you one real chance, so fix things here first.
 
 - [ ] **7. itch.io page.** _You make the account, Claude writes the page._
-  Needs: the trailer (6) and the PDF (4). Do: the web game playable on the page plus the rulebook PDF as "pay what you want."
+  Needs: the trailer (6), the PDF (4) and the stats (5). Do: the web game playable on the page plus the rulebook PDF as "pay what you want."
+  ✍️ **Ready:** the page text is in [itch.io page](#itchio-page), the cover is `docs/itch-cover.png`, the screenshots are in `docs/screenshots/`, and `cd app && npm run itch` makes the upload file `app/suitkeep-itch.zip` (Claude rebuilds it in 5.7 so the itch version counts too).
+  How:
+  1. Sign up at **itch.io** (free). Top-right menu → **Upload new project**.
+  2. **Title** `Suitkeep`, **Project URL** `suitkeep`, **Short description** and **Description** from [itch.io page](#itchio-page). **Kind of project:** HTML.
+  3. **Pricing:** "$0 or donate", suggested donation $2.
+  4. **Uploads:** `app/suitkeep-itch.zip` and tick **"This file will be played in the browser"**. Then `print/Suitkeep-Rulebook.pdf` as a download.
+  5. **Embed options:** viewport 480 × 860, tick **Mobile friendly** (orientation: portrait) and **Fullscreen button**.
+  6. **Cover image:** `docs/itch-cover.png`. **Screenshots:** `docs/screenshots/arena.png`, `deck.png`, `title.png`, `real-cards-setup.png`.
+  7. **Genre:** Card Game. **Tags:** from [itch.io page](#itchio-page). **Visibility:** Draft. Save, open the page, play one game on it, then switch to **Public**.
   Done when: the page is public.
 
 - [ ] **8. Post to web game players.** _Claude writes, you post._
   Needs: the itch page (7) and the vertical trailer (6). Where: r/WebGames, r/playmygame, then TikTok / YouTube Shorts. Check each subreddit's self-promotion rules first.
+  ✍️ **Ready:** the texts are in [Posts for web game players](#posts-for-web-game-players).
+  Order (spread out, so the stats show what each post did):
+  1. **Day 1: r/playmygame.** The friendliest place for feedback: if something is broken, you hear it here first.
+  2. **Day 3–4: r/WebGames**, after fixing anything found on day 1.
+  3. **Same week: TikTok and YouTube Shorts** with the vertical trailer.
+  How to post on Reddit (computer): open reddit.com/r/NAME → **Create Post** → pick the tab the text says (Text or Link) → paste the title and the body → add a **flair** if it asks for one → **Post**. Stay 1–2 hours after posting to answer comments: early replies keep a post alive.
+  When: Tuesday to Thursday, around 14:00–16:00 UTC (morning in the US, where most Reddit users are).
   Done when: posted in all of them.
 
 - [ ] **9. Post to tabletop players.** _You take the photo, Claude writes._
   Needs: the PDF (4) and the itch page (7). Do: a photo of a real game on a table, posted on r/soloboardgaming and r/cardgames, and a free BoardGameGeek listing.
+  ✍️ **Ready:** the texts are in [Posts for tabletop players](#posts-for-tabletop-players), the photo list in [Photo for the tabletop posts](#photo-for-the-tabletop-posts).
+  Order: r/soloboardgaming, then r/cardgames 3–4 days later, then the BoardGameGeek listing (its approval takes days to weeks, so it can start the same week).
   Done when: posted and listed.
 
 - [ ] **10. Answer every comment for one week.** _You, with Claude._
   Needs: the posts (8–9). Do: paste the comments to Claude, and Claude helps you reply and notes what people didn't like.
+  ✍️ Starting replies for the usual comments: [Replies](#replies).
   Done when: one week has passed and the list of complaints is written down.
 
 - [ ] **11. 🚦 Checkpoint A (about 2 weeks after posting).** _You + Claude look at the stats._
@@ -182,3 +218,181 @@ It takes months, not weeks. The thing that decides everything is whether strange
 - Don't submit to CrazyGames before Checkpoint A: you get one real chance there.
 - Don't print or sell a deck before Checkpoint C.
 - Don't pay for ads. With no proof that people stay, it's money lost.
+
+---
+
+## Ready-to-post texts
+
+Written 2026-10-16 by Claude, nothing posted yet. Copy them as they are or change anything that doesn't sound like you. If a subreddit's rules ask about AI, answer honestly: the rules are your design, the code was written with an AI assistant, and there are no AI-generated images.
+
+Rule notes (from a rules index read October 2026; check the real rules tab before posting):
+- **r/playmygame:** the game must be free to play now, the post needs a description and a direct link, one post per game a month, and pure trailers get removed.
+- **r/WebGames:** a link post straight to the browser game, the title starts with the game's name.
+- **r/cardgames:** self-promotion allowed.
+- **r/soloboardgaming:** not in the index. Read its rules first.
+- **Don't post in** r/tabletopgamedesign ("do not market your game here"), r/BoardgameDesign (no promotion) or r/boardgames (promotion only for active members).
+
+### Posts for web game players
+
+#### r/playmygame (Text post)
+
+**Title:**
+> Suitkeep: a free turn-based lane battle where every soldier is a playing card (browser, phone + desktop)
+
+**Body** (add `docs/screenshots/arena.png` with the image button under the link):
+> Play (free, no sign-up, works on phone): https://suitkeep.vercel.app
+>
+> Suitkeep is a solo card battle inspired by lane games like Clash Royale, but turn-based. You spend elixir to send cards down two lanes, they fight the enemy's cards in the middle, and whatever gets through hits the towers. Take down the enemy's king tower to win.
+>
+> A few rules make it more than "high card wins":
+> - Suit wheel: ♠ beats ♥ beats ♦ beats ♣ beats ♠, and a card counts double against the suit it beats.
+> - Aces beat Kings.
+> - The enemy plays one card a round, and its next card is always face-up, so you can plan around it.
+> - Towers fight back: hitting a tower is a fight against its top card.
+>
+> Your first game teaches the rules one at a time as you play. A game takes 10–20 minutes.
+>
+> It also works with a real deck: "Play with real cards" runs the enemy for you while you play at the table.
+>
+> What I'd love feedback on:
+> 1. Did the first game make the rules clear, or did you get lost somewhere?
+> 2. Did you want to play a second game? If not, what stopped you?
+> 3. Anything that felt unfair or confusing?
+>
+> Thanks for playing!
+
+#### r/WebGames (Link post)
+
+**Title:**
+> Suitkeep - a turn-based lane battle card game: send your cards down two lanes and take the enemy's king tower (free, no sign-up, phone + desktop)
+
+**Link:** `https://suitkeep.vercel.app`
+
+**Your first comment** (post it right after):
+> I made this. Short version: higher card wins a fight, a suit wheel (♠ > ♥ > ♦ > ♣ > ♠) doubles a card against the suit it beats, aces beat kings, and the enemy's next card is always face-up so you can plan around it. The first game teaches you as you go. Any feedback is welcome, especially if something was confusing.
+
+#### TikTok
+
+**Video:** `trailer/out/suitkeep-trailer-tall.mp4`
+
+**Caption:**
+> A lane battle you can play with a normal deck of cards 🃏 Free in your browser: suitkeep.vercel.app #cardgame #indiegame #solitaire #strategygame #gamedev #playingcards
+
+Links in TikTok captions can't be tapped; the trailer's last frame shows the address, which is enough for now.
+
+#### YouTube Shorts
+
+**Video:** `trailer/out/suitkeep-trailer-tall.mp4`
+
+**Title:**
+> A lane battle you play with a normal deck of cards #shorts
+
+**Description:**
+> Suitkeep: spend elixir, send your cards down two lanes, crack the enemy's towers and take down its king. Free in your browser, on phone or desktop, or with a real deck at the table: https://suitkeep.vercel.app
+
+**Pinned comment:**
+> Play free here: https://suitkeep.vercel.app
+
+### Posts for tabletop players
+
+#### Photo for the tabletop posts
+
+One good photo does most of the work:
+- A real game in the middle of play, shot from above or at a slight angle, on a plain table.
+- Both lanes with cards in them, the towers fanned out, and the row of 10 elixir cards visible.
+- Daylight from a window, no flash. Landscape. No clutter, nothing personal in the shot.
+- Optional second photo: your phone next to the cards showing the app's real-cards screen.
+
+#### r/soloboardgaming (Image post: the photo, then the text in the body)
+
+**Title:**
+> I designed a solo game for a standard 52-card deck: a lane battle against a simple automaton (free print-and-play rules)
+
+**Body:**
+> Suitkeep is a one-player duel you play with any standard deck: no jokers, no pen, no dice, no counters. About 10–20 minutes.
+>
+> How it plays:
+> - You and the enemy get 14 cards each; 14 more stay in the box, so you never know exactly what the enemy has. A row of 10 face-down cards is your elixir bar, with a face-up marker.
+> - From your 14 you choose a deck of 8 and three towers of 2 cards: left, king, right.
+> - Each round you spend elixir to send cards down two lanes. The enemy plays the face-up top card of its pile into the lane where you pushed harder, so you always know its next play.
+> - Front cards fight: higher rank wins, a suit wheel (♠ > ♥ > ♦ > ♣ > ♠) doubles a card against the suit it beats, and aces beat kings.
+> - Cards that get through hit the towers, and the towers fight back. Take the enemy's king tower to win.
+>
+> Rules (3-page PDF, free): https://github.com/IFAKA/suitkeep/raw/main/print/Suitkeep-Rulebook.pdf
+> Optional companion app that runs the enemy for you: https://suitkeep.vercel.app ("Play with real cards")
+>
+> I balanced it with thousands of simulated games, but what I'm missing is real people at a real table. If you try it, I'd love to hear:
+> - Was setup clear from the PDF alone?
+> - Was running the enemy easy, or fiddly?
+> - How long did your game take, and did you win?
+
+#### r/cardgames (Image post: the photo, then the text in the body)
+
+**Title:**
+> Suitkeep: a new solo game for a standard deck. A lane battle where a suit wheel doubles cards and aces beat kings
+
+**Body:**
+> I made a one-player card game you play with a normal 52-card deck. It's a lane battle against an automaton: you spend elixir to send cards down two lanes, the enemy answers with one card a round (always face-up, so you can plan), the front cards fight, and survivors attack three towers of 2 cards each. Take the enemy's king tower to win.
+>
+> The fights: higher rank wins, a suit wheel (♠ > ♥ > ♦ > ♣ > ♠) makes a card count double against the suit it beats, and aces beat kings. Towers fight back, so even a king can only break two tower cards before it's sent home.
+>
+> Free 3-page rules: https://github.com/IFAKA/suitkeep/raw/main/print/Suitkeep-Rulebook.pdf
+> Or play it on screen: https://suitkeep.vercel.app
+>
+> Feedback very welcome, especially on anything in the rules that was unclear.
+
+#### BoardGameGeek listing
+
+1. Make a free account at **boardgamegeek.com**.
+2. Find the page for submitting a new game (in the site menu, or search BGG's help for "submit a new game" if it moved).
+3. Fill it in:
+   - **Name:** Suitkeep. **Year:** 2026. **Players:** 1 to 1. **Playing time:** 10–20 minutes. **Age:** 10+.
+   - **Designer:** your name. **Publisher:** (Web published).
+   - **Categories:** Card Game, Print & Play. **Mechanisms:** Solo / Solitaire Game, Hand Management.
+   - **Description:**
+     > Suitkeep is a solo lane battle for one standard 52-card deck. Spend elixir to send your cards down two lanes against a simple automaton, clash in the middle, crack the enemy's towers and take down its king. A suit wheel doubles a card against the suit it beats, aces beat kings, and the enemy's next card is always face-up. Free 3-page print-and-play rules; an optional free web app runs the enemy for you or plays the whole game on screen at suitkeep.vercel.app.
+4. Submit. BGG staff approve new games by hand, which takes days to weeks.
+5. Once approved, upload `print/Suitkeep-Rulebook.pdf` under **Files** and your table photo under **Images**.
+
+### itch.io page
+
+**Short description:**
+> A turn-based lane battle where every soldier is a playing card. Play in your browser or with a real deck.
+
+**Description:**
+> Spend elixir, send your cards down two lanes, clash with the enemy's cards in the middle, crack its towers and take down its king.
+>
+> Suitkeep is a free solo lane battle inspired by games like Clash Royale, but turn-based, and it needs nothing but a standard 52-card deck.
+>
+> **Play two ways**
+> - **On screen:** the game deals, runs the enemy and animates every fight. Your first game teaches the rules one at a time.
+> - **With real cards:** shuffle a real deck and play at the table. The game runs the enemy and tells you what to move. Or print the free 3-page rulebook and play with no screen at all.
+>
+> **The rules in one minute**
+> - Higher rank wins a fight.
+> - Suit wheel: ♠ beats ♥ beats ♦ beats ♣ beats ♠. A card counts double against the suit it beats.
+> - Aces beat Kings.
+> - The enemy plays one card a round, and its next card is always face-up.
+> - Towers fight back. Take the enemy's king tower to win.
+>
+> 1 player · 10–20 minutes · phone and desktop · plays offline after the first visit
+>
+> The rulebook PDF is free. If you enjoy the game, a small donation helps me keep improving it.
+
+**Tags** (up to 10): `card-game`, `solitaire`, `strategy`, `turn-based`, `tabletop`, `print-and-play`, `singleplayer`, `minimalist`, `casual`, `mobile`
+
+### Replies
+
+Starting points for step 10. Paste the real comments to Claude for anything else.
+
+- **"Is this like Clash Royale?"**
+  > Yes, that's the inspiration: lanes, elixir, towers and a king. But it's turn-based, there's nothing to buy, and you can play it with a real deck of cards.
+- **Someone found a bug:**
+  > Thanks for telling me! Which phone or browser were you on, and what were you doing when it happened? I'll fix it.
+- **Someone was confused by a rule:**
+  > Thanks, that's exactly what I need to know. Which part lost you? I'll make it clearer.
+- **Someone liked it:**
+  > Thank you, that means a lot! Did you play a second game?
+- **A harsh comment:** don't argue. Thank them, and ask one specific question about what they didn't like. The useful part goes on the complaints list.
+- **"Did you use AI?"**
+  > I designed the rules and used an AI assistant to help write the code. The art is drawn in code, no AI images.

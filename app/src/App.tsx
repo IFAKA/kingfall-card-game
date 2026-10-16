@@ -22,6 +22,7 @@ import { CastleArt, PlayingCard, TCard } from './Pieces'
 import { useViewport } from '@/hooks/use-viewport'
 import DeckBuilder from './DeckBuilder'
 import { tutorialCards, tutorialSecret } from './tutorial'
+import { track } from './stats'
 
 type Help = 'off' | 'explain' | 'suggest'
 type Screen = 'title' | 'deal' | 'enter' | 'draft' | 'table' | 'play'
@@ -584,6 +585,8 @@ const autoDelay = (events: number, fast = false) => Math.min(4000, 700 + 600 * e
 const FAST_KEY = 'suitkeep-fast'
 const BATCH_KEY = 'suitkeep-batch' // real cards: a round's fights and moves as one checklist (unset: on after 2 games at the table)
 const RECORD_KEY = 'suitkeep-record'
+const STARTED_KEY = 'suitkeep-games-started' // games begun, every mode together: the stats count first and second games
+const modeName = (m: 'guide' | 'play') => (m === 'play' ? 'screen' : 'cards')
 // your own results, every mode together: shown on the title and at the end of a game, never as a streak to keep
 interface GameRecord { games: number; wins: number; best?: number } // best: fewest rounds to a win
 
@@ -734,8 +737,17 @@ export default function App() {
     const won = game.winner === 'P', best = won && (record.best === undefined || game.round < record.best)
     const rec: GameRecord = { games: record.games + 1, wins: record.wins + (won ? 1 : 0), best: best ? game.round : record.best }
     setRecord(rec); writeJSON(RECORD_KEY, rec); setNewBest(best && record.wins > 0) // a first win is its own news
+    track('game-end', { mode: modeName(mode), result: won ? 'win' : game.winner === 'E' ? 'loss' : 'draw', rounds: game.round })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.stage, screen])
+  // every round a game reaches counts once (not again when undo and redo pass it), so the stats show the round where games stop
+  const reached = useRef(game?.round ?? 0)
+  useEffect(() => {
+    if (screen !== 'play' || !game || game.round <= reached.current) return
+    reached.current = game.round
+    track('round', { mode: modeName(mode), n: game.round })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.round, screen])
 
   // on screen, informational steps advance by themselves, slowly enough to follow what happens; not recorded for undo
   useEffect(() => {
@@ -760,6 +772,8 @@ export default function App() {
   const deck = mine.filter(c => deckIds.includes(c.id))
 
   const reset = () => {
+    if (screen === 'play' && game && game.stage !== 'over') track('game-leave', { mode: modeName(mode), round: game.round })
+    else if (screen !== 'title' && screen !== 'play') track('setup-leave', { mode: modeName(mode), step: screen })
     fx.land()
     setTip(null)
     setScreen('title'); setDealt([]); setDeckIds([]); setSlotIds([]); setOrder([]); setGame(null); setHistory([]); setFuture([]); setSel(null); setMode('guide'); setSecret({}); setIntro(null)
@@ -770,6 +784,10 @@ export default function App() {
     const help = m === 'play' ? novice : played.guide === 0
     if (help) { if (m === 'play') setSuggestOn(true); else setExplainOn(true) }
     setIntro(novice || help ? { deck: novice, help } : null)
+    const n = readJSON(STARTED_KEY, 0) + 1
+    writeJSON(STARTED_KEY, n); reached.current = 0
+    track('game-start', { mode: modeName(m), game: n < 6 ? String(n) : '6+', first: novice })
+    if (n <= 2) track(n === 1 ? 'first-game' : 'second-game', { mode: modeName(m) })
     fx.land()
     advance(startRound(g)); setHistory([]); setFuture([]); setOrder([]); setCounted(false); setScreen('play')
   }
@@ -829,7 +847,7 @@ export default function App() {
         {record.games > 0 && <p className="record">{record.wins} {record.wins === 1 ? 'win' : 'wins'} in {record.games} {record.games === 1 ? 'game' : 'games'}{record.best !== undefined && ` · fastest win: ${record.best} rounds`}</p>}
         <div className="menu">
           <button className="big xl" onClick={startOnScreen}>Play<small>the app deals and plays the enemy</small></button>
-          <button className="xl" onClick={() => { setMode('guide'); setScreen('deal') }}>Play with real cards<small>you play at the table, the app guides you</small></button>
+          <button className="xl" onClick={() => { track('cards-open'); setMode('guide'); setScreen('deal') }}>Play with real cards<small>you play at the table, the app guides you</small></button>
           <HowToPlay topics={RULES}><Button variant="success" size="xl">How to play</Button></HowToPlay>
           <InstallLink />
         </div>
