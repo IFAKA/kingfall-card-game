@@ -837,10 +837,10 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .handrow { --cw: var(--hcw); --ch: var(--hch); }
 .turncard { box-shadow: 0 0 0 1px #fff; } /* a thin white line around the bar's own border, as on the cards */
 
-/* your Next card sits between the turn bar and the hand: as tall as a hand card, its label above it (in the row's top padding) */
-.handrow .nextcard.mine { --nl: max(10px, calc(var(--ch) * .13)); position: relative; align-self: flex-end; height: var(--ch); margin: 0; }
+/* your Next card sits between the turn bar and the hand: the small size, on the row's bottom edge, its label above it */
+.handrow .nextcard.mine { --nl: max(10px, calc(var(--sch) * .15)); position: relative; align-self: flex-end; height: var(--sch); margin: 0; }
 .handrow .nextcard.mine span { position: absolute; left: 50%; bottom: calc(100% + 2px); transform: translateX(-50%); font-family: var(--display); font-size: var(--nl); line-height: 1; color: rgba(255,255,255,.8); text-transform: uppercase; white-space: nowrap; }
-.handrow .nextcard.mine .tcard, .handrow .nextcard.mine .cardph { width: var(--cw); height: var(--ch); font-size: calc(var(--cw) * .27); }
+.handrow .nextcard.mine .tcard, .handrow .nextcard.mine .cardph { width: var(--scw); height: var(--sch); font-size: calc(var(--scw) * .27); }
 .handrow { padding-top: calc(max(10px, var(--ch) * .13) + 6px); }
 
 /* three groups spread across the row: the turn bar, your Next card with the hand, the done button */
@@ -860,9 +860,9 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .lanes .mid .nextcard .tcard { width: var(--cw); height: var(--ch); font-size: calc(var(--cw) * .27); }
 .mid.rows > .sidechip.enemy { align-self: start; margin-top: 4px; }
 
-/* the cards in the lanes are as big as the cards in your hand (not the towers' cards, not the enemy's Next card) */
-.alane, .lanes .mid.rows { --ch: var(--hch); --cw: var(--hcw); }
-.lanes .mid .nextcard .tcard { width: var(--fcw); height: var(--fch); font-size: calc(var(--fcw) * .27); }
+/* three card sizes: normal (--cw, --ch: the cards in the lanes), big (--hcw, --hch: your hand) and small (--scw, --sch: both Next cards and the piles under them) */
+.nextcard { --cw: var(--scw); --ch: var(--sch); }
+.lanes .mid .nextcard .tcard, .lanes .mid .nextcard .cardph { width: var(--scw); height: var(--sch); font-size: calc(var(--scw) * .27); }
 
 /* a slot's cards are stacked, each shifted right by --s so its rank and suit stay readable (the newest on top); with more cards the shift gets smaller, to stay inside the slot */
 .spot.slot { container-type: inline-size; }
@@ -883,5 +883,3 @@ button.fkey:disabled { opacity: .25; filter: none; }
 /* an empty Next or hand spot keeps its place as a dashed outline, so the row never shifts when cards run out */
 .cardph { flex: none; box-sizing: border-box; border: 2px dashed rgba(255,255,255,.25); border-radius: 8px; background: rgba(0,0,0,.1); }
 .cardph.hand { width: var(--cw); height: var(--ch); }
-.nextcard.mine .cardph { width: calc(var(--nh) * .714); height: var(--nh); }
-.lanes .mid .nextcard .cardph { --nh: calc(var(--ch) - max(11px, calc(var(--ch) * .17)) - 8px); width: calc(var(--nh) * .714); height: var(--nh); }

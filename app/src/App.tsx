@@ -1174,6 +1174,7 @@ export default function App() {
 
   const HAND_BIG = 1.3 // your hand's cards are this much bigger than the cards on the field, so the two are easy to tell apart
   const HAND_MIN = 1.15 // the hand's cards stay at least this much bigger than the field's, even when the field could grow more
+  const SMALL = 0.78 // the Next cards and the piles under them are this much of a normal card (the cards in the lanes); your hand's cards are the big size
   const FIELD_K = 210 // the window height kept for everything but the field's rows of cards and the hand's cards (castles, status line, margins)
   const handFit = (Math.min(view.sw, 640, 470) - 94) / 3.57 // the tallest hand card whose row fits the width: Next, 3 cards and done are 5 cards wide, plus the turn bar, the gaps and a margin at each side (94px)
 
@@ -1189,7 +1190,7 @@ export default function App() {
         : Math.max(44, Math.min((view.sh - 308) / 7.84, (aw - 60) / 8.9 / 0.714, 128))
       : Math.max(48, Math.min(Math.max((view.sh - FIELD_K) / (4.54 + HAND_BIG), (view.sh - FIELD_K - handFit) / 4.54), handFit / HAND_MIN, (aw - 72) / 4.75 / 0.714, 128)) // the field grows to fill the height, but never past the point where the hand (HAND_BIG times its cards, or as big as its row fits) is only HAND_MIN times them
     const hch = Math.min(ch * HAND_BIG, handFit) // your hand's card height
-    const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px`, '--fcw': `${ch * 0.714}px`, '--fch': `${ch}px`, '--hcw': `${hch * 0.714}px`, '--hch': `${hch}px` } as CSSProperties
+    const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px`, '--fcw': `${ch * 0.714}px`, '--fch': `${ch}px`, '--hcw': `${hch * 0.714}px`, '--hch': `${hch}px`, '--scw': `${ch * SMALL * 0.714}px`, '--sch': `${ch * SMALL}px` } as CSSProperties
     // the tips teach how to play a card, what ✓ does and what a turn holds, and the river shows the round: the line only says whose turn it is
     const prompt = stage === 'my_play' ? 'Your turn: 1 card, or 2 small ones.' : standing ? TITLES[stage] : stage === 'round_start' ? 'New round.' : 'Enemy turn…'
     // the enemy's last-stand card came in during its turn: your turn still says where it came from, until it has fought
