@@ -839,4 +839,4 @@ button.fkey:disabled { opacity: .25; filter: none; }
 
 /* three groups spread across the row: the turn bar, your Next card with the hand, the done button */
 .handrow { justify-content: space-between; width: 100%; max-width: 470px; margin: 0 auto; box-sizing: border-box; padding-left: 4px; padding-right: 4px; }
-.handrow .handgroup { display: flex; align-items: flex-end; gap: 10px; }
+.handrow .handgroup { display: flex; align-items: flex-end; gap: 14px; } /* the Next card and the three hand cards, all the same distance apart */
