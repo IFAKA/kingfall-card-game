@@ -858,3 +858,8 @@ button.fkey:disabled { opacity: .25; filter: none; }
 /* the enemy's Next card is as big as the cards in the lanes; its label hangs below it, in the free row above the river */
 .lanes .mid .nextcard .tcard { width: var(--cw); height: var(--ch); font-size: calc(var(--cw) * .27); }
 .mid.rows > .sidechip.enemy { align-self: start; margin-top: 4px; }
+
+/* the cards in the lanes (not the towers' cards, not the enemy's Next) grow to the height the lanes have, as far as a lane is wide enough for two of them side by side */
+.lanes { container-type: size; }
+.alane, .lanes .mid.rows { --ch: max(var(--fch), min(calc((100cqh - 60px) / 3.24), calc(100cqw / 3.3))); --cw: calc(var(--ch) * .714); }
+.lanes .mid .nextcard .tcard { width: var(--fcw); height: var(--fch); font-size: calc(var(--fcw) * .27); }

@@ -1184,7 +1184,7 @@ export default function App() {
         : Math.max(44, Math.min((view.sh - 308) / 7.84, (aw - 60) / 8.9 / 0.714, 128))
       : Math.max(48, Math.min(Math.max((view.sh - FIELD_K) / (4.54 + HAND_BIG), (view.sh - FIELD_K - handFit) / 4.54), handFit / HAND_MIN, (aw - 72) / 4.75 / 0.714, 128)) // the field grows to fill the height, but never past the point where the hand (HAND_BIG times its cards, or as big as its row fits) is only HAND_MIN times them
     const hch = Math.min(ch * HAND_BIG, handFit) // your hand's card height
-    const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px`, '--hcw': `${hch * 0.714}px`, '--hch': `${hch}px` } as CSSProperties
+    const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px`, '--fcw': `${ch * 0.714}px`, '--fch': `${ch}px`, '--hcw': `${hch * 0.714}px`, '--hch': `${hch}px` } as CSSProperties
     // the tips teach how to play a card, what ✓ does and what a turn holds, and the river shows the round: the line only says whose turn it is
     const prompt = stage === 'my_play' ? 'Your turn: 1 card, or 2 small ones.' : standing ? TITLES[stage] : stage === 'round_start' ? 'New round.' : 'Enemy turn…'
     // the enemy's last-stand card came in during its turn: your turn still says where it came from, until it has fought
