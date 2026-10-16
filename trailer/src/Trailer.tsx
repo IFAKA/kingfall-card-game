@@ -17,7 +17,7 @@ function Caption({ lines, size, align = 'center', delay = 0 }: { lines: { text: 
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: align === 'left' ? 'flex-start' : 'center', gap: size * 0.12, textAlign: align }}>
       {lines.map((l, i) => {
         const s = spring({ frame: frame - delay - i * 3, fps, config: { damping: 11, stiffness: 220, mass: 0.6 } })
-        return <div key={i} style={{ ...(l.big ? goldText(size) : whiteText(size * 0.62)), transform: `scale(${0.6 + 0.4 * s})`, opacity: Math.min(1, s * 2), transformOrigin: align === 'left' ? 'left center' : 'center' }}>{l.text}</div>
+        return <div key={i} style={{ ...(l.big ? goldText(size) : whiteText(size * 0.62)), transform: `scale(${0.6 + 0.4 * s})`, opacity: Math.min(1, s * 2), transformOrigin: align === 'left' ? 'left center' : 'center', textWrap: 'balance' }}>{l.text}</div>
       })}
     </div>
   )
@@ -36,12 +36,12 @@ function Punch({ children, flash = 0 }: { children: ReactNode; flash?: number })
   )
 }
 
-// the screen the game plays on, and the space for the words: a band above it (tall) or the left side (wide)
+// the screen the game plays on, and the space for the words: a band above it (tall) or the left half (wide)
 function Shot({ layout, caption, children }: { layout: Layout; caption?: ReactNode; children: ReactNode }) {
   const { width, height } = useVideoConfig()
   const box: CSSProperties = layout === 'tall'
     ? { position: 'absolute', left: (width - (height - 330) * 9 / 16) / 2, top: 330, width: (height - 330) * 9 / 16, height: height - 330 }
-    : { position: 'absolute', right: 150, top: 0, width: height * 9 / 16, height }
+    : { position: 'absolute', left: width / 2, top: 0, width: height * 9 / 16, height } // its left edge on the center line
   return (
     <AbsoluteFill style={backdrop}>
       <div style={{ ...box, borderRadius: layout === 'tall' ? '34px 34px 0 0' : 0, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,.6)' }}>
@@ -50,7 +50,7 @@ function Shot({ layout, caption, children }: { layout: Layout; caption?: ReactNo
       {layout === 'tall'
         ? <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 330, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{caption}</div>
         : <>
-          <div style={{ position: 'absolute', left: 130, top: 0, bottom: 0, width: width - height * 9 / 16 - 380, display: 'flex', alignItems: 'center' }}>{caption}</div>
+          <div style={{ position: 'absolute', left: 130, top: 0, bottom: 0, width: width / 2 - 130 - 60, display: 'flex', alignItems: 'center' }}>{caption}</div>
           <Logo size={54} style={{ position: 'absolute', left: 130, top: 60, alignItems: 'flex-start' }} />
         </>}
     </AbsoluteFill>
