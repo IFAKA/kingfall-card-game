@@ -192,8 +192,8 @@ function usePages(up: (page: string) => string | null) {
 // phone's back gesture) returns to the page above. Closing it is the big button; leaving the game is a quiet one, and asks first.
 // settings: the switches that belong to this kind of game (on screen, fast enemy turns; with real cards, the fights in one list)
 // hintsOn: whether a hint switch is on, shown on the Hints row; onTipsAgain: bring the first-game tips back (under the rules)
-export function GameMenu({ topics, log, onExport, hints, hintsOn, settings, muted, toggleMute, musicOff, toggleMusic, onLeave, onTipsAgain }: {
-  topics: Topic[]; log?: string[]; onExport?: () => void; hints?: () => ReactNode; hintsOn?: boolean; settings?: ReactNode
+export function GameMenu({ topics = [], log, onExport, hints, hintsOn, settings, muted, toggleMute, musicOff, toggleMusic, onLeave, onTipsAgain }: {
+  topics?: Topic[]; log?: string[]; onExport?: () => void; hints?: () => ReactNode; hintsOn?: boolean; settings?: ReactNode
   muted: boolean; toggleMute: () => void; musicOff: boolean; toggleMusic: () => void; onLeave?: () => void; onTipsAgain?: () => void
 }) {
   const { open, close, page, go, panel, onOpenChange, reset } = usePages(p => p.startsWith('rule:') ? 'rules' : null)
@@ -214,7 +214,7 @@ export function GameMenu({ topics, log, onExport, hints, hintsOn, settings, mute
   const shown = page && pages[page]
   const footer = <>
     <DrawerClose render={<Button variant="success" size="xl" />}>{playing ? 'Keep playing' : 'Close'}</DrawerClose>
-    {onLeave && <Button variant="link" size="lg" className="text-base text-muted-foreground" onClick={() => go('leave')}><LogOut /> {playing ? 'Leave game' : 'Back to title'}</Button>}
+    {onLeave && <Button variant="outline" size="xl" onClick={() => go('leave')}><LogOut /> {playing ? 'Leave game' : 'Back to title'}</Button>}
   </>
   return (
     <Sheet open={open} onOpenChange={onOpenChange}
@@ -226,13 +226,13 @@ export function GameMenu({ topics, log, onExport, hints, hintsOn, settings, mute
       <DrawerTrigger render={<Button variant="secondary" size="icon-lg" aria-label="Menu" title="Menu" />}><MenuIcon /></DrawerTrigger>
       {shown ? <Panel title={shown.title} description={shown.description} footer={shown.footer} {...panel}>{shown.body}</Panel> : (
         <Panel title="Menu" {...panel} footer={footer}>
-          <Section title="Game">
+          {(topics.length > 0 || log || hints) && <Section title="Game">
             <ItemGroup className="gap-3">
-              <PageRow icon={<BookOpen />} title="How to play" onOpen={() => go('rules')} />
+              {topics.length > 0 && <PageRow icon={<BookOpen />} title="How to play" onOpen={() => go('rules')} />}
               {log && <PageRow icon={<ScrollText />} title="What happened" onOpen={() => go('log')} />}
               {hints && <PageRow icon={<Lightbulb />} title="Hints" status={hintsOn ? 'On' : 'Off'} onOpen={() => go('hints')} />}
             </ItemGroup>
-          </Section>
+          </Section>}
           <Section title="Settings">
             <div className="grid grid-cols-2 gap-3">
               <Choice id="music" icon={<Music />} title="Music" checked={!musicOff} onChange={toggleMusic} />

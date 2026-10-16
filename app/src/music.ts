@@ -278,7 +278,7 @@ if (typeof document !== 'undefined') {
     update()
     try { if (now) audio() } catch { /* no audio on this device */ }
   }
-  for (const e of ['pointerdown', 'pointerup', 'keydown']) document.addEventListener(e, wake, true)
+  for (const e of ['pointerdown', 'pointerup', 'click', 'touchend', 'keydown']) document.addEventListener(e, wake, true)
   document.addEventListener('visibilitychange', update)
 }
 

@@ -13,7 +13,7 @@ import type { Variants } from 'framer-motion'
 import type { Pop } from './fx'
 import { isMusicOff, music, setMusicOff } from './music'
 import { isMuted, setMuted, sfx } from './sfx'
-import { BookOpen, Castle as CastleIcon, Crown, Droplet, FastForward, Layers, Lightbulb, ListChecks, Redo2, Repeat, Shield, Swords, Undo2 } from 'lucide-react'
+import { Castle as CastleIcon, Crown, Droplet, FastForward, Layers, Lightbulb, ListChecks, Redo2, Repeat, Shield, Swords, Undo2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { CardText, Choice, GameMenu, HowToPlay, InstallLink, RulesSheet, Section } from './Menu'
@@ -822,7 +822,7 @@ export default function App() {
     const fan = ['1-0', '13-1', '12-2'].map(byId)
     return (
       <div className="title">
-        <span className="titlemenu"><GameMenu topics={RULES} muted={muted} toggleMute={toggleMute} musicOff={musicOff} toggleMusic={toggleMusic} /></span>
+        <span className="titlemenu"><GameMenu muted={muted} toggleMute={toggleMute} musicOff={musicOff} toggleMusic={toggleMusic} /></span>
         <div className="titlefan" aria-hidden>{fan.map(c => <PlayingCard key={c.id} card={c} />)}</div>
         <Logo />
         <p className="tagline">A lane battle for one player and a deck of cards</p>
@@ -850,7 +850,6 @@ export default function App() {
       { title: 'Set the marker at 5', pic: <div className="mbars"><span className="mlbl">Your elixir: 5</span><div className="mrow">{backs(10, 5, 4)}</div></div>,
         body: <>
           <p>Flip the <b>5th card face-up</b>, so you see its number. That's the <b>marker</b>: its position is your elixir, so you start at 5. To spend or gain, flip the card that many places left or right face-up, then flip the old one face-down.</p>
-          <HowToPlay topics={RULES}><Button variant="secondary" className="mt-2"><BookOpen /> How to play</Button></HowToPlay>
         </> },
     ]
     return (
