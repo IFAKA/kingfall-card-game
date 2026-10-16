@@ -512,7 +512,7 @@ function resolveNext(g: GuideState): GuideState {
     } else if (r > 0) {
       res = [`YOUR ${label(p.card)} WINS and stays where it is.`, ...kill(g, e)]
       g.log.push(`Your ${label(p.card)} beats enemy ${label(e.card)}.`)
-      if (!ace && cost(p.card.rank) - cost(e.card.rank) >= 4) {
+      if (!ace && cost(Math.min(13, e.card.rank + 1)) < cost(p.card.rank)) { // the cheapest rank that beats it costs less than you paid
         g.stats.overkills.push(`In round ${g.round} your ${label(p.card)} (${cost(p.card.rank)} elixir) beat a ${label(e.card)} (${cost(e.card.rank)} elixir). A cheaper card would have won too.`)
       }
     } else {

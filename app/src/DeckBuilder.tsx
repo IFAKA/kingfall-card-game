@@ -26,7 +26,7 @@ const GATHER_MS = 420, DEAL_MS = 55, FLY = 0.35
 // the rules of thumb, and the one thing worth knowing before you worry about them; how cards fight is in How to play
 const GUIDE = <>
   <ul>
-    <li><b>Mix your costs.</b> Strong cards break towers but cost a lot, and you get only 3 elixir a round: keep enough cheap ones (cost 1 to 3) to play something every round.</li>
+    <li><b>Mix your costs.</b> Strong cards break towers but cost a lot, and you get only 3 elixir a round: keep enough cheap ones (A to 5, cost 2) to play something every round.</li>
     <li><b>Put an ace on top of a tower:</b> it beats any King that reaches it.</li>
     <li><b>Mix your suits,</b> so the suit wheel can work for you whatever the enemy plays.</li>
     <li><b>Leave some strong cards out.</b> The 6 cards that aren't in your deck are your towers' armor.</li>
@@ -105,8 +105,8 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
   const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px`, '--peek': `${ch * PEEK}px` } as CSSProperties
 
   const avg = deck.reduce((a, c) => a + cost(c.rank), 0) / DECK_SIZE
-  const heavy = deck.filter(c => cost(c.rank) >= 7).length
-  const cheap = deck.filter(c => cost(c.rank) <= 3).length
+  const heavy = deck.filter(c => cost(c.rank) >= 10).length
+  const cheap = deck.filter(c => cost(c.rank) <= 2).length
   const speed = avg < 3.5 ? 'fast' : avg <= 5.5 ? 'balanced' : 'heavy'
   // while a card is picked, the cards it can swap with glow
   const target = (zone: Spot['zone']) => !!pick && (pick.zone === 'tower' || zone === 'tower')
@@ -171,7 +171,7 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
           <span className="edrop">{avg.toFixed(1)}</span>
           <div>
             <div className="dmeter"><span className="avgbar"><i style={{ transform: `translateX(${avg * 10 - 100}%)` }} /></span><b>{speed}</b></div>
-            <small title="heavy: cost 7 or more · cheap: cost 1 to 3">{heavy} heavy · {cheap} cheap</small>
+            <small title="heavy: J, Q, K (cost 10) · cheap: A to 5 (cost 2)">{heavy} heavy · {cheap} cheap</small>
           </div>
         </div>
         {start}

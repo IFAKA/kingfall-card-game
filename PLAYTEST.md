@@ -5,9 +5,9 @@ Solo. One standard 52-card deck, nothing else. Goal: find out if it is fun, how 
 Rank: A=1, 2–10 face value, J=11, Q=12, K=13. Suits only matter for the wheel.
 
 ## Cost table (elixir)
-| Rank | A | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | J | Q | K |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Cost | 1 | 2 | 2 | 3 | 4 | 5 | 5 | 6 | 7 | 8 | 8 | 9 | 10 |
+| Cards | A to 5 | 6 to 10 | J, Q, K |
+|---|---|---|---|
+| Cost | 2 | 6 | 10 |
 
 ## Suit wheel
 In a fight, a card **counts double** against the suit it beats (6♠ vs J♥ fights as 12 and wins):

@@ -142,7 +142,7 @@ check(weak.winRate <= 0.2, `random play rarely wins (got ${pct(weak.winRate)})`)
   check(w / N <= 0.25, `plain engine: random play rarely wins (got ${pct(w / N)})`)
 }
 
-check(cost(1) === 1 && cost(5) === 4 && cost(9) === 7 && cost(13) === 10, 'cost table matches the rulebook (A=1, 5=4, 9=7, K=10)')
+check([1, 5].every(r => cost(r) === 2) && [6, 10].every(r => cost(r) === 6) && [11, 13].every(r => cost(r) === 10), 'cost table matches the rulebook (A to 5 cost 2, 6 to 10 cost 6, J, Q, K cost 10)')
 
 {
   // ranks with suits that give no wheel bonus either way (♠ vs ♦), unless noted
@@ -242,8 +242,8 @@ check(cost(1) === 1 && cost(5) === 4 && cost(9) === 7 && cost(13) === 10, 'cost 
   check(mine(switchCards(two, 't2-0', 't3-0')) === '3L 2R', 'two placed cards in different lanes switch lanes')
   const same = playCard(playCard(base, 0, 0), 0, 0)
   check(mine(switchCards(same, 't3-0', 't2-0')) === '3L 2L', 'two placed cards in one slot switch order: the one now first fights first')
-  const sw = switchCards(two, 't2-0', 't4-0') // the 4 from the hand takes the 2's place; the 2 comes back, 1 elixir less
-  check(mine(sw) === '4L 3R' && sw.P.elixir === two.P.elixir - 1 && sw.P.hand.some(x => x.id === 't2-0') && sw.P.hand.length === 4 && sw.P.queue.length === two.P.queue.length,
+  const sw = switchCards(two, 't2-0', 't6-0') // the 6 from the hand takes the 2's place; the 2 comes back, 4 elixir less (6 costs 6, the 2 costs 2)
+  check(mine(sw) === '6L 3R' && sw.P.elixir === two.P.elixir - 4 && sw.P.hand.some(x => x.id === 't2-0') && sw.P.hand.length === 4 && sw.P.queue.length === two.P.queue.length,
     'a placed card and a hand card trade places, paying the difference')
   const one = playCard(base, 0, 0), poor = playCard({ ...base, P: { ...base.P, elixir: 2 } }, 0, 0) // the 2 drew the 6; then 0 elixir left
   check(switchCards(one, 't2-0', 't6-0') === one && switchCards(poor, 't2-0', 't13-0') === poor && switchCards(poor, 't2-0', 't3-0') !== poor,

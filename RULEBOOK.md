@@ -27,11 +27,11 @@ In a fight, an **ace beats a K**, whatever the suits. (J and Q are ordinary card
 It works both ways: an enemy ace kills your king. It counts against towers too: an ace on top of a tower stops a K.
 
 ## Elixir
-Elixir pays for your cards. You start with **5**, gain **3** each round, max **10** (your bar and its marker: **Setup**, step 5).
+Elixir pays for your cards. You start with **5**, gain **3** each round, max **10** (your bar and its marker: **Setup**, step 5). There are only three prices: **small cards 2, big numbers 6, pictures 10** (a picture takes your whole bar).
 
-| Rank | A | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | J | Q | K |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Cost | 1 | 2 | 2 | 3 | 4 | 5 | 5 | 6 | 7 | 8 | 8 | 9 | 10 |
+| Cards | A to 5 | 6 to 10 | J, Q, K |
+|---|---|---|---|
+| Cost | 2 | 6 | 10 |
 
 The enemy has **no elixir**: it plays exactly one card per round, whatever it costs.
 

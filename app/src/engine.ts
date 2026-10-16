@@ -28,7 +28,8 @@ export interface GameState {
 export const SUITS = ['♠', '♥', '♦', '♣']
 export const RANKS = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
 export const label = (c: Card) => `${RANKS[c.rank]}${SUITS[c.suit]}`
-export const cost = (rank: number) => Math.floor((rank * 10) / 13 + 0.5)
+// three prices you can tell at a glance: small cards (A to 5) 2, big numbers (6 to 10) 6, pictures (J, Q, K) 10
+export const cost = (rank: number) => (rank <= 5 ? 2 : rank <= 10 ? 6 : 10)
 export const isRed = (c: Card) => c.suit === 1 || c.suit === 2
 
 export const DEFAULT_RULES: Rules = { regen: 3, startElixir: 5, cap: 10, wheel: 2, laneLen: 2, acesBeatPictures: true, aceMin: 13 }

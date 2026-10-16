@@ -515,7 +515,7 @@ const RULES: Topic[] = [
     <Cheat />
   </> },
   { id: 'elixir', icon: <Droplet />, title: 'Elixir', line: 'Pays for your cards: stronger ones cost more. +3 each round.', body: <>
-    <p>A card costs about its rank, the purple number: A=1, 5=4, 8=6, K=10.</p>
+    <p>Three prices, the purple number: <b>A to 5</b> cost 2, <b>6 to 10</b> cost 6, <b>J, Q, K</b> cost 10.</p>
     <p>You start with {DEFAULT_RULES.startElixir} and get {DEFAULT_RULES.regen} more each round, up to {DEFAULT_RULES.cap}.</p>
     <p>The enemy has no elixir: it plays <b>one card per round</b>, the top of its pile.</p>
   </> },
