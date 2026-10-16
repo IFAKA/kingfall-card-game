@@ -429,7 +429,7 @@ h3 { margin: 18px 0 8px; }
 .castle .cname { font-family: var(--display); font-size: max(11px, calc(var(--cw) * .22)); color: rgba(255,255,255,.85); text-shadow: 0 1px 0 rgba(0,0,0,.6); text-transform: uppercase; letter-spacing: .04em; }
 
 /* lanes */
-.lanes { position: relative; z-index: 1; flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr minmax(0, .9fr) 1fr; }
+.lanes { position: relative; z-index: 3; /* above the castles (2), so a card that reaches a tower lies on top of it */ flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr minmax(0, .9fr) 1fr; }
 .alane { display: grid; --rgap: calc(var(--ch) * .12); grid-template-rows: 1fr calc(var(--ch) + 4px) calc(18px + var(--rgap) * 2) calc(var(--ch) + 4px) 1fr; min-height: 0; }
 .spot { position: relative; display: flex; align-items: center; justify-content: center; min-height: 0; }
 .spot.atk { z-index: 3; }
