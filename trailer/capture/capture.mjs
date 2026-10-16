@@ -21,7 +21,7 @@ const appConst = name => {
 }
 const STORAGE_KEY = appConst('STORAGE_KEY'), TIPS_KEY = appConst('TIPS_KEY'), PLAYED_KEY = appConst('PLAYED_KEY')
 // every first-game tip, marked seen so none covers the board
-const ALL_TIPS = [...(APP.match(/type TipId = ([^\n]+)/)?.[1] ?? '').matchAll(/'([a-z]+)'/g)].map(m => m[1])
+const ALL_TIPS = [...(APP.match(/type TipId = ([^\n]+)/)?.[1] ?? '').matchAll(/'([a-z0-9]+)'/g)].map(m => m[1])
 if (!ALL_TIPS.length) throw new Error('app/src/App.tsx no longer defines type TipId: update capture/capture.mjs')
 fs.mkdirSync(OUT, { recursive: true })
 
