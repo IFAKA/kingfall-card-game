@@ -1,6 +1,6 @@
 // Guide engine: you play with real cards; this runs the rules and tells you what to do physically.
 // The enemy's face-down cards are unknown (null) until you flip them and tell the app.
-import { DECK_SIZE, DEFAULT_RULES, RANKS, SUITS, atTower, breaksTower, compare, cost, defendLane, effective, label, playerLaneInfo, shuffle, towersFromSlots, aceWins } from './engine.ts'
+import { DECK_SIZE, DEFAULT_RULES, RANKS, SUITS, armored, atTower, breaksTower, compare, cost, defendLane, effective, label, playerLaneInfo, shuffle, towersFromSlots, aceWins } from './engine.ts'
 import type { Card, Rules, StackKey, Towers, Unit } from './engine.ts'
 
 export type Stage =
@@ -19,7 +19,7 @@ export type GameEvent =
   | { type: 'fight'; lane: 0 | 1; mine: { tid: string; card: Card; value: number }; theirs: { tid: string; card: Card; value: number }
       double: 'P' | 'E' | null; ace: 'P' | 'E' | null; winner: 'P' | 'E' | 'tie' }
   | { type: 'reveal'; tid: string; card: Card; stack: StackKey } // an enemy tower card turned face-up before a hit
-  | { type: 'tower'; side: 'P' | 'E'; tid: string; card: Card; stack: StackKey; top: { tid: string; card: Card }; result: 'break' | 'crack'; wasCracked: boolean; destroyed: boolean }
+  | { type: 'tower'; side: 'P' | 'E'; tid: string; card: Card; stack: StackKey; top: { tid: string; card: Card }; result: 'break' | 'crack'; wasCracked: boolean; destroyed: boolean; armor?: boolean } // armor: a winning hit that only cracked an armored card
   | { type: 'over'; winner: 'P' | 'E' | 'draw' }
 
 export interface Stats {
@@ -37,9 +37,9 @@ export interface GuideState {
   units: Unit[]
   nextUid: number
   P: { hand: Card[]; queue: Card[]; elixir: number; towers: Towers }
-  E: { queue: ESlot[]; towers: ETowers } // no elixir: the enemy plays one card per round
+  E: { queue: ESlot[]; towers: ETowers } // no budget: the enemy plays the top cards of its pile, rules.enemyPlays a round
   discard: Discarded[]
-  dealt: Card[] // your 14 cards
+  dealt: Card[] // your 11 cards
   enemySeen: Card[]
   lines: string[]      // what to do physically right now
   why: string[]        // why (rule explanation) for this step
@@ -56,6 +56,8 @@ export interface GuideState {
   events?: GameEvent[] // what the latest step did
   openLanes?: number[] // lanes where you had no card when you ended your turn
   batched?: boolean // this step is several steps in one checklist (see extendBatch)
+  enemyPlayed?: number // cards the enemy has played this round
+  enemyLane?: 0 | 1 // the lane its first card went into this round
 }
 
 const laneName = (l: number) => (l === 0 ? 'LEFT' : 'RIGHT')
@@ -79,11 +81,7 @@ export function makeGame(deck: Card[], towerSlots: Card[], dealt: Card[], rules:
     P: { hand: d.slice(0, 4), queue: d.slice(4), elixir: rules.startElixir, towers: towersFromSlots(towerSlots) },
     E: {
       queue: Array.from({ length: DECK_SIZE }, (_, i) => ({ tid: `ep${i}`, card: null })),
-      towers: {
-        L: [0, 1].map(i => ({ tid: `et${i}`, card: null })),
-        R: [2, 3].map(i => ({ tid: `et${i}`, card: null })),
-        K: [4, 5].map(i => ({ tid: `et${i}`, card: null })),
-      },
+      towers: { L: [{ tid: 'et0', card: null }], R: [{ tid: 'et1', card: null }], K: [{ tid: 'et2', card: null }] },
     },
     discard: [],
     dealt,
@@ -100,19 +98,10 @@ export function excludedIds(g: GuideState): Set<string> {
   return new Set([...g.dealt, ...g.enemySeen].map(c => c.id))
 }
 
-// ---------- elixir marker ----------
-// Each physical bar is 10 face-down cards; the one flipped face-up marks the elixir (its position from the left, 0 = none).
-// Moving it is two flips: the card that many places left or right face-up, then the old marker face-down.
-const flips = (before: number, after: number) => [after && `card ${after} face-up`, before && `card ${before} face-down`].filter(Boolean).join(', then ')
-
-function gainLine(before: number, after: number, cap: number) {
-  if (after === before) return `Your bar is full: card ${after} stays face-up.`
-  return `Flip ${flips(before, after)} (${after - before} to the right${after === cap ? ', the bar is full' : ''}). You now have ${after} elixir.`
-}
-
-function spendLine(k: number, after: number) {
-  return `Flip ${flips(after + k, after)} (${k} to the left${after ? '' : ', no card face-up'}). You have ${after} elixir left.`
-}
+// ---------- your turn's budget ----------
+// Nothing to count at the table: each round you play 1 card, or 2 small cards (A to 5). Inside, that is a budget of 2 that refills every
+// round (a small card uses 1, any other card 2), so unplayed cards carry nothing over.
+const PLAY_RULE = 'Each round you may play 1 card, or 2 small cards (A to 5). Nothing carries over to the next round.'
 
 // ---------- round flow ----------
 export function startRound(g0: GuideState): GuideState {
@@ -125,8 +114,8 @@ function newRound(g: GuideState): GuideState {
   g.P.elixir = Math.min(g.rules.cap, g.P.elixir + g.rules.regen)
   g.stage = 'round_start'
   g.lastAction = []
-  g.lines = [gainLine(p0, g.P.elixir, g.rules.cap)]
-  g.why = ['Elixir is the position of the face-up card in a bar, counted from the left (no card face-up = 0). It refills a little every round, never past 10, and is what limits how much you can play.']
+  g.lines = [`Round ${g.round}: play 1 card, or 2 small cards (A to 5).`]
+  g.why = [PLAY_RULE + ' Small cards are weak, but two of them fit in one turn; a big card is strong, but it is your whole turn.']
   g.log.push(`— Round ${g.round} —`)
   emit(g, { type: 'round', round: g.round, gain: g.P.elixir - p0 })
   return g
@@ -136,7 +125,7 @@ export function next(g0: GuideState): GuideState {
   const g = step(g0)
   switch (g.stage) {
     case 'round_start': return peekOr(g, 'play')
-    case 'enemy_play': return peekOr(g, 'move') // one card per round: the enemy turn is over
+    case 'enemy_play': return moreEnemy(g) ? enemyStep(g) : peekOr(g, 'move') // its last card this round: the enemy turn is over
     case 'enemy_peek': return goFight(g)
     case 'enemy_stop': return goFight(g)
     case 'step_up': return resolveNext(g)
@@ -185,7 +174,9 @@ function refill(g: GuideState): string[] {
 
 /** A card you placed this turn: where it came from in your hand and how many cards you drew for it, so it can be taken back exactly. */
 interface Placed { id: string; lane: 0 | 1; at: number; drew: number }
-const playLog = (c: Card, lane: 0 | 1) => `You play ${label(c)} (cost ${cost(c.rank)}) in the ${laneName(lane).toLowerCase()} lane.`
+const playLog = (c: Card, lane: 0 | 1) => `You play ${label(c)} in the ${laneName(lane).toLowerCase()} lane.`
+/** What is left of your turn after a play. */
+const leftLine = (g: GuideState) => (g.P.elixir > 0 ? 'You may still play 1 more small card (A to 5) this round.' : "That's your play for this round.")
 
 export function playCard(g0: GuideState, i: number, lane: 0 | 1): GuideState {
   if (!canPlay(g0, i)) return g0
@@ -203,9 +194,9 @@ function place(g: GuideState, i: number, lane: 0 | 1) {
   const drawn = refill(g)
   ;(g.turn ??= []).push({ id: c.id, lane, at: i, drew: drawn.length })
   g.lastAction = [
-    spendLine(k, g.P.elixir),
-    `Place ${label(c)} in the ${laneName(lane)} lane, slot nearest YOU, on your half (the left one).`,
+    `Place ${label(c)} in the ${laneName(lane)} lane, slot nearest YOU.`,
     ...drawn,
+    leftLine(g),
   ]
   g.log.push(playLog(c, lane))
   emit(g, { type: 'play', side: 'P', tid: c.id, card: c, lane, cost: k })
@@ -285,9 +276,10 @@ function rework(g0: GuideState, j: number, plays: { id: string; lane: 0 | 1 }[],
 
 export function endMyTurn(g0: GuideState): GuideState {
   const g = step(g0)
-  if (g.P.elixir >= g.rules.cap) g.stats.leakRounds++
+  if (g.P.elixir >= g.rules.cap && g.P.hand.length) g.stats.leakRounds++ // a round you played nothing
   g.openLanes = ([0, 1] as const).filter(l => !g.units.some(u => u.side === 'P' && u.lane === l))
   g.lastAction = []
+  g.enemyPlayed = 0
   return enemyStep(g)
 }
 
@@ -297,8 +289,8 @@ function peekOr(g: GuideState, then: 'play' | 'move'): GuideState {
   if (g.E.queue[0]?.card === null) {
     g.stage = 'enemy_enter'
     g.peek = then
-    g.lines = ['Flip the TOP card of the enemy pile face-up, leave it on top, and tell the app which card it is. That is the card the enemy plays next round.']
-    g.why = ["The enemy's top card is always face-up, so you always know what it plays next. Plan around it."]
+    g.lines = ['Flip the TOP card of the enemy pile face-up, leave it on top, and tell the app which card it is. That is the first card the enemy plays next round.']
+    g.why = ["The enemy's top card is always face-up, so you always know the first card it plays next. Plan around it."]
     return g
   }
   return then === 'play' ? toMyPlay(g) : goFight(g)
@@ -320,7 +312,7 @@ function enemyStep(g: GuideState): GuideState {
   if (q[0].card === null) {
     g.stage = 'enemy_enter'
     g.lines = ['Flip the TOP card of the enemy pile face-up and tell the app which card it is.']
-    g.why = ['The enemy plays its pile from the top, in order. You only learn a card by flipping it.']
+    g.why = [`The enemy plays its pile from the top, in order: ${enemyCount(g)} a round. You only learn a card by flipping it.`]
     return g
   }
   return enemyDecide(g)
@@ -346,23 +338,34 @@ function peekEnemyCard(g0: GuideState, card: Card): GuideState {
   return g
 }
 
-/** The enemy has no elixir: it plays the top card of its pile, one card per round, whatever it costs. */
+const enemyCount = (g: GuideState) => { const n = g.rules.enemyPlays ?? 1; return n === 1 ? 'one card' : `${n} cards` }
+/** The enemy still has a card to play this round. */
+const moreEnemy = (g: GuideState) => (g.enemyPlayed ?? 1) < (g.rules.enemyPlays ?? 1) && g.E.queue.length > 0
+
+/** The enemy has no budget: it plays the top cards of its pile, rules.enemyPlays a round, whatever they are. */
 function enemyDecide(g: GuideState): GuideState {
   const slot = g.E.queue.shift()!
   const c = slot.card!
+  g.enemyPlayed = (g.enemyPlayed ?? 0) + 1
+  const n = g.rules.enemyPlays ?? 1
+  const which = n === 1 ? 'That is its one card this round.' : g.enemyPlayed === 1 ? 'That is its first card this round.' : g.enemyPlayed === n ? 'That is its last card this round.' : `That is card ${g.enemyPlayed} of ${n} this round.`
   const { count: mine, best } = playerLaneInfo(g)
-  const lane = defendLane(mine, best)
+  // its first card defends the lane you pushed harder; with two cards a round, the second goes into the other lane
+  const lane: 0 | 1 = g.enemyPlayed > 1 && g.enemyLane !== undefined ? (g.enemyLane === 0 ? 1 : 0) : defendLane(mine, best)
+  if (g.enemyPlayed === 1) g.enemyLane = lane
   g.units.push({ uid: g.nextUid++, card: c, side: 'E', lane, pos: g.rules.laneLen - 1, tid: slot.tid })
   g.stage = 'enemy_play'
   g.lines = [
     `ENEMY PLAYS ${label(c)}.`,
-    `Place ${label(c)} in the ${laneName(lane)} lane, slot nearest the ENEMY, on its half (the right one). That is its one card this round.`,
+    `Place ${label(c)} in the ${laneName(lane)} lane, slot nearest the ENEMY. ${which}`,
   ]
   const rk = (r: number) => ['', 'ace', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'jack', 'queen', 'king'][r]
   const tieNote = mine[0] !== mine[1] ? '' : best[0] !== best[1]
     ? ` Tied, so it goes where your best card ranks higher: ${rk(best[0])} on the left, ${rk(best[1])} on the right (an ace counts as the lowest rank here).`
     : ' Still tied on rank, so it goes left.'
-  g.why = [`The enemy has no elixir: every round it plays the top card of its pile, whatever it costs. It defends: the card goes into the lane where you have MORE units (on a tie, the lane with your highest-ranked card; still tied, left). You have ${mine[0]} on the left and ${mine[1]} on the right.${tieNote}`]
+  g.why = [g.enemyPlayed > 1
+    ? 'The enemy plays 2 cards a round: the first defends the lane where you have more cards, the second goes into the OTHER lane, so both lanes always feel the pressure.'
+    : `Every round the enemy plays the top ${enemyCount(g) === 'one card' ? 'card' : enemyCount(g)} of its pile, whatever they are. Its first card defends: it goes into the lane where you have MORE units (on a tie, the lane with your highest-ranked card; still tied, left). You have ${mine[0]} on the left and ${mine[1]} on the right.${tieNote}${(g.rules.enemyPlays ?? 1) > 1 ? ' Its second card goes into the other lane.' : ''}`]
   g.log.push(`Enemy plays ${label(c)} in the ${laneName(lane).toLowerCase()} lane.`)
   emit(g, { type: 'play', side: 'E', tid: slot.tid, card: c, lane, cost: 0 })
   return g
@@ -427,7 +430,7 @@ function stepForward(g: GuideState, moved: Unit[]) {
   g.units = [...g.units.filter(u => !moved.includes(u)), ...moved]
 }
 
-const slotName = (g: GuideState, u: Unit) => atTower(g, u) ? `the ${u.side === 'P' ? 'enemy' : 'your'} tower` : `${u.pos === 0 ? 'the slot nearest YOU' : 'the slot nearest the ENEMY'}, still on ${u.side === 'P' ? 'your (left)' : 'its (right)'} half`
+const slotName = (g: GuideState, u: Unit) => atTower(g, u) ? `the ${u.side === 'P' ? 'enemy' : 'your'} tower` : u.pos === 0 ? 'the slot nearest YOU' : u.pos === g.rules.laneLen - 1 ? 'the slot nearest the ENEMY' : 'the MIDDLE slot'
 const whose = (u: Unit) => (u.side === 'P' ? 'your' : 'the enemy')
 
 /** What meets on the very next step, so the screen can show it squaring up first: the two cards that fight next (one fight per step,
@@ -512,8 +515,8 @@ function resolveNext(g: GuideState): GuideState {
     } else if (r > 0) {
       res = [`YOUR ${label(p.card)} WINS and stays where it is.`, ...kill(g, e)]
       g.log.push(`Your ${label(p.card)} beats enemy ${label(e.card)}.`)
-      if (!ace && cost(Math.min(13, e.card.rank + 1)) < cost(p.card.rank)) { // the cheapest rank that beats it costs less than you paid
-        g.stats.overkills.push(`In round ${g.round} your ${label(p.card)} (${cost(p.card.rank)} elixir) beat a ${label(e.card)} (${cost(e.card.rank)} elixir). A cheaper card would have won too.`)
+      if (!ace && cost(Math.min(13, e.card.rank + 1)) < cost(p.card.rank)) { // a small card would have beaten it too
+        g.stats.overkills.push(`In round ${g.round} your ${label(p.card)}, a big card that takes your whole turn, beat a ${label(e.card)}. A small card would have won too, with room for a second one.`)
       }
     } else {
       res = [`The ENEMY ${label(e.card)} WINS and stays where it is.`, ...kill(g, p)]
@@ -540,7 +543,7 @@ function resolveNext(g: GuideState): GuideState {
     if (go.length) {
       g.stage = 'move'
       g.lines = [
-        `MOVE ${go.map(u => `${whose(u)} ${label(u.card)}`).join(', ')} one slot toward the other side, each on its own half: your cards go away from you, enemy cards come toward you.`,
+        `MOVE ${go.map(u => `${whose(u)} ${label(u.card)}`).join(', ')} one slot toward the other side: your cards go away from you, enemy cards come toward you.`,
         'A card that moves past the last slot is now "at the tower" (the board shows it in the slot next to that tower). Cards already at a tower stay there.',
       ]
       g.why = ['When the fights are over, every card that hasn\'t moved yet this round steps one slot. A card at a tower stays there until an enemy card beats it.']
@@ -581,7 +584,9 @@ function processHit(g: GuideState): GuideState {
         `Your ${label(u.card)} is at the enemy ${stackName(k)}.`,
         `Flip the TOP card of the enemy ${stackName(k)} face-up and tell the app which card it is.`,
       ]
-      g.why = ['A tower hit is a fight against the top tower card: the suit wheel and aces count. If your unit wins or ties, the card breaks. If it loses, the card cracks instead, and the next hit on it breaks it.']
+      g.why = [g.rules.armor
+        ? 'A tower hit is a fight against the tower card: the suit wheel and aces count. Win or lose, a whole card only cracks; a cracked card breaks. If your card wins or ties, it stays for one more hit.'
+        : 'A tower hit is a fight against the top tower card: the suit wheel and aces count. If your unit wins or ties, the card breaks. If it loses, the card cracks instead, and the next hit on it breaks it.']
       return g
     }
     return resolveHit(g, u, k)
@@ -620,13 +625,14 @@ function resolveHit(g: GuideState, u: Unit, k: StackKey): GuideState {
   const cracked = g.cracked ?? []
   const wasCracked = cracked.includes(topId)
   const won = breaksTower(u.card, top, g.rules)
-  const broken = wasCracked || won
+  const armorHolds = won && armored(g, topId) // armor: a winning hit on a whole card only cracks it, and the attacker stays
+  const broken = wasCracked || (won && !armorHolds)
   const av = effective(u.card, top, g.rules.wheel), tv = effective(top, u.card, g.rules.wheel)
   const versus = aceWins(u.card, top, g.rules) || aceWins(top, u.card, g.rules)
     ? `${label(aceWins(u.card, top, g.rules) ? u.card : top)} is an ace, and an ace beats a king`
     : `${label(u.card)}${av > u.card.rank ? ` counts ${av}` : ''} ${won ? '≥' : '<'} ${label(top)}${tv > top.rank ? ` counts ${tv}` : ''}`
   const stackLeft = (mineHit ? g.E.towers[k] : g.P.towers[k]).length - (broken ? 1 : 0)
-  emit(g, { type: 'tower', side: u.side, tid: u.tid!, card: u.card, stack: k, top: { tid: topId, card: top }, result: broken ? 'break' : 'crack', wasCracked, destroyed: stackLeft === 0 })
+  emit(g, { type: 'tower', side: u.side, tid: u.tid!, card: u.card, stack: k, top: { tid: topId, card: top }, result: broken ? 'break' : 'crack', wasCracked, destroyed: stackLeft === 0, armor: armorHolds || undefined })
   delete u.free
   const lines: string[] = []
   lines.push(`${mineHit ? 'Your' : 'Enemy'} ${label(u.card)} (rank ${u.card.rank}) hits ${owner} ${stackName(k)}, top card ${label(top)} (rank ${top.rank}${wasCracked ? ', CRACKED' : ''}).`)
@@ -642,6 +648,10 @@ function resolveHit(g: GuideState, u: Unit, k: StackKey): GuideState {
       g.lastStand = { side: mineHit ? 'E' : 'P', lane: k === 'L' ? 0 : 1 }
     }
     g.log.push(`${mineHit ? 'Your' : 'Enemy'} ${label(u.card)} breaks ${label(top)} on the ${stackName(k).toLowerCase()}.`)
+  } else if (armorHolds) {
+    g.cracked = [...cracked, topId]
+    lines.push(`${versus}, but ${label(top)} is ARMORED: the first hit only CRACKS it. Turn it SIDEWAYS. The next hit breaks it.`)
+    g.log.push(`${mineHit ? 'Your' : 'Enemy'} ${label(u.card)} cracks the armored ${label(top)} on the ${stackName(k).toLowerCase()}.`)
   } else {
     const st = mineHit ? g.E.towers[k] : g.P.towers[k]
     if (st.length > 1) (st as unknown[]).push((st as unknown[]).shift())
@@ -650,11 +660,11 @@ function resolveHit(g: GuideState, u: Unit, k: StackKey): GuideState {
     g.log.push(`${mineHit ? 'Your' : 'Enemy'} ${label(u.card)} hits the ${stackName(k).toLowerCase()}: ${label(top)} holds but cracks.`)
   }
   // towers shoot back: a unit that breaks a card stays, wounded, for one more hit; otherwise it goes back to its pile
-  if (broken && !u.wounded) {
+  if ((broken || armorHolds) && !u.wounded) {
     u.wounded = true
     if (g.E.towers.K.length && g.P.towers.K.length) lines.push(`Turn ${mineHit ? 'your' : 'the enemy'} ${label(u.card)} SIDEWAYS and leave it at the tower: it is wounded, and hits once more next round (unless ${mineHit ? 'an enemy card' : 'one of your cards'} beats it first).`)
   } else {
-    const gone = broken ? `${mineHit ? 'Your' : 'The enemy'} ${label(u.card)} was wounded, so that was its last hit.` : 'The tower shoots it back.'
+    const gone = broken || armorHolds ? `${mineHit ? 'Your' : 'The enemy'} ${label(u.card)} was wounded, so that was its last hit.` : 'The tower shoots it back.'
     g.units = g.units.filter(x => x.uid !== u.uid)
     if (u.side === 'P') { g.P.queue.push(u.card); lines.push(`${gone} Put your ${label(u.card)} at the BOTTOM of your queue.`, ...refill(g)) }
     else { g.E.queue.push({ tid: u.tid!, card: u.card }); lines.push(`${gone} Put the enemy ${label(u.card)} at the BOTTOM of the enemy pile, FACE-UP (it is a known card now).`) }
@@ -662,18 +672,20 @@ function resolveHit(g: GuideState, u: Unit, k: StackKey): GuideState {
   if (g.lastStand) lines.push(`The ${owner} ${stackName(k)} is DESTROYED. ${mineHit ? 'The enemy gets a LAST STAND' : 'You get a LAST STAND'}: one free card in that lane (next step).`)
   g.stage = 'tower_result'
   g.lines = lines
-  g.why = ['A tower hit is a fight against the top tower card (the suit wheel and aces count; a tie breaks it). Towers shoot back, so every attacker does limited damage: a unit that breaks a card stays, turned sideways (wounded), for one more hit, then goes back to its pile. A unit that loses only cracks the card (turned sideways, moved to the bottom of that tower) and goes back. Any later hit breaks a cracked card, so even small cards wear towers down. The king can only be hit after the princess tower in that lane is gone. When a princess tower falls, its owner gets a free last-stand card in that lane.']
+  g.why = [g.rules.armor
+    ? 'Every tower card takes two hits: the first CRACKS it (turned sideways), the next one BREAKS it, whatever card hits it. A hit is still a fight against the tower card (the suit wheel and aces count; a tie counts as a win): a card that wins stays, turned sideways (wounded), for one more hit, then goes back to its pile; a card that loses is shot back to its pile at once. The king can only be hit after the side tower in that lane is gone. When a side tower falls, its owner gets a free last-stand card in that lane.'
+    : 'A tower hit is a fight against the top tower card (the suit wheel and aces count; a tie breaks it). Towers shoot back, so every attacker does limited damage: a unit that breaks a card stays, turned sideways (wounded), for one more hit, then goes back to its pile. A unit that loses only cracks the card (turned sideways, moved to the bottom of that tower) and goes back. Any later hit breaks a cracked card, so even small cards wear towers down. The king can only be hit after the princess tower in that lane is gone. When a princess tower falls, its owner gets a free last-stand card in that lane.']
   return g
 }
 
 // ---------- last stand ----------
-// When a princess stack falls, its owner immediately places one card in that lane for free (no elixir, the bar stays as it is).
+// When a side tower falls, its owner immediately places one card in that lane for free (it isn't part of anyone's turn).
 function lastStandStep(g: GuideState): GuideState {
   const { side, lane } = g.lastStand!
   if (side === 'P') {
     if (!g.P.hand.length) { g.lastStand = null; g.lines = ['Your hand is empty, so there is no last stand.']; g.why = []; return g }
     g.stage = 'my_last_stand'
-    g.lines = [`LAST STAND: your ${stackName(lane === 0 ? 'L' : 'R')} fell. Pick ANY card from your hand: it goes FREE into the ${laneName(lane)} lane, slot nearest YOU, on your (left) half. Leave your elixir bar as it is.`]
+    g.lines = [`LAST STAND: your ${stackName(lane === 0 ? 'L' : 'R')} fell. Pick ANY card from your hand: it goes FREE into the ${laneName(lane)} lane, slot nearest YOU. It doesn't count as your play next round.`]
     g.why = ['When a princess tower falls, its defenders fight back: the owner places one card in that lane for free. Losing a tower hurts, but it is not the end of the game.']
     return g
   }
@@ -695,7 +707,7 @@ function enemyLastStand(g: GuideState): GuideState {
   g.units.push({ uid: g.nextUid++, card: c, side: 'E', lane, pos: g.rules.laneLen - 1, tid: slot.tid, free: true })
   g.lastStand = null
   g.stage = 'tower_result'
-  g.lines = [`ENEMY LAST STAND: place ${label(c)} FREE in the ${laneName(lane)} lane, slot nearest the ENEMY, on its (right) half.`]
+  g.lines = [`ENEMY LAST STAND: place ${label(c)} FREE in the ${laneName(lane)} lane, slot nearest the ENEMY.`]
   g.why = ['When a princess tower falls, its owner places one card in that lane for free. The enemy always uses the top card of its pile, so a face-up top card tells you what is coming.']
   g.log.push(`Enemy last stand: ${label(c)} enters the ${laneName(lane).toLowerCase()} lane for free.`)
   emit(g, { type: 'play', side: 'E', tid: slot.tid, card: c, lane, cost: 0, free: true })
@@ -711,7 +723,7 @@ export function lastStandPlay(g0: GuideState, i: number): GuideState {
   g.stats.placed++
   g.lastStand = null
   g.stage = 'tower_result'
-  g.lines = [`Place ${label(c)} FREE in the ${laneName(lane)} lane, slot nearest YOU, on your (left) half. Leave your elixir bar as it is.`, ...refill(g)]
+  g.lines = [`Place ${label(c)} FREE in the ${laneName(lane)} lane, slot nearest YOU.`, ...refill(g)]
   g.why = []
   g.log.push(`Your last stand: ${label(c)} enters the ${laneName(lane).toLowerCase()} lane for free.`)
   emit(g, { type: 'play', side: 'P', tid: c.id, card: c, lane, cost: 0, free: true })
@@ -749,9 +761,9 @@ export function options(g: GuideState): string[] {
   const out: string[] = []
   const threats = g.units.filter(u => u.side === 'E')
   g.P.hand.forEach((c, i) => {
-    if (!canPlay(g, i)) { out.push(`${label(c)}: cost ${cost(c.rank)} — you can't afford it (you have ${g.P.elixir}).`); return }
+    if (!canPlay(g, i)) { out.push(`${label(c)}: ${g.P.elixir ? 'a big card, and you already played a small one this round' : 'you already played this round'}.`); return }
     const beat = threats.filter(t => beats(g, c, t.card)).map(t => label(t.card))
-    out.push(`${label(c)}: cost ${cost(c.rank)}.${beat.length ? ` Would beat ${beat.join(', ')} on the table.` : threats.length ? ' Would NOT beat the enemy cards on the table.' : ' No enemy cards on the table yet.'}`)
+    out.push(`${label(c)}: ${cost(c.rank) === 1 ? 'small' : 'big'}.${beat.length ? ` Would beat ${beat.join(', ')} on the table.` : threats.length ? ' Would NOT beat the enemy cards on the table.' : ' No enemy cards on the table yet.'}`)
   })
   return out
 }
@@ -776,7 +788,7 @@ function evaluate(g: GuideState, plays: Play[]): Plan {
   const mine = [0, 1].map(l => g.units.filter(u => u.side === 'P' && u.lane === l).sort((a, b) => b.pos - a.pos).map(u => u.card))
   const theirs = [0, 1].map(l => g.units.filter(u => u.side === 'E' && u.lane === l).sort((a, b) => a.pos - b.pos).map(u => u.card))
   for (const p of plays) mine[p.lane].push(g.P.hand[p.i])
-  // the enemy's face-up next card (it always plays one card) joins the lane where you have more units (it defends)
+  // the enemy's face-up next card (the first it plays) joins the lane where you have more units (it defends)
   let enemyNext: Plan['enemyNext'] = null
   const nxt = g.E.queue[0]?.card
   if (nxt) {
@@ -791,7 +803,7 @@ function evaluate(g: GuideState, plays: Play[]): Plan {
   const pushers = out.map(o => (o.theirs.length ? [] : o.mine))
   const left = g.P.elixir - spent
   const waste = Math.max(0, left + g.rules.regen - g.rules.cap)
-  // stopping leaks matters most; banked elixir is worth more than a speculative push, because the enemy defends the lane you push
+  // stopping leaks matters most; a turn left unused is lost (the budget doesn't carry over), and a clear push is worth a little
   let score = 0.5 * left - waste
   for (const l of [0, 1]) {
     score -= 10 * leaks[l].length
@@ -802,7 +814,7 @@ function evaluate(g: GuideState, plays: Play[]): Plan {
 
 const cardList = (cs: Card[]) => cs.map(label).join(' + ')
 
-/** Looks one round ahead: tries every set of cards you can afford and picks the one that lets the fewest enemy cards through, keeping elixir in the bank otherwise. */
+/** Looks one round ahead: tries every play you may make this round and picks the one that lets the fewest enemy cards through. */
 export function advise(g: GuideState): Advice {
   const hand = g.P.hand
   let best = evaluate(g, [])
@@ -820,9 +832,9 @@ export function advise(g: GuideState): Advice {
   if (!best.plays.length) {
     const leaking = [0, 1].filter(l => base.leaks[l].length)
     const why = leaking.length
-      ? `Nothing you can afford stops the enemy ${leaking.map(l => `${cardList(base.leaks[l])} in the ${laneName(l).toLowerCase()} lane`).join(' and ')}. Save elixir so you can answer next round.`
-      : `Every enemy card is covered by what is already on the table. Saving elixir keeps an answer ready for the cards it hasn't flipped yet.`
-    return { kind: 'wait', reason: why + nextNote(base), short: leaking.length ? 'nothing you can afford stops them, so save elixir' : 'everything is covered, so save elixir' }
+      ? `Nothing you can play stops the enemy ${leaking.map(l => `${cardList(base.leaks[l])} in the ${laneName(l).toLowerCase()} lane`).join(' and ')}. Keep your cards for next round.`
+      : `Every enemy card is covered by what is already on the table. Keeping your cards in hand leaves an answer ready for the cards it hasn't flipped yet.`
+    return { kind: 'wait', reason: why + nextNote(base), short: leaking.length ? 'nothing you can play stops them' : 'everything is covered, so keep your cards' }
   }
   // defend first: start with a card for a lane that would otherwise leak
   const first = best.plays.find(p => base.leaks[p.lane].length > best.leaks[p.lane].length) ?? best.plays[0]
@@ -832,7 +844,6 @@ export function advise(g: GuideState): Advice {
   let reason = stops
     ? `Without help, the enemy ${cardList(base.leaks[first.lane])} would get through the ${ln} lane and crack or break your tower. ${label(c)} stops ${base.leaks[first.lane].length > 1 ? 'them' : 'it'}.`
     : `${label(c)} has a clear path in the ${ln} lane: nothing the enemy has there beats it, so it should reach the enemy tower. If it breaks a card there, it stays for one more hit.`
-  if (base.plays.length === 0 && g.P.elixir + g.rules.regen > g.rules.cap) reason += ` It also keeps your bar from overflowing next round.`
   if (best.plays.length > 1) reason += ` Plan for this turn: ${best.plays.map(p => `${label(hand[p.i])} → ${laneName(p.lane)}`).join(', ')}.`
   const stillLeaks = [0, 1].filter(l => best.leaks[l].length)
   if (stillLeaks.length) reason += ` You can't stop everything: ${stillLeaks.map(l => cardList(best.leaks[l])).join(', ')} will still get through.`
@@ -870,7 +881,7 @@ export function describe(e: GameEvent): string | null {
   switch (e.type) {
     case 'play':
       if (e.free) return `${e.side === 'P' ? 'Your' : 'Enemy'} last stand: ${label(e.card)} enters the ${lane(e.lane)} lane free.`
-      return e.side === 'P' ? `You play ${label(e.card)} in the ${lane(e.lane)} lane (${e.cost} elixir).` : `Enemy plays ${label(e.card)} in the ${lane(e.lane)} lane.`
+      return e.side === 'P' ? `You play ${label(e.card)} in the ${lane(e.lane)} lane.` : `Enemy plays ${label(e.card)} in the ${lane(e.lane)} lane.`
     case 'fight': {
       const { mine, theirs } = e
       const head = e.winner === 'P' ? `Your ${label(mine.card)} beats ${label(theirs.card)}` : e.winner === 'E' ? `Enemy ${label(theirs.card)} beats your ${label(mine.card)}` : `${label(mine.card)} ties ${label(theirs.card)} (${mine.value} vs ${theirs.value}): both are removed`
@@ -883,6 +894,7 @@ export function describe(e: GameEvent): string | null {
     }
     case 'tower': {
       const who = `${e.side === 'P' ? 'Your' : 'Enemy'} ${label(e.card)}`, where = stackName(e.stack).toLowerCase()
+      if (e.armor) return `${who} cracks the armored ${label(e.top.card)} on the ${where}: it stays for one more hit.`
       if (e.result === 'crack') return `${who} is too weak to break ${label(e.top.card)}: the tower holds, but cracks.`
       const how = e.wasCracked ? `breaks the cracked ${label(e.top.card)}` : `breaks ${label(e.top.card)}`
       return `${who} ${how} on the ${where}${e.destroyed ? `. The ${where} is DESTROYED!` : '.'}`
@@ -908,7 +920,7 @@ export function summary(g: GuideState): Summary {
   const open = s.undefended ?? 0
   const tip = open >= 2 ? `${open} of your tower cards broke to enemy cards in a lane where you had no card. When an enemy card is coming down a lane, put a card there to meet it.`
     : s.aceLosses?.[0] ?? s.wheelLosses?.[0]
-    ?? (s.leakRounds ? `${s.leakRounds === 1 ? 'Once' : `${s.leakRounds} times`} you ended your turn with a full elixir bar, so that round's refill was lost. Spend a bit earlier.` : null)
+    ?? (s.leakRounds ? `${s.leakRounds === 1 ? 'Once' : `${s.leakRounds} times`} you ended a round without playing a card. A turn you don't use is lost: even a small card in an empty lane helps.` : null)
     ?? s.overkills[0] ?? null
   return {
     broke: s.theirsBroken, theirTotal: s.theirsBroken + left(g.E.towers),

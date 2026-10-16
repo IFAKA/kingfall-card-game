@@ -13,7 +13,7 @@ import type { Variants } from 'framer-motion'
 import type { Pop } from './fx'
 import { isMusicOff, music, setMusicOff } from './music'
 import { isMuted, setMuted, sfx } from './sfx'
-import { Castle as CastleIcon, Crown, Droplet, FastForward, Layers, Lightbulb, ListChecks, Redo2, Repeat, Shield, Swords, Undo2 } from 'lucide-react'
+import { Castle as CastleIcon, Crown, FastForward, Hand, Layers, Lightbulb, ListChecks, Redo2, Repeat, Shield, Swords, Undo2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { CardText, Choice, GameMenu, HowToPlay, InstallLink, RulesSheet, Section } from './Menu'
@@ -30,7 +30,7 @@ interface Saved { mode?: 'guide' | 'play'; secret?: Record<string, Card>; screen
 
 const ALL = freshDeck()
 const byId = (id: string) => ALL.find(c => c.id === id)!
-export const STORAGE_KEY = 'solo-clash-guide-v9' // bump when the rules change, so old saved games don't load into new rules
+export const STORAGE_KEY = 'solo-clash-guide-v10' // bump when the rules change, so old saved games don't load into new rules
 
 function load(): Saved | null {
   try { const s = localStorage.getItem(STORAGE_KEY); return s ? (JSON.parse(s) as Saved) : null } catch { return null }
@@ -195,28 +195,6 @@ function TowerFan({ k, items, own, cracked, flip, shake }: { k: 'L' | 'R' | 'K';
   )
 }
 
-// With real cards, elixir is drawn like the bar on the table: 10 face-down cards in a row, overlapping so each number shows, the marker flipped face-up.
-// A card you pick frames the cards it would spend. When the marker moves, both cards turn over top to bottom, as you flip them at the
-// table, and while the step that says so is up (show) they glow.
-function CardBar({ n, spend = 0, show = false }: { n: number; spend?: number; show?: boolean }) {
-  const [a, b] = spendRange(n, spend)
-  const [moved, setMoved] = useState({ n, from: n })
-  if (moved.n !== n) setMoved({ n, from: moved.n })
-  const flipme = (i: number) => show && moved.from !== n && (i === moved.from - 1 || i === n - 1)
-  return (
-    <div className="cbar mine" role="meter" aria-valuemin={0} aria-valuemax={10} aria-valuenow={n} aria-label="Your elixir" title={`Your elixir bar: ${n ? `the face-up card is number ${n}` : 'no card face-up'}, so ${n} elixir`}>
-      <div className="drop">{n}</div>
-      <div className="cslots">
-        {Array.from({ length: 10 }, (_, i) => (
-          <div key={i} className={`bc ${i === n - 1 ? 'mark' : ''} ${spend > 0 && i >= a && i < b ? (spend > n ? 'short' : 'spend') : ''} ${flipme(i) ? 'flipme' : ''}`}>
-            <div className="bci"><span className="bcb">{i + 1}</span><span className="bcf">{i + 1}</span></div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // A pile squared up on the table: the top card shows face-up only where it is face-up at the table, with the count under it.
 // The top card keeps its id, so a card played from the pile, drawn from it or thrown on it slides there.
 function TablePile({ top, down, side, n, name, flip, faces }: { top?: ESlot; down: boolean; side?: 'P' | 'E'; n: number; name: string; flip?: boolean; faces?: boolean }) {
@@ -232,23 +210,26 @@ function TablePile({ top, down, side, n, name, flip, faces }: { top?: ESlot; dow
   )
 }
 
-// Elixir as one bar that fills smoothly; hovering or dragging a card shows what it would cost.
-function ElixirBar({ n, spend }: { n: number; spend: number }) {
-  const [a, b] = spendRange(n, spend)
+// What is left of your turn, as a bar of 2 that fills up again every round: a small card (A to 5) uses 1, any other card both.
+// Hovering or dragging a card shows what it would use.
+function TurnBar({ n, spend, max }: { n: number; spend: number; max: number }) {
+  const [a, b] = spendRange(n, spend, max)
+  const w = 100 / max
+  const left = n === max ? 'play 1 card, or 2 small cards (A to 5)' : n > 0 ? 'you may still play 1 small card (A to 5)' : 'your play is done'
   return (
-    <div className="ebar" role="meter" aria-valuemin={0} aria-valuemax={10} aria-valuenow={n} aria-label="Your elixir">
+    <div className="ebar" role="meter" aria-valuemin={0} aria-valuemax={max} aria-valuenow={n} aria-label={`Your turn: ${left}`} title={`Your turn: ${left}`}>
       <div className="drop">{n}</div>
       <div className="segs">
-        <div className="fill" style={{ transform: `translateX(${(n - 10) * 10}%)` }} />
-        {spend > 0 && <div className={`spend ${spend > n ? 'short' : ''}`} style={{ left: `${a * 10}%`, width: `${(b - a) * 10}%` }} />}
-        {Array.from({ length: 9 }, (_, i) => <i key={i} style={{ left: `${(i + 1) * 10}%` }} />)}
+        <div className="fill" style={{ transform: `translateX(${(n - max) * w}%)` }} />
+        {spend > 0 && <div className={`spend ${spend > n ? 'short' : ''}`} style={{ left: `${a * w}%`, width: `${(b - a) * w}%` }} />}
+        {Array.from({ length: max - 1 }, (_, i) => <i key={i} style={{ left: `${(i + 1) * w}%` }} />)}
       </div>
     </div>
   )
 }
 
 // One lane, top to bottom: your soldiers hitting the enemy tower, the enemy's slot, the river, your slot, enemy soldiers hitting your tower.
-// Each slot has two halves, as on the table: your cards on the left, the enemy's on the right, so where a card lies says whose it is.
+// Each slot is one shared space, as on the table: the colour says whose card it is (yours black, the enemy's red).
 // A soldier at a tower is drawn smaller, against that tower; a wounded one (it broke a card, one hit left) leans like a cracked card.
 // The two cards that fight next tremble a little, so you see who meets whom before one of them is gone.
 // A card at a tower is drawn in the lane slot next to that tower, first in the slot: new cards in that lane
@@ -265,12 +246,17 @@ function ArenaLane({ idx, units, fighting, laneLen, blocked, dragging, hint, sug
       <TCard tid={u.tid!} card={u.card} down={false} side={u.side} selected={picked === u.tid} />
     </div>
   ))
-  const here = (pred: (u: Unit) => boolean) => (['P', 'E'] as const).map(side => <div key={side} className={`half ${side}`}>{cards(u => u.side === side && pred(u))}</div>)
+  // one shared space per slot: the colour says whose card it is (yours black, the enemy's red); yours first, then the enemy's
+  const here = (pred: (u: Unit) => boolean) => <div className="half">{cards(u => u.side === 'P' && pred(u))}{cards(u => u.side === 'E' && pred(u))}</div>
   return (
     <div className="alane">
       <div className="spot atk" />
       <div className="spot slot" data-anchor={`lane-${idx}`}>{here(u => u.pos === laneLen - 1 || (u.side === 'P' && u.pos >= laneLen))}</div>
       <div className="river" />
+      {/* the slots between the two ends (one, in lanes of 3), drawn over the river */}
+      {Array.from({ length: Math.max(0, laneLen - 2) }, (_, k) => laneLen - 2 - k).map(pos => (
+        <div key={pos} className="spot slot middle" data-anchor={`lane-${idx}`}>{here(u => u.pos === pos)}</div>
+      ))}
       <div className={`spot slot mine ${blocked ? 'blocked' : ''} ${dragging || hint || suggested ? 'droppable' : ''} ${dragging && over ? 'over' : ''} ${suggested ? 'suggested' : ''}`} data-lane={idx} data-anchor={`lane-${idx}`} onClick={hint || suggested ? onPlace : undefined}>
         {here(u => u.pos === 0 || (u.side === 'E' && u.pos < 0))}
         {(dragging || hint || suggested) && <span className="droptag">{suggested && '★ '}{idx === 0 ? 'LEFT' : 'RIGHT'}</span>}
@@ -293,7 +279,7 @@ function ArenaPile({ slots, side }: { slots: { tid: string; card: Card | null }[
 }
 
 // ---------- setup at the real table: one step per screen, each with a picture ----------
-// Mini cards for the pictures: face-down by default, or a known card face-up (the elixir marker is flipped face-up).
+// Mini cards for the pictures: face-down by default, or a known card face-up.
 function Mc({ card, hot }: { card?: Card; hot?: boolean }) {
   return <PlayingCard card={card} className={`mc${hot ? ' hot' : ''}`} />
 }
@@ -316,10 +302,10 @@ function Stepper({ steps, at, setAt, done }: { steps: SetupStep[]; at: number; s
   )
 }
 
-// Slots [from, to) a card's cost covers: back from the marker, or from the start when it costs more than you have.
-function spendRange(n: number, spend: number): [number, number] {
+// Slots [from, to) a card would use: back from the end of what is left, or from the start when it needs more than is left.
+function spendRange(n: number, spend: number, max: number): [number, number] {
   const from = Math.max(0, n - spend)
-  return [from, Math.min(10, from + spend)]
+  return [from, Math.min(max, from + spend)]
 }
 
 // The table instructions shout their key words (BOTTOM, FACE-UP, LEFT); on the panel they read as bold words in a normal sentence, card names as little cards.
@@ -335,6 +321,8 @@ function Said({ text }: { text: string }) {
 }
 
 // Telling the app a card you flipped at the table: tap its rank and its suit, in either order. Cards already known are greyed out.
+// the enemy plays the red cards, you the black ones
+const RED = [1, 2], BLACK = [0, 3]
 function FlipPicker({ known, onPick }: { known: Set<string>; onPick: (c: Card) => void }) {
   const [rank, setRank] = useState<number | null>(null)
   const [suit, setSuit] = useState<number | null>(null)
@@ -348,12 +336,12 @@ function FlipPicker({ known, onPick }: { known: Set<string>; onPick: (c: Card) =
     <div className="flippick">
       <div className="franks">
         {ranks.map(r => (
-          <button key={r} className={`fkey ${rank === r ? 'sel' : ''}`} disabled={suit !== null ? has(r, suit) : [0, 1, 2, 3].every(s => has(r, s))}
+          <button key={r} className={`fkey ${rank === r ? 'sel' : ''}`} disabled={suit !== null ? has(r, suit) : RED.every(s => has(r, s))}
             onClick={() => choose(rank === r ? null : r, suit)}>{RANKS[r]}</button>
         ))}
       </div>
       <div className="fsuits">
-        {[0, 1, 2, 3].map(s => (
+        {RED.map(s => (
           <button key={s} className={`fkey suit ${s === 1 || s === 2 ? 'red' : ''} ${suit === s ? 'sel' : ''}`} aria-label={['spades', 'hearts', 'diamonds', 'clubs'][s]}
             disabled={rank !== null ? has(rank, s) : ranks.every(r => has(r, s))} onClick={() => choose(rank, suit === s ? null : s)}>{SUITS[s]}</button>
         ))}
@@ -362,10 +350,10 @@ function FlipPicker({ known, onPick }: { known: Set<string>; onPick: (c: Card) =
   )
 }
 
-function CardPicker({ disabled, onPick, selected }: { disabled: Set<string>; onPick: (c: Card) => void; selected?: Set<string> }) {
+function CardPicker({ disabled, onPick, selected, suits = [0, 1, 2, 3] }: { disabled: Set<string>; onPick: (c: Card) => void; selected?: Set<string>; suits?: number[] }) {
   return (
     <div className="picker">
-      {[0, 1, 2, 3].map(s => (
+      {suits.map(s => (
         <div className="prow" key={s}>
           {ALL.filter(c => c.suit === s).map(c => (
             <button key={c.id} disabled={disabled.has(c.id)} className={`pbtn ${isRed(c) ? 'red' : ''} ${selected?.has(c.id) ? 'sel' : ''}`} onClick={() => onPick(c)}>
@@ -506,7 +494,7 @@ const cheatSheet = (g: GuideState) => <Cheat g={g} />
 const towerFight = (win: Card, winText: string, lose: Card, loseText: string) => <div className="fights"><Beats win={show(win)} lose={show(lose)} winText={winText} loseText={loseText} /></div>
 const RULES: Topic[] = [
   { id: 'goal', icon: <Crown />, title: 'Goal', line: "Break the enemy's king tower before it breaks yours.", body: <>
-    <p>Each side has three towers of 2 cards: one on the left, one on the right, and the <b>king</b> in the middle, the crowned one.</p>
+    <p>Each side has three towers of 1 card: one on the left, one on the right, and the <b>king</b> in the middle, the crowned one.</p>
     <p>The king can only be hit through a lane whose side tower is gone.</p>
     <p>If both kings fall in the same round, the side with more tower cards left wins. It's a draw only when that's equal too.</p>
   </> },
@@ -514,60 +502,62 @@ const RULES: Topic[] = [
     <p>Your cards are soldiers. When two meet in a lane, they fight, and the loser goes back to its pile.</p>
     <Cheat />
   </> },
-  { id: 'elixir', icon: <Droplet />, title: 'Elixir', line: 'Pays for your cards: stronger ones cost more. +3 each round.', body: <>
-    <p>Three prices, the purple number: <b>A to 5</b> cost 2, <b>6 to 10</b> cost 6, <b>J, Q, K</b> cost 10.</p>
-    <p>You start with {DEFAULT_RULES.startElixir} and get {DEFAULT_RULES.regen} more each round, up to {DEFAULT_RULES.cap}.</p>
-    <p>The enemy has no elixir: it plays <b>one card per round</b>, the top of its pile.</p>
+  { id: 'turn', icon: <Hand />, title: 'Your turn', line: 'Play 1 card a round, or 2 small cards (A to 5).', body: <>
+    <p>Each round you play <b>1 card</b>, or <b>2 small cards</b> (A to 5). You may also play nothing.</p>
+    <p>The purple number says how much of your turn a card uses: a small card <b>1</b>, any other card <b>2</b>, your whole turn. Nothing carries over to the next round.</p>
+    <p>The enemy plays <b>2 cards every round</b>, the top two of its pile, whatever they are.</p>
   </> },
   { id: 'round', icon: <Repeat />, title: 'A round', line: 'You play, the enemy defends, the front cards fight, all move up.', body: <ol className="m-0 list-decimal pl-5">
     <li><b>You play</b> cards into a lane.</li>
-    <li>The <b>enemy</b> plays its top card into the lane where you have <b>more</b> cards. On a tie, where your highest card is, then left.</li>
+    <li>The <b>enemy</b> plays 2 cards: the first into the lane where you have <b>more</b> cards (on a tie, where your highest card is, then left), the second into the <b>other</b> lane.</li>
     <li>The front cards <b>fight</b> where they stand. When one falls, the card behind it steps up and fights the winner.</li>
     <li>Every card that hasn't moved <b>moves</b> one slot. A card that reaches the other end hits a tower.</li>
   </ol> },
-  { id: 'towers', icon: <CastleIcon />, title: 'Towers', line: 'A hit is a fight: win or tie, and the tower card breaks.', body: <>
-    <p>A soldier at a tower fights its top card. Suit ×2 and aces count here too.</p>
-    {towerFight({ id: 't9-0', rank: 9, suit: 0 }, 'soldier', { id: 't7-2', rank: 7, suit: 2 }, 'tower: breaks')}
-    <p><b>Win or tie:</b> the tower card breaks. Your soldier stays, turned sideways (wounded), hits once more next round, then goes back to its pile.</p>
-    {towerFight({ id: 't12-3', rank: 12, suit: 3 }, 'tower: cracks', { id: 't5-1', rank: 5, suit: 1 }, 'soldier')}
-    <p><b>Lose:</b> the soldier goes back to its pile, and the tower card <b>cracks</b>: turn it sideways and move it to the bottom of that tower. Any later hit breaks a cracked card.</p>
+  { id: 'towers', icon: <CastleIcon />, title: 'Towers', line: 'Every tower card takes two hits: the first cracks it, the next breaks it.', body: <>
+    <p>A tower card is <b>armored</b>: the first hit only <b>cracks</b> it (turn it sideways), and the next hit <b>breaks</b> it, whatever card hits it.</p>
+    <p>A hit is still a fight against the tower card, and suit ×2 and aces count here too. It decides what happens to your soldier:</p>
+    {towerFight({ id: 't9-0', rank: 9, suit: 0 }, 'soldier: stays', { id: 't7-2', rank: 7, suit: 2 }, 'tower: cracks')}
+    <p><b>Win or tie:</b> your soldier stays, turned sideways (wounded), and hits once more next round: that hit breaks the cracked card. Then it goes back to its pile.</p>
+    {towerFight({ id: 't12-2', rank: 12, suit: 2 }, 'tower: cracks', { id: 't5-0', rank: 5, suit: 0 }, 'soldier: shot back')}
+    <p><b>Lose:</b> the tower shoots it back to its pile, but the tower card cracks anyway, so the next hit breaks it.</p>
   </> },
   { id: 'stand', icon: <Shield />, title: 'Last stand', line: 'Lose a side tower, and you place one card there for free.', body: <>
-    <p>When a left or right tower falls, its owner immediately places one card in that lane, free of elixir.</p>
+    <p>When a left or right tower falls, its owner immediately places one card in that lane for free: it isn't part of anyone's turn.</p>
     <p>The enemy uses the top card of its pile.</p>
   </> },
   { id: 'pile', icon: <Layers />, title: 'Your pile', line: 'Cards that die come back later: your 8 keep cycling.', body: <>
     <p>A card that dies goes to the <b>bottom of its owner's pile</b>, and comes back to the hand later.</p>
-    <p>Nothing is lost for good: a cheap card you lose now is back in a few rounds.</p>
+    <p>Nothing is lost for good: a small card you lose now is back in a few rounds.</p>
   </> },
 ]
 
 // First games teach by playing: one tip at a time, each shown the first time its situation comes up (on screen, the enemy waits while it is open).
 // The goal comes first, so every rule after it has something to serve; each tip says one thing. The fight rules come one at a time,
 // each when it first decides a fight (the first game's fixed deal shows them in this order: rank, then suit, then ace).
-type TipId = 'goal' | 'drag' | 'elixir' | 'change' | 'enemy' | 'rank' | 'suit' | 'ace' | 'tower' | 'crack' | 'next' | 'stand'
+// (the turn, enemy and armor tips are new with the 22-card rules: their ids are new too, so players who saw the old ones see them)
+type TipId = 'goal' | 'drag' | 'turn' | 'change' | 'enemy2' | 'rank' | 'suit' | 'ace' | 'armor' | 'crack' | 'next' | 'stand'
 const TIPS: Record<TipId, string> = {
   goal: "Goal: break the enemy's king, the crowned castle at the top. Your cards are soldiers.",
-  drag: 'Drag a card onto a lane at the bottom. The purple number is its cost.',
-  elixir: 'Elixir pays for cards: +3 every round. Done? Press ✓ and the enemy moves.',
+  drag: 'Drag a card onto a lane at the bottom. Each round: 1 card, or 2 small ones (A to 5).',
+  turn: 'The purple number is how much of your turn a card uses: big cards 2, small cards 1. Done? Press ✓ and the enemy moves.',
   change: 'Changed your mind? Before ✓, drag a placed card back to your hand or to the other lane.',
-  enemy: 'The enemy defends the lane where you have more cards. Equal? Where your best card is higher. Its Next card is what it plays next.',
+  enemy2: 'The enemy plays 2 cards a round: the first defends the lane where you have more cards, the second goes into the other lane. Its Next card is its first.',
   rank: 'Cards fight where they meet: the higher rank wins. The loser goes back to its pile.',
   suit: 'Suits beat each other in a circle:\n♠ beats ♥ beats ♦ beats ♣ beats ♠. The winning suit counts ×2. The ⚔ button, top left, shows it again.',
-  ace: 'Aces beat Kings! A 1-elixir ace kills a 10-elixir King.',
-  tower: 'A card at a tower fights its top card. Win or tie: the tower card breaks. The king is safe until its side tower falls.',
-  crack: 'Lost at a tower? The card goes back to its pile, but the tower card cracks: the next hit breaks it.',
+  ace: 'Aces beat Kings! A small ace kills a big King.',
+  armor: 'Tower cards are armored: the first hit cracks them, the next breaks them. A card that wins its hit stays for that next hit. The king is safe until its side tower falls.',
+  crack: 'Lost at a tower? The card goes back to its pile, but the tower card still cracks: the next hit breaks it.',
   next: 'The Next card, between your lanes, joins your hand when you play. Cards that die come back later.',
   stand: 'LAST STAND! When a side tower falls, its owner puts one card into that lane for free.',
 }
 // with real cards the towers are the fanned cards on the table, not castles
 const TABLE_TIPS: Partial<Record<TipId, string>> = {
   goal: "Goal: break the enemy's king, the middle tower across the table. Your cards are soldiers.",
-  drag: 'Drag a card onto a lane at the bottom. The purple number is its cost.',
-  enemy: 'The enemy defends the lane where you have more cards. Equal? Where your best card is higher.',
+  drag: 'Drag a card onto a lane at the bottom. Each round: 1 card, or 2 small ones (A to 5).',
+  enemy2: 'The enemy plays 2 cards a round: the first defends the lane where you have more cards, the second goes into the other lane.',
   change: 'Wrong card? Undo, top left, takes back any step.',
-  tower: 'A card at a tower fights its front card. Win or tie: the tower card breaks. The king is safe until its side tower falls.',
-  crack: 'Lost at a tower? The card goes back to its pile; turn the tower card sideways and move it to the bottom. The next hit breaks it.',
+  armor: 'Tower cards are armored: the first hit cracks them (turn it sideways), the next breaks them. A card that wins its hit stays for that next hit. The king is safe until its side tower falls.',
+  crack: 'Lost at a tower? The card goes back to its pile, but turn the tower card sideways anyway: the next hit breaks it.',
   next: 'When you play a card, draw the top of your queue. Cards that die go to the bottom of it.',
 }
 const DEBUG = import.meta.env.DEV || new URLSearchParams(location.search).has('debug')
@@ -599,7 +589,7 @@ export default function App() {
   const [slotIds, setSlotIds] = useState<string[]>(saved?.slotIds ?? [])
   const [mode, setMode] = useState<'guide' | 'play'>(saved?.mode ?? 'guide')
   const [secret, setSecret] = useState<Record<string, Card>>(saved?.secret ?? {})
-  const [bad, setBad] = useState<number | null>(null) // a card tapped that costs more than you have
+  const [bad, setBad] = useState<number | null>(null) // a card tapped that doesn't fit in what is left of your turn
   const [explainOn, setExplainOn] = useState(saved ? saved.help === 'explain' : false)
   const [suggestOn, setSuggestOn] = useState(saved ? saved.help === 'suggest' : false)
   const help: Help = suggestOn ? 'suggest' : explainOn ? 'explain' : 'off'
@@ -700,14 +690,14 @@ export default function App() {
       ['stand', game.stage === 'my_last_stand' || happened(e => e.type === 'play' && !!e.free)],
       ['goal', firstPlay],
       ['drag', firstPlay],
-      ['elixir', happened(e => e.type === 'play' && e.side === 'P')],
+      ['turn', happened(e => e.type === 'play' && e.side === 'P')],
       ['change', happened(e => e.type === 'play' && e.side === 'P') && game.stats.placed >= 2],
-      ['enemy', happened(e => e.type === 'play' && e.side === 'E')],
+      ['enemy2', happened(e => e.type === 'play' && e.side === 'E')],
       ['rank', happened(e => e.type === 'fight')],
       ['suit', happened(e => e.type === 'fight' && !!e.double)],
       ['ace', happened(e => e.type === 'fight' && !!e.ace)],
-      ['tower', happened(e => e.type === 'tower')],
-      ['crack', happened(e => e.type === 'tower' && e.result === 'crack')],
+      ['armor', happened(e => e.type === 'tower')],
+      ['crack', happened(e => e.type === 'tower' && e.result === 'crack' && !e.armor)],
       ['next', game.stage === 'my_play' && game.round >= 2],
     ] as [TipId, boolean][]).find(([id, now]) => now && wants(id))?.[0]
     if (next) setTip(next)
@@ -758,7 +748,7 @@ export default function App() {
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, screen, game, tip, fast])
-  // when no card in hand is affordable, ending the turn is the only move, so it ends by itself; not recorded for undo,
+  // when no card in hand fits in what is left of your turn, ending it is the only move, so it ends by itself; not recorded for undo,
   // so undo goes back past it to your last real choice instead of landing here and ending again
   useEffect(() => {
     if (screen !== 'play' || !game || tip || game.stage !== 'my_play' || game.P.hand.some((_, i) => canPlay(game, i))) return
@@ -798,7 +788,7 @@ export default function App() {
   const redo = () => { if (fx.striking()) return fx.land(); if (!future.length || !game) return; browsing.current = true; setHistory(h => [...h, game]); setGame(future[future.length - 1]); setFuture(f => f.slice(0, -1)); setSel(null); setBad(null) }
 
   const setSplit = ({ deckIds, slotIds }: { deckIds: string[]; slotIds: string[] }) => { setDeckIds(deckIds); setSlotIds(slotIds) }
-  // on-screen play: deal both hands at random; the enemy's cards stay hidden inside the app (tid ep0-7 = pile, et0-5 = towers)
+  // on-screen play: deal both hands at random; the enemy's cards stay hidden inside the app (tid ep0-7 = pile, et0-2 = towers)
   const startOnScreen = () => {
     if (novice) return startTutorial()
     const d = deal(secureRandom)
@@ -858,18 +848,12 @@ export default function App() {
 
   // ---------- setup screens ----------
   if (screen === 'deal') {
-    const sample = ['13-1', '7-0', '1-2', '10-3', '4-1'].map(byId)
+    const blacks = ['13-0', '7-3', '1-0', '10-3', '4-0'].map(byId), reds = ['12-1', '3-2', '9-1', '1-2', '6-2'].map(byId)
     const steps: SetupStep[] = [
-      { title: 'Shuffle a deck', pic: <div className="mstack">{backs(6)}</div>,
-        body: <p>Take a standard 52-card deck, <b>no jokers</b>, and <b>shuffle it well</b>.</p> },
-      { title: 'Deal 14 cards each', pic: <div className="mcols"><div><div className="mfan">{sample.map(c => <Mc key={c.id} card={c} />)}<span className="more">+9</span></div><span className="mlbl">You: 14, face-up in your hand</span></div><div><div className="mstack">{backs(6)}</div><span className="mlbl">Enemy: 14, face-down</span></div></div>,
-        body: <p>Deal <b>14 cards to yourself</b> and look at them. Deal <b>14 face-down to the enemy</b> and don't look at them.</p> },
-      { title: 'Lay out your elixir bar', pic: <div className="mbars"><span className="mlbl">Your elixir</span><div className="mrow">{backs(10, 5)}</div><span className="mlbl">Back in the box, unseen</span><div className="mstack">{backs(6)}</div></div>,
-        body: <p>Deal <b>10 face-down in a row</b> for your elixir bar, with a small gap after the 5th card. Put the <b>other 14 cards back in the box</b> without looking: they sit this game out. The enemy has no elixir bar: it plays one card per round.</p> },
-      { title: 'Set the marker at 5', pic: <div className="mbars"><span className="mlbl">Your elixir: 5</span><div className="mrow">{backs(10, 5, 4)}</div></div>,
-        body: <>
-          <p>Flip the <b>5th card face-up</b>, so you see its number. That's the <b>marker</b>: its position is your elixir, so you start at 5. To spend or gain, flip the card that many places left or right face-up, then flip the old one face-down.</p>
-        </> },
+      { title: 'Split the deck by colour', pic: <div className="mcols"><div><div className="mfan">{blacks.map(c => <Mc key={c.id} card={c} />)}</div><span className="mlbl">Black: ♠ ♣</span></div><div><div className="mfan">{reds.map(c => <Mc key={c.id} card={c} />)}</div><span className="mlbl">Red: ♥ ♦</span></div></div>,
+        body: <p>Take a standard 52-card deck, <b>no jokers</b>, and sort it into two piles: the <b>black</b> cards (♠ ♣) are yours, the <b>red</b> cards (♥ ♦) are the enemy's.</p> },
+      { title: 'Deal 11 cards each', pic: <div className="mcols"><div><div className="mfan">{blacks.map(c => <Mc key={c.id} card={c} />)}<span className="more">+6</span></div><span className="mlbl">You: 11 black, face-up in your hand</span></div><div><div className="mstack">{backs(6)}</div><span className="mlbl">Enemy: 11 red, face-down</span></div></div>,
+        body: <p><b>Shuffle the black pile</b> and take the top <b>11</b>: look at them. Turn the red pile face-down, <b>shuffle it</b> and deal <b>11 face-down to the enemy</b> without looking. Put the <b>other 30 cards back in the box</b> without looking: they sit this game out, so you never know which red cards the enemy has.</p> },
     ]
     return (
       <div className="page">{bar()}
@@ -884,7 +868,7 @@ export default function App() {
             </AlertDescription>
           </Alert>
         )}
-        <Stepper steps={steps} at={setupStep} setAt={setSetupStep} done={<button className="big" onClick={() => setScreen('enter')}>Done — I have my 14 cards</button>} />
+        <Stepper steps={steps} at={setupStep} setAt={setSetupStep} done={<button className="big" onClick={() => setScreen('enter')}>Done — I have my 11 cards</button>} />
       </div>
     )
   }
@@ -895,7 +879,7 @@ export default function App() {
       <div className="page">{bar()}
         <h1>2. Tell me your {PER_SIDE} cards</h1>
         <p className="help">Tap each card you were dealt. <b>{dealt.length}/{PER_SIDE}</b> selected. Tap again to deselect.</p>
-        <CardPicker disabled={new Set()} selected={set} onPick={c => setDealt(a => a.includes(c.id) ? a.filter(x => x !== c.id) : a.length < PER_SIDE ? [...a, c.id] : a)} />
+        <CardPicker disabled={new Set()} suits={BLACK} selected={set} onPick={c => setDealt(a => a.includes(c.id) ? a.filter(x => x !== c.id) : a.length < PER_SIDE ? [...a, c.id] : a)} />
         <div className="row">
           <button className="big" disabled={dealt.length !== PER_SIDE} onClick={() => {
             if (!novice) { setSplit(randomSetup(mine, secureRandom)); setScreen('draft'); return }
@@ -926,7 +910,7 @@ export default function App() {
     const eStack = (name: string, n: number) => <div className="mtower"><div className="mrow">{backs(n)}</div><span className="mlbl">{name}</span></div>
     const steps: SetupStep[] = [
       { title: 'Build your three towers', pic: <div className="mcols">{stack('Left', g.P.towers.L)}{stack('King', g.P.towers.K)}{stack('Right', g.P.towers.R)}</div>,
-        body: <p>{novice && <>For your first game I picked your deck and towers; next game you build your own. </>}Make three stacks <b>face-up</b> in a row in front of you, the <b>top card first</b> (gold above): <b>Left</b> {g.P.towers.L.map(label).join(' · ')}, <b>King</b> {g.P.towers.K.map(label).join(' · ')} in the middle, <b>Right</b> {g.P.towers.R.map(label).join(' · ')}. Fan each stack so you can see every card.</p> },
+        body: <p>{novice && <>For your first game I picked your deck and towers; next game you build your own. </>}Put three cards <b>face-up</b> in a row in front of you: <b>Left</b> {g.P.towers.L.map(label).join(' · ')}, <b>King</b> {g.P.towers.K.map(label).join(' · ')} in the middle, <b>Right</b> {g.P.towers.R.map(label).join(' · ')}. Each one is a tower.</p> },
       { title: 'Your hand and your queue', ready: n === DECK_SIZE,
         pic: <div className="mbars"><span className="mlbl">Hand, face-up</span><div className="row">{[0, 1, 2, 3].map(i => <PlayingCard key={i} card={tapped[i] ? byId(tapped[i]) : undefined} showCost={!!tapped[i]} className={tapped[i] ? '' : 'mtodo'} />)}</div>
           <span className="mlbl">Queue, face-up stack, top card first</span><div className="mrow">{[4, 5, 6, 7].map(i => <PlayingCard key={i} card={tapped[i] ? byId(tapped[i]) : undefined} className={`mc${tapped[i] ? '' : ' mtodo'}`} />)}</div></div>,
@@ -940,16 +924,15 @@ export default function App() {
           ))}</div></div>
           {n > 0 && <button onClick={() => setOrder([])}>Start over</button>}
         </> },
-      { title: "The enemy's side", pic: <div className="mcols"><div className="mtower"><div className="mstack">{backs(6)}</div><span className="mlbl">Pile: 8</span></div>{eStack('Left', 2)}{eStack('King', 2)}{eStack('Right', 2)}</div>,
-        body: <p>Shuffle the enemy's 14 cards <b>without looking</b>. Put <b>8</b> face-down as its <b>pile</b>. With the other 6, make its towers across the table, all <b>face-down</b>: <b>Left 2</b>, <b>King 2</b>, <b>Right 2</b>.</p> },
+      { title: "The enemy's side", pic: <div className="mcols"><div className="mtower"><div className="mstack">{backs(6)}</div><span className="mlbl">Pile: 8</span></div>{eStack('Left', 1)}{eStack('King', 1)}{eStack('Right', 1)}</div>,
+        body: <p>Shuffle the enemy's 11 cards <b>without looking</b>. Put <b>8</b> face-down as its <b>pile</b>. With the other 3, make its towers across the table, <b>face-down</b>, one card each: <b>Left</b>, <b>King</b>, <b>Right</b>.</p> },
       { title: 'The table', pic: (
           <div className="mtable">
             <span>Enemy pile</span><span className="mt-them">Enemy Left</span><span className="mt-them">Enemy King</span><span className="mt-them">Enemy Right</span><span>Enemy discard</span>
-            <span className="mt-lane l"><i>yours<br />↑</i><i className="mt-far">enemy's<br />↓</i></span><span className="mt-lane r"><i>yours<br />↑</i><i className="mt-far">enemy's<br />↓</i></span>
+            <span className="mt-lane l"><i>yours ↑<br />enemy's ↓</i></span><span className="mt-lane r"><i>yours ↑<br />enemy's ↓</i></span>
             <span>Your queue</span><span className="mt-me">Your Left</span><span className="mt-me">Your King</span><span className="mt-me">Your Right</span><span>Your discard</span>
-            <span className="mt-bar">Your elixir bar</span>
           </div>),
-        body: <p>Your towers in a row in front of you, the enemy's across the table. Between them, <b>two lanes of 2 slots</b>: slot 1 next to you, slot 2 next to the enemy. Each lane has <b>two halves</b>: <b>yours on the left</b>, <b>the enemy's on the right</b>. Cards never change halves, so where a card lies says whose it is. The screen shows the table the same way, the enemy at the top.</p> },
+        body: <p>Your towers in a row in front of you, the enemy's across the table. Between them, <b>two lanes of 3 slots</b>: slot 1 next to you, slot 2 in the middle, slot 3 next to the enemy. Your cards and the enemy's share the slots: the colour says whose a card is, <b>black yours</b>, <b>red the enemy's</b>. The screen shows the table the same way, the enemy at the top.</p> },
     ]
     return (
       <div className="page">{bar()}
@@ -1044,7 +1027,7 @@ export default function App() {
     if (other && trySwitch(other, tid)) return
     sfx('pick'); setSel(null); setBad(null); setPick(tid)
   }
-  // while a placed card is picked, the hand cards it can switch with stand out (its elixir would come back first)
+  // while a placed card is picked, the hand cards it can switch with stand out (its share of your turn would come back first)
   const open = (i: number) => (pick ? switchCards(g, pick, g.P.hand[i].id) !== g : standing || canPlay(g, i))
   const handCards = g.P.hand.map((c, i) => (
     <div key={c.id} data-i={i} className={`hdrag ${drag === i ? 'lifted' : ''} ${!open(i) ? 'off' : ''} ${suggested?.handIndex === i && drag === null ? 'suggested' : ''}`} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} onPointerDown={e => startDrag(e, i)}>
@@ -1072,7 +1055,7 @@ export default function App() {
         {explainOn && stage === 'my_play' && (
           <ul className="m-0 list-none rounded-xl border bg-black/25 px-3 py-1">
             {options(g).map((o, i) => { const [card, ...rest] = o.split(': '); return (
-              <li key={i} className={`flex items-start gap-2.5 border-t border-white/10 py-2 leading-snug first:border-t-0 ${o.includes("can't afford") ? 'opacity-50' : ''}`}><span className="w-11 shrink-0"><CardText text={card} /></span><span>{rest.join(': ')}</span></li>
+              <li key={i} className={`flex items-start gap-2.5 border-t border-white/10 py-2 leading-snug first:border-t-0 ${o.includes('already played') ? 'opacity-50' : ''}`}><span className="w-11 shrink-0"><CardText text={card} /></span><span>{rest.join(': ')}</span></li>
             ) })}
           </ul>
         )}
@@ -1090,10 +1073,10 @@ export default function App() {
     const help = mode === 'play' ? (suggestOn ? 'suggestions on' : 'suggestions off') : (explainOn ? 'explanations on' : 'explanations off')
     const head = [
       'Suitkeep game log', new Date().toLocaleString(), `Mode: ${mode === 'guide' ? 'real cards' : 'on screen'} (${help}${intro?.deck ? ', first game' : ''})`,
-      `Rules: aces beat kings${g.rules.aceMin === 13 ? ' only' : ''}, elixir cap ${g.rules.cap}`,
+      `Rules: 22 cards, aces beat kings${g.rules.aceMin === 13 ? ' only' : ''}, the enemy plays ${g.rules.enemyPlays ?? 1} a round${g.rules.armor ? ', armored towers' : ''}, lanes of ${g.rules.laneLen}`,
       stage === 'over' ? `Result: ${g.winner === 'P' ? 'you won' : g.winner === 'E' ? 'you lost' : 'draw'} after ${g.round} rounds` : `Unfinished: round ${g.round}`,
-      `Your 14 cards: ${g.dealt.map(label).join(' ')} (${g.dealt.filter(c => c.rank === 1).length} aces)`,
-      deckIds.length ? `Your deck: ${cards(deckIds)}` : '', slotIds.length ? `Your towers (left, left, right, right, king, king): ${cards(slotIds)}` : '',
+      `Your ${g.dealt.length} cards: ${g.dealt.map(label).join(' ')} (${g.dealt.filter(c => c.rank === 1).length} aces)`,
+      deckIds.length ? `Your deck: ${cards(deckIds)}` : '', slotIds.length ? `Your towers (left, right, king): ${cards(slotIds)}` : '',
       g.enemySeen.length ? `Enemy cards seen: ${g.enemySeen.map(label).join(' ')}` : '',
       `Your record before this log: ${record.wins} wins in ${record.games} games`, '']
     const url = URL.createObjectURL(new Blob([[...head.filter(l => l !== '' || l === head.at(-1)), ...g.log].join('\n') + '\n'], { type: 'text/plain' }))
@@ -1117,7 +1100,7 @@ export default function App() {
       {sum.close && <p className="goclose">So close! Their king had one card left.</p>}
       <p className="gorecord">{newBest ? `Your fastest win yet: ${sum.rounds} rounds! ` : ''}{record.wins} {record.wins === 1 ? 'win' : 'wins'} in {record.games} {record.games === 1 ? 'game' : 'games'}.</p>
       {intro?.deck && g.winner !== 'P' && <p className="goclose">This first game was for learning the rules. Following the glowing suggestions wins it.</p>}
-      <div className="gotip"><Lightbulb aria-hidden /><p>{sum.tip ? <CardText text={sum.tip} /> : 'Clean game: no elixir wasted and no expensive cards spent on cheap enemies.'}</p></div>
+      <div className="gotip"><Lightbulb aria-hidden /><p>{sum.tip ? <CardText text={sum.tip} /> : 'Clean game: no turn wasted and no big cards spent on small enemies.'}</p></div>
       {intro && (
         <p className="gonext">
           {intro.deck && 'Next game you build your own deck from the cards you are dealt. '}
@@ -1178,17 +1161,17 @@ export default function App() {
   // the arena; card size follows the window so the whole field, the bar and the hand always fit
   const arena = () => {
     const aw = Math.min(view.sw, 640)
-    // with real cards every card is the same size, as on the table: about nine card widths across (pile, three tower fans, discard; each lane two cards wide, yours and the enemy's half) and five card rows down (the enemy has no elixir bar).
+    // with real cards every card is the same size, as on the table: about nine card widths across (pile, three towers, discard; each lane two cards wide) and six card rows down (two tower rows, three lane slots, the hand).
     // A wide window puts the instructions and the hand in a column beside the table; otherwise they get a fixed space under it.
     const wide = mode === 'guide' && view.sw >= 860 && view.sw >= view.sh * 1.3
     const ch = mode === 'guide'
       ? wide
-        ? Math.max(44, Math.min((view.sh - 160) / 5.9, (Math.min(view.sw - 460, 760) - 60) / 8.9 / 0.714, (420 - 32 - 40 - 8) / 5 / 0.714, 128)) // the hand (4 cards + Done, 10px apart) fits the 420px column inside its 16px padding
-        : Math.max(44, Math.min((view.sh - 300) / 6.84, (aw - 60) / 8.9 / 0.714, 128))
-      : Math.max(52, Math.min((view.sh - 218) / 6.9, (aw - 72) / 4.75 / 0.714, 128))
+        ? Math.max(44, Math.min((view.sh - 168) / 6.9, (Math.min(view.sw - 460, 760) - 60) / 8.9 / 0.714, (420 - 32 - 40 - 8) / 5 / 0.714, 128)) // the hand (4 cards + Done, 10px apart) fits the 420px column inside its 16px padding
+        : Math.max(44, Math.min((view.sh - 308) / 7.84, (aw - 60) / 8.9 / 0.714, 128))
+      : Math.max(48, Math.min((view.sh - 226) / 7.9, (aw - 72) / 4.75 / 0.714, 128))
     const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px` } as CSSProperties
-    // the tips teach how to play a card, what ✓ does and the elixir each round, and the river shows the round: the line only says whose turn it is
-    const prompt = stage === 'my_play' ? 'Your turn.' : standing ? TITLES[stage] : stage === 'round_start' ? `+${g.rules.regen} elixir.` : 'Enemy turn…'
+    // the tips teach how to play a card, what ✓ does and what a turn holds, and the river shows the round: the line only says whose turn it is
+    const prompt = stage === 'my_play' ? 'Your turn: 1 card, or 2 small ones.' : standing ? TITLES[stage] : stage === 'round_start' ? 'New round.' : 'Enemy turn…'
     // the enemy's last-stand card came in during its turn: your turn still says where it came from, until it has fought
     const stood = stage === 'my_play' && g.units.find(u => u.side === 'E' && u.free)
     // with suggestions on, your turn's line says what they suggest and, in a few words, why (the whole reason is in Menu → Hints)
@@ -1269,7 +1252,6 @@ export default function App() {
             {(['L', 'K', 'R'] as const).map(k => <TowerFan key={k} k={k} items={mineSlots(k)} own cracked={g.cracked ?? []} shake={fighting.includes(`tower-P-${k}`)} />)}
             {discard('P')}
           </div>
-          <CardBar n={g.P.elixir} spend={spend} show={doNow || stage === 'round_start'} />
         </div>
       </>
     )
@@ -1286,7 +1268,7 @@ export default function App() {
         <div className="lanes">
           <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} />
           <div className="mid rows">
-            <div className="sidechip enemy" title="The next card of the enemy pile (face-down until you have seen it). The enemy plays one card per round.">
+            <div className="sidechip enemy" title="The next card of the enemy pile (face-down until you have seen it). The enemy plays two cards per round: this one first.">
               {eNext && <div className="nextcard"><ArenaPile slots={g.E.queue} side="E" /><span>Next</span></div>}
             </div>
             {round}
@@ -1315,7 +1297,7 @@ export default function App() {
               {handCards}
               <button className={`big done endturn ${advice?.kind === 'wait' ? 'suggested' : ''}`} title={advice?.kind === 'wait' ? advice.reason : 'End turn'} disabled={stage !== 'my_play'} aria-label="End turn" onClick={() => commit(endMyTurn(g))}><svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg></button>
             </div>
-            {mode === 'play' && <div className="elixrow"><ElixirBar n={g.P.elixir} spend={spend} /></div>}
+            <div className="elixrow"><TurnBar n={g.P.elixir} spend={spend} max={g.rules.cap} /></div>
           </div>
           {tableStep || coach}
         </div>

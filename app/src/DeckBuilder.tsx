@@ -9,29 +9,29 @@ import { CastleArt, TCard } from './Pieces'
 import { useViewport } from '@/hooks/use-viewport'
 import { sfx } from './sfx'
 
-// The deck screen: your 14 cards are always split 8 + 6, the deck (soldiers you play) and the towers (armor).
+// The deck screen: your 11 cards are always split 8 + 3, the deck (soldiers you play) and the towers (one card each).
 // Every change is a swap: tap a card, then another. A deck card and a tower card trade places; two tower cards trade
-// places too, which reorders the armor (the front card is hit first). So the screen can never be left half-built.
+// places too, which moves a card to another tower. So the screen can never be left half-built.
 
 const TOWERS = [
-  { k: 'L', name: 'Left', slots: [0, 1] },
-  { k: 'K', name: 'King', slots: [4, 5] },
-  { k: 'R', name: 'Right', slots: [2, 3] },
+  { k: 'L', name: 'Left', slots: [0] },
+  { k: 'K', name: 'King', slots: [2] },
+  { k: 'R', name: 'Right', slots: [1] },
 ] as const
 // how much of each card behind the front one peeks out above it, as a share of the card's height: enough for its corner, rank over suit
 const PEEK = 0.5
-// dealing again, timed to watch but not to wait for: the 14 cards gather into a pile, then fly out one by one
+// dealing again, timed to watch but not to wait for: the 11 cards gather into a pile, then fly out one by one
 const GATHER_MS = 420, DEAL_MS = 55, FLY = 0.35
 
 // the rules of thumb, and the one thing worth knowing before you worry about them; how cards fight is in How to play
 const GUIDE = <>
   <ul>
-    <li><b>Mix your costs.</b> Strong cards break towers but cost a lot, and you get only 3 elixir a round: keep enough cheap ones (A to 5, cost 2) to play something every round.</li>
-    <li><b>Put an ace on top of a tower:</b> it beats any King that reaches it.</li>
-    <li><b>Mix your suits,</b> so the suit wheel can work for you whatever the enemy plays.</li>
-    <li><b>Leave some strong cards out.</b> The 6 cards that aren't in your deck are your towers' armor.</li>
+    <li><b>Keep your strong cards.</b> A big card takes your whole turn, but it wins fights and pushes towers. Decks with 4 or more of them win most.</li>
+    <li><b>But keep some small ones too</b> (A to 5): two of them fit in one turn, so you can answer both lanes in a round.</li>
+    <li><b>Put an ace on a tower:</b> it beats any King that hits it.</li>
+    <li><b>Mix your suits:</b> ♠ beats the enemy's ♥, ♣ fears its ♦.</li>
   </ul>
-  <p><b>Any kind of deck can win.</b> In thousands of simulated games, most mixes of cheap and strong cards win within about 10 points of each other: how you play decides the game.</p>
+  <p><b>A deck of only small cards loses.</b> In thousands of simulated games, the suggested split (your 4 strongest and 4 smallest) wins about 7 games in 10 with good play.</p>
 </>
 
 // set once the suggestion's why has been read: it is told only the first time Suggest is used
@@ -39,7 +39,7 @@ const WHY_KEY = 'suitkeep-suggest-why-seen'
 
 type Spot = { zone: 'deck'; id: string } | { zone: 'tower'; i: number }
 
-// onRedeal (on-screen play only): shuffle all 52 cards and deal 14 to you and 14 to the enemy again, split at random, as often as you like before starting
+// onRedeal (on-screen play only): deal 11 black cards to you and 11 red to the enemy again, split at random, as often as you like before starting
 export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal, title, bar, start }: {
   mine: Card[]; deckIds: string[]; slotIds: string[]; onChange: (deckIds: string[], slotIds: string[]) => void; onRedeal?: () => void
   title: string; bar: (title: ReactNode) => ReactNode; start: ReactNode
@@ -98,16 +98,17 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
   const wide = w >= 620
   const rows = wide ? 1 : 2, cols = 8 / rows
   const byWidth = (w - 24 - 10 * (cols - 1)) / cols / 0.714
-  // the towers row is as tall as its tallest column: every tower has two cards, so it's the king's bigger castle;
-  // each deck row also leaves room under it for the cards' elixir balls
-  const byHeight = (view.sh - 302) / (rows + 0.84 + 1 + PEEK + rows * 0.23)
+  // the towers row is as tall as its tallest column: every tower has one card, so it's the king's bigger castle;
+  // each deck row also leaves room under it for the cards' cost balls
+  const byHeight = (view.sh - 302) / (rows + 0.84 + 1 + rows * 0.23)
   const ch = Math.max(60, Math.min(byWidth, byHeight, 150))
   const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px`, '--peek': `${ch * PEEK}px` } as CSSProperties
 
+  // how much of a turn the deck's cards use: 1 when all are small (two a round), 2 when all are big (one a round)
   const avg = deck.reduce((a, c) => a + cost(c.rank), 0) / DECK_SIZE
-  const heavy = deck.filter(c => cost(c.rank) >= 10).length
-  const cheap = deck.filter(c => cost(c.rank) <= 2).length
-  const speed = avg < 3.5 ? 'fast' : avg <= 5.5 ? 'balanced' : 'heavy'
+  const big = deck.filter(c => cost(c.rank) >= 2).length
+  const small = DECK_SIZE - big
+  const speed = big < 3 ? 'too light' : big <= 6 ? 'balanced' : 'heavy'
   // while a card is picked, the cards it can swap with glow
   const target = (zone: Spot['zone']) => !!pick && (pick.zone === 'tower' || zone === 'tower')
 
@@ -125,12 +126,12 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
         <section className="dpanel deck">
           <header><h2>Your deck</h2><span>the 8 soldiers you play</span>
             <span className="ml-auto" />
-            {onRedeal && <Button variant="secondary" size="sm" disabled={!!dealing} onClick={deal} title="Shuffle all 52 cards and deal new hands to you and the enemy"><Shuffle /> Deal</Button>}
+            {onRedeal && <Button variant="secondary" size="sm" disabled={!!dealing} onClick={deal} title="Shuffle and deal new hands: 11 black cards to you, 11 red to the enemy"><Shuffle /> Deal</Button>}
             <Button variant="secondary" size="sm" disabled={onSuggestion || !!dealing} onClick={suggest} title={onSuggestion ? 'This is the suggested split' : 'Set a good deck and towers for these cards'}><Sparkles /> Suggest</Button>
           </header>
           {onSuggestion && !dealing && !gotIt && (
             <div className="coach dcoach" role="dialog" aria-label="Why this split">
-              <p>Your 3 strongest cards break towers, your 5 cheapest let you play every round. The towers get the rest, the 2 strongest on the king, each tower's stronger card in front.</p>
+              <p>Your 4 strongest cards win fights and break towers; your 4 smallest go two to a turn. The 3 in the middle are your towers, the strongest on the king.</p>
               <div className="row"><button className="big" onClick={() => { localStorage.setItem(WHY_KEY, '1'); setGotIt(true) }}>Got it</button></div>
             </div>
           )}
@@ -143,7 +144,7 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
           </div>
         </section>
         <section className="dpanel towers">
-          <header><h2>Your towers</h2><span>the other 6 are armor · the front card is hit first</span></header>
+          <header><h2>Your towers</h2><span>the other 3 cards, one each · each takes two hits</span></header>
           <div className="dtowers">
             {TOWERS.map(t => (
               <div key={t.k} className={`dtower castle mine${t.k === 'K' ? ' king' : ''}`}>
@@ -167,11 +168,11 @@ export default function DeckBuilder({ mine, deckIds, slotIds, onChange, onRedeal
         </section>
       </div>
       <div className="dtray">
-        <div className="dstats" title="Average elixir cost of your deck">
+        <div className="dstats" title="How much of a turn your deck's cards use on average: 1 = all small (two a round), 2 = all big (one a round)">
           <span className="edrop">{avg.toFixed(1)}</span>
           <div>
-            <div className="dmeter"><span className="avgbar"><i style={{ transform: `translateX(${avg * 10 - 100}%)` }} /></span><b>{speed}</b></div>
-            <small title="heavy: J, Q, K (cost 10) · cheap: A to 5 (cost 2)">{heavy} heavy · {cheap} cheap</small>
+            <div className="dmeter"><span className="avgbar"><i style={{ transform: `translateX(${(avg - 1) * 100 - 100}%)` }} /></span><b>{speed}</b></div>
+            <small title="big: 6 to K (your whole turn) · small: A to 5 (two a turn)">{big} big · {small} small</small>
           </div>
         </div>
         {start}
