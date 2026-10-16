@@ -629,7 +629,7 @@ button.linkish:active { transform: none; }
 .tbar .modechip { margin-right: auto; }
 /* five card columns (pile, left, king, right, discard); rows: enemy side, the lanes, your side, your elixir (the enemy has no bar) */
 /* (not ".table": Tailwind's utility of that name, display: table, would win over this layer) */
-.cardtable { flex: 1; min-height: 0; position: relative; display: grid; align-content: space-between; justify-content: center; row-gap: 4px; column-gap: 4px; padding: 6px; border-radius: 18px;
+.cardtable { flex: 1; min-height: 0; position: relative; display: grid; align-content: space-between; justify-content: center; row-gap: 14px; column-gap: 4px; padding: 14px 14px 14px 20px; border-radius: 18px;
   grid-template-columns: calc(var(--cw) + 10px) calc(var(--cw) * 2.6) minmax(calc(var(--cw) * 1.5), 1fr) calc(var(--cw) * 2.6) calc(var(--cw) + 10px);
   grid-template-rows: auto minmax(0, 1fr) auto auto;
   background: radial-gradient(ellipse at 50% 50%, #5cbf4a, #3f9a37 60%, #2f7d2b);
@@ -644,7 +644,7 @@ button.linkish:active { transform: none; }
 .tfan .cname, .tpile .cname { font-family: var(--display); font-size: max(11px, calc(var(--cw) * .2)); line-height: 1; color: rgba(255,255,255,.85); text-shadow: 0 1px 0 rgba(0,0,0,.6); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
 
 /* a tower is a fan of its cards, the top card (hit first) in front; the enemy's stay face-down until flipped */
-.tfan { --toff: calc(var(--cw) * .45); display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.tfan { --toff: calc(var(--cw) * .45); display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .fancards { position: relative; height: var(--ch); }
 .fancards .fc { position: absolute; top: 0; transition: transform .3s var(--ease-out); }
 .tfan .fc.cracked { transform: rotate(10deg) translateY(2px); }
@@ -652,7 +652,7 @@ button.linkish:active { transform: none; }
 .tfan.fallen .fancards, .pcards:not(:has(.tcard)) { box-sizing: border-box; border: 2px dashed rgba(255,255,255,.3); border-radius: 8px; background: rgba(0,0,0,.1); }
 
 /* piles squared up: a few cards peek out under the top one */
-.tpile { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.tpile { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .pcards { position: relative; width: var(--cw); height: var(--ch); }
 .pcards .pback { position: absolute; inset: 0; box-sizing: border-box; border-radius: 6px; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,.45);
   background: repeating-linear-gradient(45deg, #263a8c, #263a8c 5px, #3150b8 5px, #3150b8 10px); }
