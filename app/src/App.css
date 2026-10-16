@@ -852,7 +852,7 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .castle .guard { position: absolute; left: 50%; bottom: calc(var(--cw) * .718); translate: -50% 50%; margin: 0; } /* measured up from the castle's foot, so the gap to the door stays when the tower grows */
 .castle.king .guard { bottom: calc(var(--cw) * .7875); }
 .castle.mine .topcard:not(.empty), .castle.theirs .topcard:not(.empty) { box-shadow: none; }
-.castle .topcard.empty { width: 2.2em; box-sizing: border-box; border: 1.5px dashed #ff9a9a; background: rgba(0,0,0,.35); box-shadow: none; } /* a card we haven't seen: a dotted placeholder, in a red lighter than the tower's */
+.castle .topcard.empty { width: 2.2em; box-sizing: border-box; border: 1.5px dashed #ff9a9a; background: rgba(0,0,0,.18); box-shadow: none; } /* a card we haven't seen: a dotted placeholder, in a red lighter than the tower's */
 
 /* the enemy's Next card is as big as the cards in the lanes; its label hangs below it, in the free row above the river */
 .lanes .mid .nextcard .tcard { width: var(--cw); height: var(--ch); font-size: calc(var(--cw) * .27); }
