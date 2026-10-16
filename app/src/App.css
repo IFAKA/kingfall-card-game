@@ -820,3 +820,8 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .turncard.full .tp:first-child { border-top-left-radius: 1px; border-top-right-radius: 1px; } /* a full bar is one piece: the halves meet square, round only at the outer corners */
 .turncard.full .tp:last-child { border-bottom-left-radius: 1px; border-bottom-right-radius: 1px; }
 .tp.on { box-shadow: 0 0 5px rgba(255,211,107,.6); } /* a tighter glow, so it doesn't fill the gap between the halves */
+
+/* the tower's card sits to the right of its shield, the pair centered under the castle */
+.castle .guard { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 10px; } /* clears the castle, with room for the tower card's ring */
+.castle .guard .armor { margin: 0; }
+.castle .guard .tslot { margin: 0; }

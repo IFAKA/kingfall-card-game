@@ -168,12 +168,14 @@ function Castle({ k, items, own, cracked, fx, shake }: { k: 'L' | 'R' | 'K'; ite
     <div className={`castle ${own ? 'mine' : 'theirs'} ${k === 'K' ? 'king' : ''} ${items.length ? '' : 'fallen'} ${shake ? 'tremble' : ''}`} data-anchor={`tower-${own ? 'P' : 'E'}-${k}`}
       title={!items.length ? `${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower has fallen` : `${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower: ${items.length} card${items.length === 1 ? '' : 's'} of armor${known ? `; a soldier must win a fight against its top card, ${label(known)}, to stay for the hit that breaks it` : ''}`}>
       <CastleArt king={k === 'K'} fallen={!items.length} />
-      <div className="armor"><AnimatePresence initial={false}>{items.map(it => <motion.i key={it.tid} layout className={cracked.includes(it.tid) ? 'crk' : ''}
-        exit={{ scale: 0, opacity: 0, transition: { duration: 0.3 } }} />)}</AnimatePresence></div>
-      <div className="tslot"><AnimatePresence initial={false} mode="popLayout" custom={fx}>{top
-        ? <motion.div key={top.tid + (known ? '' : '?')} custom={fx} variants={CHIP} initial="enter" animate="show" exit="leave"
-          className={`topcard ${known ? (isRed(known) ? 'red' : '') : 'empty'}`}>{known && <><span>{RANKS[known.rank]}</span><span>{SUITS[known.suit]}</span></>}</motion.div>
-        : null}</AnimatePresence></div>
+      <div className="guard">{/* the shield stays under the castle, the tower card sits to its right */}
+        <div className="armor"><AnimatePresence initial={false}>{items.map(it => <motion.i key={it.tid} layout className={cracked.includes(it.tid) ? 'crk' : ''}
+          exit={{ scale: 0, opacity: 0, transition: { duration: 0.3 } }} />)}</AnimatePresence></div>
+        <div className="tslot"><AnimatePresence initial={false} mode="popLayout" custom={fx}>{top
+          ? <motion.div key={top.tid + (known ? '' : '?')} custom={fx} variants={CHIP} initial="enter" animate="show" exit="leave"
+            className={`topcard ${known ? (isRed(known) ? 'red' : '') : 'empty'}`}>{known && <><span>{RANKS[known.rank]}</span><span>{SUITS[known.suit]}</span></>}</motion.div>
+          : null}</AnimatePresence></div>
+      </div>
     </div>
   )
 }
