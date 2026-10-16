@@ -444,14 +444,19 @@ h3 { margin: 18px 0 8px; }
 /* a card can go here: only your half of the slot lights up, since that is where it will lie */
 .spot.slot.droppable { cursor: pointer; }
 .spot.slot.droppable > .half { position: relative; border-radius: 10px; background: rgba(255,207,58,.16); outline: 2px dashed var(--gold); outline-offset: -2px; }
-.spot.slot.droppable > .half::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 14px rgba(255,207,58,.6); opacity: 0; pointer-events: none; animation: droppulse 1.1s ease-in-out infinite; }
+.spot.slot.droppable > .half::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 14px rgba(255,207,58,.6); opacity: calc(var(--pulse) * var(--on)); pointer-events: none; }
 .spot.slot.over > .half { background: rgba(255,207,58,.38); }
 .droptag { position: absolute; bottom: 0; left: 50%; translate: -50% 50%; z-index: 4; /* centred on the slot's bottom border */ white-space: nowrap; font-family: var(--display); font-size: 11px; color: var(--gold); text-shadow: 0 1px 0 #000; pointer-events: none; }
-@keyframes droppulse { 50% { opacity: 1; } }
+/* one beat drives everything that pulses with a suggested or droppable slot: its glow and the star's, so they can't drift apart (--on fades the whole highlight in and out) */
+@property --pulse { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --on { syntax: '<number>'; inherits: true; initial-value: 0; }
+.spot.slot { transition: --on .25s ease; }
+.spot.slot.droppable { --on: 1; animation: dropbeat 1.1s ease-in-out infinite; }
+@keyframes dropbeat { 50% { --pulse: 1; } }
 /* suggested move: the card and its lane glow green, or End turn does when waiting is best */
 /* the lane keeps the gold drop-target look (green vanishes on the field); a solid border and a green ★ tag set it apart from the other lane while dragging */
 .spot.slot.suggested > .half { outline-style: solid; }
-.spot.slot.suggested .droptag { padding: 1px 6px; border-radius: 8px; background: var(--green-d); color: #fff; }
+.spot.slot.suggested .droptag { display: grid; place-items: center; box-sizing: border-box; width: 18px; height: 18px; padding: 0; border-radius: 50%; background: var(--green-d); color: #fff; line-height: 1; box-shadow: 0 0 calc(14px * var(--pulse) * var(--on)) calc(3px * var(--pulse) * var(--on)) rgba(255,207,58,calc(.8 * var(--pulse) * var(--on))); } /* round, and it glows with the slot's own beat */
 .hdrag.suggested { animation: suggestglow 1.1s ease-in-out infinite; }
 @keyframes suggestglow { 0%, 100% { filter: drop-shadow(0 0 2px rgba(76,194,99,.6)); } 50% { filter: drop-shadow(0 0 9px var(--green)) drop-shadow(0 0 3px var(--green)); } }
 /* the end-turn button is shaped like a hand card, the last card of the row */
@@ -544,7 +549,7 @@ button.linkish:active { transform: none; }
 @media (prefers-reduced-motion: reduce) {
   .flip, .eflip, .crk { transition: none; }
   .gameover { animation-name: fadein; }
-  .spot.slot.droppable > .half::after { animation: none; opacity: 1; }
+  .spot.slot.droppable { animation: none; --pulse: 1; }
   .hdrag.suggested { animation: none; filter: drop-shadow(0 0 6px var(--green)); }
   .elixrow .done.suggested:not(:disabled), .handrow .done.suggested:not(:disabled) { animation: none; }
 }
@@ -878,7 +883,7 @@ button.fkey:disabled { opacity: .25; filter: none; }
 
 /* the drop highlight fades in when you pick a card up and out when you let go (the styles are always there, only their colours change) */
 .spot.slot > .half { position: relative; border-radius: 10px; background: rgba(255,207,58,0); outline: 2px dashed rgba(255,207,58,0); outline-offset: -2px; transition: background-color .25s ease, outline-color .25s ease; }
-.spot.slot > .half::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 14px rgba(255,207,58,.6); opacity: 0; pointer-events: none; transition: opacity .25s ease; }
+.spot.slot > .half::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 14px rgba(255,207,58,.6); opacity: calc(var(--pulse) * var(--on)); pointer-events: none; }
 .spot.slot.droppable > .half { background: rgba(255,207,58,.16); outline-color: var(--gold); }
 .spot.slot.droppable.over > .half { background: rgba(255,207,58,.38); }
 .droptag { opacity: 0; transition: opacity .25s ease; }
