@@ -166,7 +166,7 @@ function Castle({ k, items, own, cracked, fx, shake }: { k: 'L' | 'R' | 'K'; ite
   const known = top?.card
   return (
     <div className={`castle ${own ? 'mine' : 'theirs'} ${k === 'K' ? 'king' : ''} ${items.length ? '' : 'fallen'} ${shake ? 'tremble' : ''}`} data-anchor={`tower-${own ? 'P' : 'E'}-${k}`}
-      title={!items.length ? `${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower has fallen` : `${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower${top && cracked.includes(top.tid) ? ' (cracked: the next hit breaks it)' : ''}${known ? `; a soldier must win a fight against its top card, ${label(known)}, to stay for the hit that breaks it` : ''}`}>
+      title={!items.length ? `${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower has fallen` : `${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower${top && cracked.includes(top.tid) ? ' (cracked: the next hit breaks it)' : ''}${known ? `; a soldier must win a fight against its card, ${label(known)}, to stay for the hit that breaks it` : ''}`}>
       <div className="cwrap">{/* the tower's card is written on the castle, above its door; the castle itself shows its state: whole, cracked, or fallen */}
       <CastleArt king={k === 'K'} fallen={!items.length} hurt={!!top && cracked.includes(top.tid)} />
       <div className="guard">
@@ -186,7 +186,7 @@ function TowerFan({ k, items, own, cracked, flip, shake }: { k: 'L' | 'R' | 'K';
   const n = items.length
   return (
     <div className={`tfan ${own ? 'mine' : 'theirs'} ${k === 'K' ? 'king' : ''} ${n ? '' : 'fallen'} ${flip ? 'flipme' : ''} ${shake ? 'tremble' : ''}`} data-anchor={`tower-${own ? 'P' : 'E'}-${k}`}
-      title={`${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower: ${n} card${n === 1 ? '' : 's'}; the front card is hit first. A cracked card (sideways at the table) breaks on any hit.`}>
+      title={`${own ? 'Your' : 'Enemy'} ${STACK_NAME[k].toLowerCase()} tower card: it takes two hits. A cracked card (sideways at the table) breaks on any hit.`}>
       <div className="fancards" style={{ width: `calc(var(--cw) + ${Math.max(0, n - 1)} * var(--toff))` }}>
         {items.map((it, i) => (
           <div key={it.tid} className={`fc ${cracked.includes(it.tid) ? 'cracked' : ''}`} style={{ left: `calc(${n - 1 - i} * var(--toff))`, zIndex: n - i }}>
@@ -373,7 +373,7 @@ function CardPicker({ disabled, onPick, selected, suits = [0, 1, 2, 3] }: { disa
 
 const TITLES: Record<string, string> = {
   round_start: 'Start of the round', my_play: 'Your turn', enemy_enter: "Flip the enemy's top card", enemy_play: 'Enemy plays a card', enemy_peek: "The enemy's next card",
-  enemy_stop: 'Enemy turn ends', step_up: 'A card steps up', fight: 'Fight', move: 'Move the cards', tower_enter: 'A tower is hit: flip its top card',
+  enemy_stop: 'Enemy turn ends', step_up: 'A card steps up', fight: 'Fight', move: 'Move the cards', tower_enter: 'A tower is hit: flip its card',
   tower_result: 'Tower hit', my_last_stand: 'Last stand: place a free card', last_stand_enter: 'Enemy last stand: flip its top card', over: 'Game over',
 }
 
@@ -501,7 +501,7 @@ const RULES: Topic[] = [
   { id: 'goal', icon: <Crown />, title: 'Goal', line: "Break the enemy's king tower before it breaks yours.", body: <>
     <p>Each side has three towers of 1 card: one on the left, one on the right, and the <b>king</b> in the middle, the crowned one.</p>
     <p>The king can only be hit through a lane whose side tower is gone.</p>
-    <p>If both kings fall in the same round, the side with more tower cards left wins. It's a draw only when that's equal too.</p>
+    <p>If both kings fall in the same round, the side with more side towers left wins. It's a draw only when that's equal too.</p>
   </> },
   { id: 'fights', icon: <Swords />, title: 'Fights', line: 'Higher rank wins, the winning suit counts ×2, aces beat Kings.', body: <>
     <p>Your cards are soldiers. When two meet in a lane, they fight, and the loser goes back to its pile.</p>

@@ -28,7 +28,7 @@ In a fight, an **ace beats a K** (suits don't matter; J and Q beat an ace). Both
 6. **End check.** Enemy king gone = you win. Yours gone = you lose. Both in the same round = more side towers left wins (equal = draw).
 
 ## What to look for (from the bot simulator)
-- Expected strength: a first-time player who thinks ≈ 58% wins (the app's suggestions play at about that level), careless 3 moves in 10 ≈ 38%, always the strongest card ≈ 27%. Play the first deal, don't deal again.
+- Expected strength: a first-time player who thinks ≈ 58% wins (the app's suggestions play at about that level), careless 3 moves in 10 ≈ 42%, always the strongest card ≈ 33%. Play the first deal, don't deal again.
 - Decks with 4 to 6 big cards (6 to K) win about as often (≈ 58%); all big ≈ 54%; a deck of only small cards loses (≈ 22%).
 - Estimated length: about 8 rounds. Time yourself.
 

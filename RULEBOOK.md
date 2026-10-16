@@ -71,7 +71,7 @@ A card that loses a fight, is shot back by a tower, or is a wounded unit after i
 So your 8 cards keep cycling, and you will face the enemy's cards again.
 
 ## Designer's notes (from thousands of simulated games)
-- Expect to lose a good share of your games: the enemy is meant to be a real threat. Measured over thousands of simulated games: following the companion app's suggestions wins about 58%, which is about where a first-time player who thinks about each move lands (checked against real playtest games); a player who makes a careless move 3 times in 10 wins about 38%, and one who always plays their strongest card about 27%. Thinking wins.
+- Expect to lose a good share of your games: the enemy is meant to be a real threat. Measured over thousands of simulated games: following the companion app's suggestions wins about 58%, which is about where a first-time player who thinks about each move lands (checked against real playtest games); a player who makes a careless move 3 times in 10 wins about 42%, and one who always plays their strongest card about 33%. Thinking wins.
 - Play the first deal. Dealing again until you like your hand (say, until you hold Q♠ and an ace) is worth about 17 points of win rate: it skips the game you were given.
 - What wins: meet every enemy card coming down a lane, use two small cards when both lanes need an answer, and push a lane when the enemy's face-up next card can't beat what you send.
 - Why the enemy's second card goes into the other lane: both lanes always feel pressure, and a game can't stall with every card stuck fighting in one lane.

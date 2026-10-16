@@ -7,9 +7,9 @@
 Free, no sign-up, works on phones and desktops.
 
 <p align="center">
-  <img src="docs/screenshots/arena.png?v=2" alt="Suitkeep on screen: red enemy castles at the top with the left one fallen, blue castles at the bottom, your cards in both lanes, an enemy card that came in free, the enemy's face-up next card in the middle, and your hand with the Done button and elixir bar below" width="300" />
+  <img src="docs/screenshots/arena.png?v=3" alt="Suitkeep on screen in round 4: red enemy castles at the top, the left one cracked with its 4♥ showing, your black cards in both lanes of 3 slots, the enemy's face-up next card K♦ between the lanes, your blue castles with their tower cards, and your hand of 3 with the turn bar on its left and the Done button on its right" width="300" />
   &nbsp;
-  <img src="docs/screenshots/title.png?v=2" alt="Suitkeep title screen with a gold crown logo and the Play, Play with real cards and How to play buttons" width="520" />
+  <img src="docs/screenshots/title.png?v=3" alt="Suitkeep title screen with a gold crown logo and the Play, Play with real cards and How to play buttons" width="520" />
 </p>
 
 ## Two ways to play
@@ -43,12 +43,12 @@ Full rules: [RULEBOOK.md](RULEBOOK.md) · Printable rulebook (3 pages, A4): [pri
 - **Learn from each game:** the end of a game names the one thing that cost you most (an open lane, an enemy ace, the suit wheel, a wasted turn), and keeps your record: wins, games and fastest win.
 - Game saved in the browser, an optional suggested move, and a log of everything that happened.
 - **Anonymous play counts** (Umami: no cookies, no names), so we can see whether players finish a game and come back. Open the site with `?nostats` to stop counting in your browser.
-- **Balanced by simulation and real games:** thousands of simulated games, checked against a first-time player's playtests, tuned the rules. Games last about 8 rounds. A first-time player who thinks wins a bit more than half, a careless one about a third, and decks with 4 to 6 big cards win about as often: skill is in the playing. One deal per game, as at the table.
+- **Balanced by simulation and real games:** thousands of simulated games, checked against a first-time player's playtests, tuned the rules. Games last about 8 rounds. A first-time player who thinks wins a bit more than half, a careless one about 4 in 10, and decks with 4 to 6 big cards win about as often: skill is in the playing. One deal per game, as at the table.
 
 <p align="center">
-  <img src="docs/screenshots/deck.png?v=2" alt="Suitkeep deck building screen: the 8 deck cards on top, the three towers with two armor cards each under blue castles, and the average elixir cost meter with Start the game at the bottom" width="420" />
+  <img src="docs/screenshots/deck.png?v=3" alt="Suitkeep deck building screen: the 8 deck cards on top, each with a one- or two-dot turn badge, the three towers of one card each under blue castles, and the big/small meter with Start the game at the bottom" width="420" />
   &nbsp;
-  <img src="docs/screenshots/real-cards-setup.png?v=2" alt="Suitkeep real-cards setup step: a row of 10 face-down cards as your elixir bar with the 5th card turned sideways as the marker" width="420" />
+  <img src="docs/screenshots/real-cards-setup.png?v=3" alt="Suitkeep real-cards setup, first step: split the deck by colour, black cards for you and red cards for the enemy" width="420" />
 </p>
 
 ## Run it locally
@@ -72,7 +72,7 @@ npm run check    # lint + build + rules tests (plays hundreds of full games)
 | [`app/`](app) | The web app (React, TypeScript, Vite): on-screen play and the real-cards companion |
 | [`print/`](print) | The printable rulebook PDF, generated with `python3 tools/rulebook_pdf.py` (needs Google Chrome) |
 | [`PLAYTEST.md`](PLAYTEST.md) | Playtest sheet and log template for testing the rules with real players |
-| [`sim/`](sim) | Python balance simulator: bots, deck curves and rule variants used to tune the game (`sim_v1_backup/` is an older copy) |
+| [`sim/`](sim) | Python balance simulator of the earlier rules (elixir, towers of 2 cards), kept for reference (`sim_v1_backup/` is an older copy). The current rules are tuned with `app/scripts/` (`sim.ts`, `balance.ts`) |
 
 ## Feedback
 

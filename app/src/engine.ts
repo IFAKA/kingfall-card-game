@@ -124,7 +124,7 @@ export function newGame(
     hand, queue, elixir: 0, towers, revealed: { L: false, R: false, K: false },
   })
   const P = mk(myDeck.slice(0, HAND_SIZE), myDeck.slice(HAND_SIZE), towersFromSlots(towerSlots))
-  const E = mk([], enemyDeck, enemyTowers) // the enemy has no elixir: it plays one card per round
+  const E = mk([], enemyDeck, enemyTowers) // the enemy has no turn budget: it plays rules.enemyPlays cards a round
   // round 1 starts with the regeneration already applied (same as the simulator)
   P.elixir = Math.min(rules.cap, rules.startElixir + rules.regen)
   return {
@@ -295,7 +295,7 @@ function towerHits(g: GameState) {
   }
 }
 
-/** A princess stack fell: its owner places one card in that lane for free. Enemy: top of its pile. You: your strongest hand card (stand-in for your choice). */
+/** A side tower fell: its owner places one card in that lane for free. Enemy: top of its pile. You: your strongest hand card (stand-in for your choice). */
 function lastStand(g: GameState, side: Side, lane: 0 | 1) {
   const s = g[side]
   let c: Card | undefined

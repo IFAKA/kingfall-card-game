@@ -48,7 +48,7 @@ export interface GuideState {
   hitQueue: number[]
   winner: null | 'P' | 'E' | 'draw'
   cracked?: string[] // tower cards turned sideways by a failed hit (tids); any later hit breaks them
-  lastStand?: { side: 'P' | 'E'; lane: 0 | 1 } | null // a princess tower just fell: its owner places one card there for free
+  lastStand?: { side: 'P' | 'E'; lane: 0 | 1 } | null // a side tower just fell: its owner places one card there for free
   peek?: 'play' | 'move' // flipping the enemy's new top card face-up, then going on to your play or to the fights
   stepped?: number[] // units that already moved this round (uids)
   turn?: Placed[] // the cards you placed this turn, in order: until you end it, any of them can be taken back
@@ -582,10 +582,10 @@ function processHit(g: GuideState): GuideState {
       g.stage = 'tower_enter'
       g.lines = [
         `Your ${label(u.card)} is at the enemy ${stackName(k)}.`,
-        `Flip the TOP card of the enemy ${stackName(k)} face-up and tell the app which card it is.`,
+        `Turn the enemy ${stackName(k)} card face-up and tell the app which card it is.`,
       ]
       g.why = [g.rules.armor
-        ? 'A tower hit is a fight against the tower card: the suit wheel and aces count. Win or lose, a whole card only cracks; a cracked card breaks. If your card wins or ties, it stays for one more hit.'
+        ? 'A tower hit is a fight against the tower card: the suit wheel and aces count. Win or lose, a whole card only cracks; a cracked card breaks. If your card wins, it stays for one more hit; a tie goes to the tower.'
         : 'A tower hit is a fight against the top tower card: the suit wheel and aces count. If your unit wins or ties, the card breaks. If it loses, the card cracks instead, and the next hit on it breaks it.']
       return g
     }
@@ -612,7 +612,7 @@ export function revealTowerCard(g0: GuideState, card: Card): GuideState {
   top.card = card
   g.enemySeen.push(card)
   emit(g, { type: 'reveal', tid: top.tid, card, stack: k })
-  g.lines = [`Your ${label(u.card)} is at the enemy ${stackName(k)}.`, `Its top card is ${label(card)}.`]
+  g.lines = [`Your ${label(u.card)} is at the enemy ${stackName(k)}.`, `Its card is ${label(card)}.`]
   return g
 }
 
@@ -635,7 +635,7 @@ function resolveHit(g: GuideState, u: Unit, k: StackKey): GuideState {
   emit(g, { type: 'tower', side: u.side, tid: u.tid!, card: u.card, stack: k, top: { tid: topId, card: top }, result: broken ? 'break' : 'crack', wasCracked, destroyed: stackLeft === 0, armor: armorHolds || undefined })
   delete u.free
   const lines: string[] = []
-  lines.push(`${mineHit ? 'Your' : 'Enemy'} ${label(u.card)} (rank ${u.card.rank}) hits ${owner} ${stackName(k)}, top card ${label(top)} (rank ${top.rank}${wasCracked ? ', CRACKED' : ''}).`)
+  lines.push(`${mineHit ? 'Your' : 'Enemy'} ${label(u.card)} (rank ${u.card.rank}) hits ${owner} ${stackName(k)}, tower card ${label(top)} (rank ${top.rank}${wasCracked ? ', CRACKED' : ''}).`)
   if (broken) {
     g.cracked = cracked.filter(id => id !== topId)
     if (mineHit) { const r = g.E.towers[k].shift()!; g.discard.push({ tid: r.tid, card: r.card!, owner: 'E' }) }
@@ -656,7 +656,7 @@ function resolveHit(g: GuideState, u: Unit, k: StackKey): GuideState {
     const st = mineHit ? g.E.towers[k] : g.P.towers[k]
     if (st.length > 1) (st as unknown[]).push((st as unknown[]).shift())
     g.cracked = [...cracked, topId]
-    lines.push(`${versus}: the tower HOLDS, but ${label(top)} CRACKS. Turn it SIDEWAYS and move it to the BOTTOM of that tower${mineHit ? ', face-up (you know it now)' : ''}.${st.length > 1 ? ' The next card is now on top.' : ''} Any later hit breaks it.`)
+    lines.push(`${versus}: the tower HOLDS, but ${label(top)} CRACKS. Turn it SIDEWAYS${st.length > 1 ? ' and move it to the BOTTOM of that tower' : ''}${mineHit ? ', face-up (you know it now)' : ''}.${st.length > 1 ? ' The next card is now on top.' : ''} Any later hit breaks it.`)
     g.log.push(`${mineHit ? 'Your' : 'Enemy'} ${label(u.card)} hits the ${stackName(k).toLowerCase()}: ${label(top)} holds but cracks.`)
   }
   // towers shoot back: a unit that breaks a card stays, wounded, for one more hit; otherwise it goes back to its pile
@@ -673,8 +673,8 @@ function resolveHit(g: GuideState, u: Unit, k: StackKey): GuideState {
   g.stage = 'tower_result'
   g.lines = lines
   g.why = [g.rules.armor
-    ? 'Every tower card takes two hits: the first CRACKS it (turned sideways), the next one BREAKS it, whatever card hits it. A hit is still a fight against the tower card (the suit wheel and aces count; a tie counts as a win): a card that wins stays, turned sideways (wounded), for one more hit, then goes back to its pile; a card that loses is shot back to its pile at once. The king can only be hit after the side tower in that lane is gone. When a side tower falls, its owner gets a free last-stand card in that lane.'
-    : 'A tower hit is a fight against the top tower card (the suit wheel and aces count; a tie breaks it). Towers shoot back, so every attacker does limited damage: a unit that breaks a card stays, turned sideways (wounded), for one more hit, then goes back to its pile. A unit that loses only cracks the card (turned sideways, moved to the bottom of that tower) and goes back. Any later hit breaks a cracked card, so even small cards wear towers down. The king can only be hit after the princess tower in that lane is gone. When a princess tower falls, its owner gets a free last-stand card in that lane.']
+    ? 'Every tower card takes two hits: the first CRACKS it (turned sideways), the next one BREAKS it, whatever card hits it. A hit is still a fight against the tower card (the suit wheel and aces count; ties go to the enemy): a card that wins stays, turned sideways (wounded), for one more hit, then goes back to its pile; a card that loses is shot back to its pile at once. The king can only be hit after the side tower in that lane is gone. When a side tower falls, its owner gets a free last-stand card in that lane.'
+    : 'A tower hit is a fight against the top tower card (the suit wheel and aces count; a tie breaks it). Towers shoot back, so every attacker does limited damage: a unit that breaks a card stays, turned sideways (wounded), for one more hit, then goes back to its pile. A unit that loses only cracks the card (turned sideways, moved to the bottom of that tower) and goes back. Any later hit breaks a cracked card, so even small cards wear towers down. The king can only be hit after the side tower in that lane is gone. When a side tower falls, its owner gets a free last-stand card in that lane.']
   return g
 }
 
@@ -686,7 +686,7 @@ function lastStandStep(g: GuideState): GuideState {
     if (!g.P.hand.length) { g.lastStand = null; g.lines = ['Your hand is empty, so there is no last stand.']; g.why = []; return g }
     g.stage = 'my_last_stand'
     g.lines = [`LAST STAND: your ${stackName(lane === 0 ? 'L' : 'R')} fell. Pick ANY card from your hand: it goes FREE into the ${laneName(lane)} lane, slot nearest YOU. It doesn't count as your play next round.`]
-    g.why = ['When a princess tower falls, its defenders fight back: the owner places one card in that lane for free. Losing a tower hurts, but it is not the end of the game.']
+    g.why = ['When a side tower falls, its defenders fight back: the owner places one card in that lane for free. Losing a tower hurts, but it is not the end of the game.']
     return g
   }
   const q = g.E.queue
@@ -694,7 +694,7 @@ function lastStandStep(g: GuideState): GuideState {
   if (q[0].card === null) {
     g.stage = 'last_stand_enter'
     g.lines = ['ENEMY LAST STAND: flip the TOP card of the enemy pile face-up and tell the app which card it is.']
-    g.why = ['When a princess tower falls, its owner places one card in that lane for free. The enemy always uses the top card of its pile.']
+    g.why = ['When a side tower falls, its owner places one card in that lane for free. The enemy always uses the top card of its pile.']
     return g
   }
   return enemyLastStand(g)
@@ -708,7 +708,7 @@ function enemyLastStand(g: GuideState): GuideState {
   g.lastStand = null
   g.stage = 'tower_result'
   g.lines = [`ENEMY LAST STAND: place ${label(c)} FREE in the ${laneName(lane)} lane, slot nearest the ENEMY.`]
-  g.why = ['When a princess tower falls, its owner places one card in that lane for free. The enemy always uses the top card of its pile, so a face-up top card tells you what is coming.']
+  g.why = ['When a side tower falls, its owner places one card in that lane for free. The enemy always uses the top card of its pile, so a face-up top card tells you what is coming.']
   g.log.push(`Enemy last stand: ${label(c)} enters the ${laneName(lane).toLowerCase()} lane for free.`)
   emit(g, { type: 'play', side: 'E', tid: slot.tid, card: c, lane, cost: 0, free: true })
   return g
@@ -900,7 +900,7 @@ export function describe(e: GameEvent): string | null {
       const how = e.wasCracked ? `breaks the cracked ${label(e.top.card)}` : `breaks ${label(e.top.card)}`
       return `${who} ${how} on the ${where}${e.destroyed ? `. The ${where} is DESTROYED!` : '.'}`
     }
-    case 'reveal': return `The enemy ${stackName(e.stack).toLowerCase()}'s top card is ${label(e.card)}.`
+    case 'reveal': return `The enemy ${stackName(e.stack).toLowerCase()} card is ${label(e.card)}.`
     default: return null
   }
 }

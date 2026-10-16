@@ -7,6 +7,7 @@ _Written 2026-10-16 for this game as it is today. Update it when a step is done 
 - The game works and is live at suitkeep.vercel.app (on screen + with real cards).
 - The printable rulebook exists (`print/Suitkeep-Rulebook.pdf`).
 - The trailer is finished: `trailer/out/suitkeep-trailer-tall.mp4` (vertical) and `trailer/out/suitkeep-trailer-wide.mp4` (wide), 33 seconds each.
+- **The rules changed on 2026-10-16** (the 22-card rules: no elixir, 1 card or 2 small ones a round, the enemy plays 2 cards, towers of 1 armored card). All the texts below are updated. The itch.io upload and the trailer still show the old rules until you redo them (see the list under "Before you post").
 - **Nobody else has played it yet**, and you don't know anyone to test with.
 - **The stats are built into the game but switched off** until you make the free Umami account (step 5).
 - **The posts, the itch.io page text, its cover and the upload file are ready** (see [Ready-to-post texts](#ready-to-post-texts) at the end). Nothing has been posted.
@@ -29,9 +30,11 @@ _Written 2026-10-16 for this game as it is today. Update it when a step is done 
 - [x] The screenshots on GitHub and itch show SUITKEEP, not the old name.
 - [ ] **Tax interview on itch.io** done (Settings → Tax information → Exit Interview), so donations can be paid out.
 - [ ] **About 10 comments** on other people's games in r/playmygame and r/WebGames (2–3 days). No Suitkeep, no links in them. Details below, under "How to leave the comments".
-- [ ] **Table photo** taken (cards in both lanes, towers fanned, the row of 10 elixir cards visible, daylight, no flash). Needed for the card-game posts (step 9), not for r/playmygame.
+- [ ] **Table photo** taken (cards in both lanes, black against red, the three towers on each side, daylight, no flash). Needed for the card-game posts (step 9), not for r/playmygame.
 - [ ] **A quick game on your phone** at suitkeep.vercel.app, to check it feels right.
 - [ ] **Read r/playmygame's Community Highlighted Posts** once, and post only with their **Make A Post** button.
+- [ ] **New itch.io upload** with the 22-card rules: `cd app && npm run itch`, then on itch.io → Edit game → Uploads, delete the old zip and upload `app/suitkeep-itch.zip` (tick "This file will be played in the browser"). Paste the updated description and short description from this file.
+- [ ] **Rebuild both trailers** with the new rules (`cd trailer && npm run rebuild`, about an hour): the current ones show the old elixir bar and towers of 2 cards.
 - [ ] **Watch both trailers** (`trailer/out/`) and tell Claude if anything should change.
 
 ### How to leave the comments
@@ -260,15 +263,15 @@ Rule notes (from a rules index read October 2026; check the real rules tab befor
 >
 > I designed and built this. The rules are mine; an AI assistant helped me write the code. The art and sound are made in code, no AI images or audio.
 >
-> Suitkeep is a solo card battle inspired by lane games like Clash Royale, but turn-based. You spend elixir to send cards down two lanes, they fight the enemy's cards in the middle, and whatever gets through hits the towers. Take down the enemy's king tower to win.
+> Suitkeep is a solo card battle inspired by lane games like Clash Royale, but turn-based. Each round you send 1 card, or 2 small ones, down two lanes; they fight the enemy's cards, and whatever gets through hits the towers. Take down the enemy's king tower to win.
 >
 > A few rules make it more than "high card wins":
 > - Suit wheel: ♠ beats ♥ beats ♦ beats ♣ beats ♠, and a card counts double against the suit it beats.
 > - Aces beat Kings.
-> - The enemy plays one card a round, and its next card is always face-up, so you can plan around it.
-> - Towers fight back: hitting a tower is a fight against its top card.
+> - The enemy plays two cards a round, one in each lane, and its next card is always face-up, so you can plan around it.
+> - Towers are armored: every tower takes two hits, and hitting one is a fight against its card.
 >
-> Your first game teaches the rules one at a time as you play. A game takes 10–20 minutes.
+> Your first game teaches the rules one at a time as you play. A game takes about 10 minutes.
 >
 > It also works with a real deck: "Play with real cards" runs the enemy for you while you play at the table.
 >
@@ -306,7 +309,7 @@ Links in TikTok captions can't be tapped; the trailer's last frame shows the add
 > A lane battle you play with a normal deck of cards #shorts
 
 **Description:**
-> Suitkeep: spend elixir, send your cards down two lanes, crack the enemy's towers and take down its king. Free in your browser, on phone or desktop, or with a real deck at the table: https://suitkeep.vercel.app
+> Suitkeep: send your cards down two lanes, crack the enemy's towers and take down its king. Free in your browser, on phone or desktop, or with a real deck at the table: https://suitkeep.vercel.app
 
 **Pinned comment:**
 > Play free here: https://suitkeep.vercel.app
@@ -317,7 +320,7 @@ Links in TikTok captions can't be tapped; the trailer's last frame shows the add
 
 One good photo does most of the work:
 - A real game in the middle of play, shot from above or at a slight angle, on a plain table.
-- Both lanes with cards in them, the towers fanned out, and the row of 10 elixir cards visible.
+- Both lanes with cards in them (black yours, red the enemy's) and the three towers on each side.
 - Daylight from a window, no flash. Landscape. No clutter, nothing personal in the shot.
 - Optional second photo: your phone next to the cards showing the app's real-cards screen.
 
@@ -327,14 +330,14 @@ One good photo does most of the work:
 > I designed a solo game for a standard 52-card deck: a lane battle against a simple automaton (free print-and-play rules)
 
 **Body:**
-> Suitkeep is a one-player duel you play with any standard deck: no jokers, no pen, no dice, no counters. About 10–20 minutes.
+> Suitkeep is a one-player duel you play with any standard deck: no jokers, no pen, no dice, no counters. About 10 minutes. Only 22 cards are in play.
 >
 > How it plays:
-> - You and the enemy get 14 cards each; 14 more stay in the box, so you never know exactly what the enemy has. A row of 10 face-down cards is your elixir bar, with a face-up marker.
-> - From your 14 you choose a deck of 8 and three towers of 2 cards: left, king, right.
-> - Each round you spend elixir to send cards down two lanes. The enemy plays the face-up top card of its pile into the lane where you pushed harder, so you always know its next play.
+> - You take 11 black cards, the enemy 11 red ones, dealt face-down; the other 30 stay in the box, so you never know exactly what the enemy has.
+> - From your 11 you choose a deck of 8 and three towers of 1 card: left, king, right.
+> - Each round you play 1 card, or 2 small ones (A to 5), into two lanes. Nothing to count, nothing carries over. The enemy plays the top two cards of its pile, one into the lane where you pushed harder and one into the other; its top card is always face-up, so you know its next play.
 > - Front cards fight: higher rank wins, a suit wheel (♠ > ♥ > ♦ > ♣ > ♠) doubles a card against the suit it beats, and aces beat kings.
-> - Cards that get through hit the towers, and the towers fight back. Take the enemy's king tower to win.
+> - Cards that get through hit the towers. Every tower card is armored: the first hit cracks it, the next breaks it. Take the enemy's king tower to win.
 >
 > Rules (3-page PDF, free): https://github.com/IFAKA/suitkeep/raw/main/print/Suitkeep-Rulebook.pdf
 > Optional companion app that runs the enemy for you: https://suitkeep.vercel.app ("Play with real cards")
@@ -350,9 +353,9 @@ One good photo does most of the work:
 > Suitkeep: a new solo game for a standard deck. A lane battle where a suit wheel doubles cards and aces beat kings
 
 **Body:**
-> I made a one-player card game you play with a normal 52-card deck. It's a lane battle against an automaton: you spend elixir to send cards down two lanes, the enemy answers with one card a round (always face-up, so you can plan), the front cards fight, and survivors attack three towers of 2 cards each. Take the enemy's king tower to win.
+> I made a one-player card game you play with a normal 52-card deck. It's a lane battle against an automaton: you send 1 card, or 2 small ones, down two lanes each round, the enemy answers with two cards a round (its next one always face-up, so you can plan), the front cards fight, and survivors attack three armored towers that each take two hits. Take the enemy's king tower to win.
 >
-> The fights: higher rank wins, a suit wheel (♠ > ♥ > ♦ > ♣ > ♠) makes a card count double against the suit it beats, and aces beat kings. Towers fight back, so even a king can only break two tower cards before it's sent home.
+> The fights: higher rank wins, a suit wheel (♠ > ♥ > ♦ > ♣ > ♠) makes a card count double against the suit it beats, and aces beat kings. Ties go to the enemy, so every fight needs a clear win.
 >
 > Free 3-page rules: https://github.com/IFAKA/suitkeep/raw/main/print/Suitkeep-Rulebook.pdf
 > Or play it on screen: https://suitkeep.vercel.app
@@ -364,11 +367,11 @@ One good photo does most of the work:
 1. Make a free account at **boardgamegeek.com**.
 2. Find the page for submitting a new game (in the site menu, or search BGG's help for "submit a new game" if it moved).
 3. Fill it in:
-   - **Name:** Suitkeep. **Year:** 2026. **Players:** 1 to 1. **Playing time:** 10–20 minutes. **Age:** 10+.
+   - **Name:** Suitkeep. **Year:** 2026. **Players:** 1 to 1. **Playing time:** 10 minutes. **Age:** 10+.
    - **Designer:** your name. **Publisher:** (Web published).
    - **Categories:** Card Game, Print & Play. **Mechanisms:** Solo / Solitaire Game, Hand Management.
    - **Description:**
-     > Suitkeep is a solo lane battle for one standard 52-card deck. Spend elixir to send your cards down two lanes against a simple automaton, clash in the middle, crack the enemy's towers and take down its king. A suit wheel doubles a card against the suit it beats, aces beat kings, and the enemy's next card is always face-up. Free 3-page print-and-play rules; an optional free web app runs the enemy for you or plays the whole game on screen at suitkeep.vercel.app.
+     > Suitkeep is a solo lane battle for one standard 52-card deck. Send your cards down two lanes against a simple automaton, clash in the middle, crack the enemy's towers and take down its king. A suit wheel doubles a card against the suit it beats, aces beat kings, and the enemy's next card is always face-up. Free 3-page print-and-play rules; an optional free web app runs the enemy for you or plays the whole game on screen at suitkeep.vercel.app.
 4. Submit. BGG staff approve new games by hand, which takes days to weeks.
 5. Once approved, upload `print/Suitkeep-Rulebook.pdf` under **Files** and your table photo under **Images**.
 
@@ -378,7 +381,7 @@ One good photo does most of the work:
 > A turn-based lane battle where every soldier is a playing card. Play in your browser or with a real deck.
 
 **Description:**
-> Spend elixir, send your cards down two lanes, clash with the enemy's cards in the middle, crack its towers and take down its king.
+> Send your cards down two lanes, clash with the enemy's cards in the middle, crack its towers and take down its king.
 >
 > Suitkeep is a free solo lane battle inspired by games like Clash Royale, but turn-based, and it needs nothing but a standard 52-card deck.
 >
@@ -390,10 +393,10 @@ One good photo does most of the work:
 > - Higher rank wins a fight.
 > - Suit wheel: ♠ beats ♥ beats ♦ beats ♣ beats ♠. A card counts double against the suit it beats.
 > - Aces beat Kings.
-> - The enemy plays one card a round, and its next card is always face-up.
-> - Towers fight back. Take the enemy's king tower to win.
+> - Each round you play 1 card, or 2 small ones. The enemy plays two, and its next card is always face-up.
+> - Towers are armored: two hits each. Take the enemy's king tower to win.
 >
-> 1 player · 10–20 minutes · phone and desktop · plays offline after the first visit
+> 1 player · 10 minutes · phone and desktop · plays offline after the first visit
 >
 > The rulebook PDF is free. If you enjoy the game, a small donation helps me keep improving it.
 
@@ -404,7 +407,7 @@ One good photo does most of the work:
 Starting points for step 10. Paste the real comments to Claude for anything else.
 
 - **"Is this like Clash Royale?"**
-  > Yes, that's the inspiration: lanes, elixir, towers and a king. But it's turn-based, there's nothing to buy, and you can play it with a real deck of cards.
+  > Yes, that's the inspiration: lanes, towers and a king. But it's turn-based, there's no elixir to count (1 card a round, or 2 small ones), there's nothing to buy, and you can play it with a real deck of cards.
 - **Someone found a bug:**
   > Thanks for telling me! Which phone or browser were you on, and what were you doing when it happened? I'll fix it.
 - **Someone was confused by a rule:**
