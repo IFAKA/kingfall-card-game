@@ -1,4 +1,4 @@
-# Kingfall: a one-player lane duel with a standard deck
+# Suitkeep: a one-player lane duel with a standard deck
 
 **Players:** 1 · **Time:** 10–20 minutes · **You need:** one standard 52-card deck (no jokers). No pen, no counters, no dice.
 

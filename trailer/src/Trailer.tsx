@@ -2,14 +2,13 @@
 // Every section starts on a beat of the music (src/plan.ts); the moments of the game it shows are picked in src/cuts.ts.
 import type { CSSProperties, ReactNode } from 'react'
 import { AbsoluteFill, Audio, Easing, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion'
-import { BODY, C, Card, Logo, Row, backdrop, goldText, whiteText } from './brand'
+import { BODY, C, Card, Logo, Row, URL_TEXT, backdrop, goldText, whiteText } from './brand'
 import { CUTS } from './cuts'
 import { BoxSize, GameClip } from './GameClip'
 import type { Framing } from './GameClip'
 import { S, frames } from './plan'
 
 export type Layout = 'tall' | 'wide'
-const URL_TEXT = 'kingfall-card-game.vercel.app'
 
 // a caption pops in (a quick overshoot) and stays; `big` lines are gold, the others white
 function Caption({ lines, size, align = 'center', delay = 0 }: { lines: { text: ReactNode; big?: boolean }[]; size: number; align?: 'center' | 'left'; delay?: number }) {

@@ -7,7 +7,7 @@ export const BEAT = 60 / BPM
 // sections, in beats from the start
 export const S = {
   hook: 0, // the ace strikes the king: the twist first, before any title
-  title: 5, // impact: KINGFALL slams in
+  title: 5, // impact: the game's name slams in
   loop: 9, // groove starts: how a round plays
   suits: 21, // the suit wheel doubles a card
   towers: 29, // towers crack, break, fall

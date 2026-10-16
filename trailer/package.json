@@ -1,12 +1,13 @@
 {
-  "name": "kingfall-trailer",
+  "name": "suitkeep-trailer",
   "private": true,
   "type": "module",
   "scripts": {
     "capture": "capture/run.sh",
     "studio": "remotion studio",
     "render": "remotion render",
-    "master": "./master.sh"
+    "master": "./master.sh",
+    "rebuild": "./rebuild.sh"
   },
   "dependencies": {
     "@fontsource-variable/baloo-2": "^5.3.0",

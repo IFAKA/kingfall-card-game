@@ -35,7 +35,7 @@ const GUIDE = <>
 </>
 
 // set once the suggestion's why has been read: it is told only the first time Suggest is used
-const WHY_KEY = 'kingfall-suggest-why-seen'
+const WHY_KEY = 'suitkeep-suggest-why-seen'
 
 type Spot = { zone: 'deck'; id: string } | { zone: 'tower'; i: number }
 

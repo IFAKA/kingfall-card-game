@@ -5,7 +5,7 @@
 // Each play shifts pitch and loudness a little so repeats don't sound canned, sits left or right where it happens on
 // the board, and fights and tower hits end brighter when they go your way and darker when they don't.
 // The audio context starts on the first sound after a tap (browsers block sound before any user gesture).
-const MUTE_KEY = 'kingfall-muted'
+const MUTE_KEY = 'suitkeep-muted'
 let ctx: AudioContext | null = null
 let mix: Mix | null = null
 let muted = (() => { try { return localStorage.getItem(MUTE_KEY) === '1' } catch { return false } })()

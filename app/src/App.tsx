@@ -387,7 +387,7 @@ function Logo({ small }: { small?: boolean }) {
   return (
     <div className={`logo${small ? ' small' : ''}`}>
       <svg className="crown" viewBox="0 0 64 40" aria-hidden><path d="M6 36 L2 8 L18 20 L32 2 L46 20 L62 8 L58 36 Z" /><circle cx="2" cy="8" r="4" /><circle cx="32" cy="3" r="4" /><circle cx="62" cy="8" r="4" /></svg>
-      <span>KINGFALL</span>
+      <span>SUITKEEP</span>
     </div>
   )
 }
@@ -569,8 +569,8 @@ const TABLE_TIPS: Partial<Record<TipId, string>> = {
   next: 'When you play a card, draw the top of your queue. Cards that die go to the bottom of it.',
 }
 const DEBUG = import.meta.env.DEV || new URLSearchParams(location.search).has('debug')
-const TIPS_KEY = 'kingfall-tips-seen'
-const PLAYED_KEY = 'kingfall-games-played' // games finished, per mode: a player who has finished none gets a ready-made deck and help on
+const TIPS_KEY = 'suitkeep-tips-seen'
+const PLAYED_KEY = 'suitkeep-games-played' // games finished, per mode: a player who has finished none gets a ready-made deck and help on
 type Played = { play: number; guide: number }
 // what a player's first game did for them, so its end can say so and the next game can turn the help off again
 interface Intro { deck: boolean; help: boolean }
@@ -581,9 +581,9 @@ const writeJSON = (key: string, v: unknown) => { try { localStorage.setItem(key,
 const AUTO_STAGES = ['round_start', 'enemy_play', 'enemy_peek', 'enemy_stop', 'step_up', 'fight', 'move', 'tower_enter', 'tower_result']
 // hold each step longer the more it shows (one line per event), so busy fights can be followed; fast halves it
 const autoDelay = (events: number, fast = false) => Math.min(4000, 700 + 600 * events) * (fast ? 0.5 : 1)
-const FAST_KEY = 'kingfall-fast'
-const BATCH_KEY = 'kingfall-batch' // real cards: a round's fights and moves as one checklist (unset: on after 2 games at the table)
-const RECORD_KEY = 'kingfall-record'
+const FAST_KEY = 'suitkeep-fast'
+const BATCH_KEY = 'suitkeep-batch' // real cards: a round's fights and moves as one checklist (unset: on after 2 games at the table)
+const RECORD_KEY = 'suitkeep-record'
 // your own results, every mode together: shown on the title and at the end of a game, never as a streak to keep
 interface GameRecord { games: number; wins: number; best?: number } // best: fewest rounds to a win
 
@@ -858,7 +858,7 @@ export default function App() {
         {played.play === 0 && setupStep === 0 && (
           <Alert className="mx-auto mt-2.5 max-w-[680px] border-(--gold-d) bg-black/25 text-base">
             <Lightbulb className="text-primary" />
-            <AlertTitle className="font-heading text-lg font-normal tracking-wide">New to Kingfall?</AlertTitle>
+            <AlertTitle className="font-heading text-lg font-normal tracking-wide">New to Suitkeep?</AlertTitle>
             <AlertDescription className="text-base text-foreground/90">
               <p className="m-0">One game on screen (about 5 minutes) teaches the rules. Then the table only adds the cards.</p>
               <Button variant="secondary" className="mt-2" onClick={startOnScreen}>Play on screen first</Button>
@@ -1070,7 +1070,7 @@ export default function App() {
     const cards = (ids: string[]) => ids.map(id => label(byId(id))).join(' ')
     const help = mode === 'play' ? (suggestOn ? 'suggestions on' : 'suggestions off') : (explainOn ? 'explanations on' : 'explanations off')
     const head = [
-      'Kingfall game log', new Date().toLocaleString(), `Mode: ${mode === 'guide' ? 'real cards' : 'on screen'} (${help}${intro?.deck ? ', first game' : ''})`,
+      'Suitkeep game log', new Date().toLocaleString(), `Mode: ${mode === 'guide' ? 'real cards' : 'on screen'} (${help}${intro?.deck ? ', first game' : ''})`,
       `Rules: aces beat kings${g.rules.aceMin === 13 ? ' only' : ''}, elixir cap ${g.rules.cap}`,
       stage === 'over' ? `Result: ${g.winner === 'P' ? 'you won' : g.winner === 'E' ? 'you lost' : 'draw'} after ${g.round} rounds` : `Unfinished: round ${g.round}`,
       `Your 14 cards: ${g.dealt.map(label).join(' ')} (${g.dealt.filter(c => c.rank === 1).length} aces)`,
@@ -1078,7 +1078,7 @@ export default function App() {
       g.enemySeen.length ? `Enemy cards seen: ${g.enemySeen.map(label).join(' ')}` : '',
       `Your record before this log: ${record.wins} wins in ${record.games} games`, '']
     const url = URL.createObjectURL(new Blob([[...head.filter(l => l !== '' || l === head.at(-1)), ...g.log].join('\n') + '\n'], { type: 'text/plain' }))
-    const a = Object.assign(document.createElement('a'), { href: url, download: `kingfall-log-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.txt` })
+    const a = Object.assign(document.createElement('a'), { href: url, download: `suitkeep-log-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.txt` })
     a.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }

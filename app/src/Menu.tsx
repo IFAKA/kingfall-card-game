@@ -142,7 +142,7 @@ const iosSteps = (
   <ol className="m-0 flex list-none flex-col gap-3 p-0 text-base leading-snug">
     <li className="flex items-center gap-3"><Share className="size-6 shrink-0 text-primary" /><span>Tap <b>Share</b> in Safari's toolbar.</span></li>
     <li className="flex items-center gap-3"><SquarePlus className="size-6 shrink-0 text-primary" /><span>Choose <b>Add to Home Screen</b>, then <b>Add</b>.</span></li>
-    <li className="flex items-center gap-3"><Castle className="size-6 shrink-0 text-primary" /><span>Open Kingfall from its icon: full screen, and it plays without a connection.</span></li>
+    <li className="flex items-center gap-3"><Castle className="size-6 shrink-0 text-primary" /><span>Open Suitkeep from its icon: full screen, and it plays without a connection.</span></li>
   </ol>
 )
 // the title screen's quiet offer under the big buttons

@@ -1,5 +1,5 @@
 // Renders the music to WAV files, to listen to outside the game, and prints how loud each piece is:
-//   node scripts/music.ts   →   $TMPDIR/kingfall-music/title.wav, game.wav, game-tense.wav (a minute each)
+//   node scripts/music.ts   →   $TMPDIR/suitkeep-music/title.wav, game.wav, game-tense.wav (a minute each)
 // src/music.ts runs in Chrome (Web Audio has no Node version), served by Vite.
 import fs from 'node:fs'
 import os from 'node:os'
@@ -12,7 +12,7 @@ await server.listen()
 const browser = await chromium.launch({ channel: 'chrome' })
 const page = await browser.newPage()
 await page.goto(server.resolvedUrls!.local[0])
-const dir = path.join(os.tmpdir(), 'kingfall-music')
+const dir = path.join(os.tmpdir(), 'suitkeep-music')
 fs.mkdirSync(dir, { recursive: true })
 for (const [name, scene, tenseFrom] of [['title', 'title', -1], ['game', 'game', -1], ['game-tense', 'game', 0]] as const) {
   const r = await page.evaluate(async ([scene, tenseFrom]) => {

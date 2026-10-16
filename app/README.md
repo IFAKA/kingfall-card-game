@@ -1,6 +1,6 @@
-# Kingfall: web app
+# Suitkeep: web app
 
-The web app for [Kingfall](../README.md), a one-player lane battle card game. Live at **https://kingfall-card-game.vercel.app**.
+The web app for [Suitkeep](../README.md), a one-player lane battle card game. Live at **https://suitkeep.vercel.app**.
 
 It has two modes:
 
@@ -25,7 +25,7 @@ npm run preview    # serve the production build locally
 `npm run build` produces a static site in `dist/` with relative paths, so it runs from any folder or static host:
 
 - **itch.io (HTML game):** zip the *contents* of `dist/` (not the folder itself) and upload it as an HTML project.
-- **Vercel (the live site):** the Vercel project `kingfall` builds from this `app/` folder; every push to `main` deploys to production.
+- **Vercel (the live site):** the Vercel project `suitkeep` builds from this `app/` folder; every push to `main` deploys to production.
 - **Netlify / Cloudflare Pages / GitHub Pages:** publish the `dist/` folder; there is no server code.
 
 It is also an installable app (PWA): `public/manifest.webmanifest` and the icons in `public/` describe it, and the build writes `dist/sw.js`, a service worker that saves every file the game needs so it plays offline after one visit (see `vite.config.ts`; it registers only in production builds). Each build gets a new cache name, so a deploy replaces the old copy.
@@ -43,6 +43,6 @@ When the rules change in a way that makes old saved games invalid, bump `STORAGE
 - `src/App.tsx`: title, setup screens, the arena both modes play in (with the real-cards table panel and card picker) and the first-game tips; `src/ErrorBoundary.tsx` recovers from an unreadable saved game.
 - `src/fx.ts`: turns each step's events into pop-ups, board shake and sounds, placed on board elements marked `data-anchor`; `src/sfx.ts` synthesizes the sounds with Web Audio (no audio files) and keeps the mute setting; `src/music.ts` plays the music the same way (the title theme, a game's loop and its tension layer), and `node scripts/music.ts` renders it to WAV files to listen to.
 - `scripts/check.ts`: the automated rules and balance checks behind `npm test`.
-- `scripts/rulebook.ts`: rebuilds the printable rulebook, `../print/Kingfall-Rulebook.pdf`, from `../RULEBOOK.md` (`npm run rulebook`, uses Google Chrome).
+- `scripts/rulebook.ts`: rebuilds the printable rulebook, `../print/Suitkeep-Rulebook.pdf`, from `../RULEBOOK.md` (`npm run rulebook`, uses Google Chrome).
 
 The rules themselves live in `../RULEBOOK.md`; keep the rulebook, `guide.ts` and `engine.ts` in sync, and run `npm run rulebook` after changing it so the printable PDF follows.

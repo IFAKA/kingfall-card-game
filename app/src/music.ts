@@ -6,7 +6,7 @@
 // fanfare plays alone) or the page is hidden, and has its own switch apart from the sounds.
 import { audio, roomEcho, whiteNoise } from './sfx'
 
-const OFF_KEY = 'kingfall-music-off'
+const OFF_KEY = 'suitkeep-music-off'
 let off = (() => { try { return localStorage.getItem(OFF_KEY) === '1' } catch { return false } })()
 
 export const isMusicOff = () => off

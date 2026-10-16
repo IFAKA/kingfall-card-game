@@ -1,15 +1,15 @@
-# Kingfall: a solo card game with a standard 52-card deck
+# Suitkeep: a solo card game with a standard 52-card deck
 
-**Kingfall is a free one-player lane battle card game.** Spend elixir, send your cards down two lanes, clash with the enemy's cards in the middle, crack its towers and take down its king. It's inspired by real-time lane games like Clash Royale, but it's turn-based and needs nothing but a deck of playing cards.
+**Suitkeep is a free one-player lane battle card game.** Spend elixir, send your cards down two lanes, clash with the enemy's cards in the middle, crack its towers and take down its king. It's inspired by real-time lane games like Clash Royale, but it's turn-based and needs nothing but a deck of playing cards.
 
-### ▶ [Play Kingfall in your browser](https://kingfall-card-game.vercel.app)
+### ▶ [Play Suitkeep in your browser](https://suitkeep.vercel.app)
 
 Free, no sign-up, works on phones and desktops.
 
 <p align="center">
-  <img src="docs/screenshots/arena.png" alt="Kingfall on screen: red enemy castles at the top with cracked tower cards, blue castles at the bottom with one fallen, your card attacking an enemy tower, a ×2 suit bonus pop-up in the left lane, the enemy's face-up next card in the middle and your hand with the next card and the Done button below" width="300" />
+  <img src="docs/screenshots/arena.png" alt="Suitkeep on screen: red enemy castles at the top with cracked tower cards, blue castles at the bottom with one fallen, your card attacking an enemy tower, a ×2 suit bonus pop-up in the left lane, the enemy's face-up next card in the middle and your hand with the next card and the Done button below" width="300" />
   &nbsp;
-  <img src="docs/screenshots/title.png" alt="Kingfall title screen with a gold crown logo and the Play, Play with real cards and How to play buttons" width="520" />
+  <img src="docs/screenshots/title.png" alt="Suitkeep title screen with a gold crown logo and the Play, Play with real cards and How to play buttons" width="520" />
 </p>
 
 ## Two ways to play
@@ -28,7 +28,7 @@ Free, no sign-up, works on phones and desktops.
 - **Each round:** you play cards into a lane, the enemy defends the lane where you pushed harder, the front cards fight (when one falls, the card behind it steps up and fights next), then every card that hasn't moved steps forward. Cards that get through hit a tower.
 - **Towers fight back:** a hit is a fight against the top tower card (the wheel and aces count). Win or tie and it breaks, and your card stays, wounded, for one more hit. Lose and the tower card cracks, and any later hit breaks it.
 
-Full rules: [RULEBOOK.md](RULEBOOK.md) · Printable rulebook (3 pages, A4): [print/Kingfall-Rulebook.pdf](print/Kingfall-Rulebook.pdf)
+Full rules: [RULEBOOK.md](RULEBOOK.md) · Printable rulebook (3 pages, A4): [print/Suitkeep-Rulebook.pdf](print/Suitkeep-Rulebook.pdf)
 
 ## Features
 
@@ -45,9 +45,9 @@ Full rules: [RULEBOOK.md](RULEBOOK.md) · Printable rulebook (3 pages, A4): [pri
 - **Balanced by simulation:** thousands of simulated games tuned the rules. Games last about 12–17 rounds. Random play wins about 10%, a simple rule-follower about half, the app's suggestions about 80%, and every kind of deck (all cheap, mixed, all heavy) wins about as often: skill is in the playing.
 
 <p align="center">
-  <img src="docs/screenshots/deck.png" alt="Kingfall deck building screen: the 8 deck cards on top, the three towers with two armor cards each under blue castles, and the average elixir cost meter with Start the game at the bottom" width="420" />
+  <img src="docs/screenshots/deck.png" alt="Suitkeep deck building screen: the 8 deck cards on top, the three towers with two armor cards each under blue castles, and the average elixir cost meter with Start the game at the bottom" width="420" />
   &nbsp;
-  <img src="docs/screenshots/real-cards-setup.png" alt="Kingfall real-cards setup step: a row of 10 face-down cards as your elixir bar with the 5th card turned sideways as the marker" width="420" />
+  <img src="docs/screenshots/real-cards-setup.png" alt="Suitkeep real-cards setup step: a row of 10 face-down cards as your elixir bar with the 5th card turned sideways as the marker" width="420" />
 </p>
 
 ## Run it locally
@@ -75,4 +75,4 @@ npm run check    # lint + build + rules tests (plays hundreds of full games)
 
 ## Feedback
 
-Found a rule that confuses you, or a bug? [Open an issue](https://github.com/IFAKA/kingfall-card-game/issues). Playtest reports are very welcome.
+Found a rule that confuses you, or a bug? [Open an issue](https://github.com/IFAKA/suitkeep/issues). Playtest reports are very welcome.

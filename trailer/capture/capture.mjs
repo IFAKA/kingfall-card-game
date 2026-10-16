@@ -12,8 +12,17 @@ const ROOT = new URL('..', import.meta.url).pathname
 const BUILD = path.join(ROOT, 'app-build'), OUT = path.join(ROOT, 'out')
 const FPS = 60, W = 432, H = 768, SCALE = Number(process.env.SCALE ?? 2.5) // a phone screen in CSS pixels; 2.5x makes 1080x1920
 const MAX_ROUNDS = Number(process.env.MAX_ROUNDS ?? 99)
-const STORAGE_KEY = 'solo-clash-guide-v9'
-const ALL_TIPS = ['goal', 'drag', 'elixir', 'change', 'enemy', 'rank', 'suit', 'ace', 'tower', 'crack', 'next', 'stand']
+// the app's saved-game and first-game keys, read from its source so a rename of the game (or a new save version) can't break the script
+const APP = fs.readFileSync(new URL('../../app/src/App.tsx', import.meta.url), 'utf8')
+const appConst = name => {
+  const m = APP.match(new RegExp(`const ${name} = '([^']+)'`))
+  if (!m) throw new Error(`app/src/App.tsx no longer defines ${name}: update capture/capture.mjs`)
+  return m[1]
+}
+const STORAGE_KEY = appConst('STORAGE_KEY'), TIPS_KEY = appConst('TIPS_KEY'), PLAYED_KEY = appConst('PLAYED_KEY')
+// every first-game tip, marked seen so none covers the board
+const ALL_TIPS = [...(APP.match(/type TipId = ([^\n]+)/)?.[1] ?? '').matchAll(/'([a-z]+)'/g)].map(m => m[1])
+if (!ALL_TIPS.length) throw new Error('app/src/App.tsx no longer defines type TipId: update capture/capture.mjs')
 fs.mkdirSync(OUT, { recursive: true })
 
 // the built game, served locally (module scripts don't load from file://)
@@ -68,7 +77,7 @@ page.on('pageerror', e => console.error('page error:', e.message))
 
 // a first-time player (so the app deals the fixed first game) who has seen every tip (so none covers the board)
 await page.goto('http://localhost:4173/', { waitUntil: 'networkidle0' })
-await page.evaluate((tips) => { localStorage.clear(); localStorage.setItem('kingfall-tips-seen', JSON.stringify(tips)); localStorage.setItem('kingfall-games-played', '{"play":0,"guide":0}') }, ALL_TIPS)
+await page.evaluate((tips, tipsKey, playedKey) => { localStorage.clear(); localStorage.setItem(tipsKey, JSON.stringify(tips)); localStorage.setItem(playedKey, '{"play":0,"guide":0}') }, ALL_TIPS, TIPS_KEY, PLAYED_KEY)
 await page.reload({ waitUntil: 'networkidle0' })
 await page.evaluate(() => [...document.querySelectorAll('button')].find(b => b.textContent.trim().startsWith('Play') && !b.textContent.includes('real'))?.click())
 await page.waitForSelector('.arena .handrow')

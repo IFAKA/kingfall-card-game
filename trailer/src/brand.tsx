@@ -2,6 +2,11 @@
 import type { CSSProperties, ReactNode } from 'react'
 import '@fontsource/lilita-one'
 import '@fontsource-variable/baloo-2'
+import config from '../trailer.config.json'
+
+// the game's name and web address: change them in trailer.config.json, every card and caption reads them from here
+export const NAME = config.name
+export const URL_TEXT = config.url
 
 export const C = { gold: '#ffcf3a', goldD: '#e39a00', ink: '#3a2300', navy: '#0e1838', blue: '#1d3474', sky: '#2c4a9a', green: '#4cc263', red: '#c0262d' }
 export const DISPLAY = "'Lilita One', 'Baloo 2 Variable', sans-serif"
@@ -9,7 +14,7 @@ export const BODY = "'Baloo 2 Variable', sans-serif"
 
 export const backdrop: CSSProperties = { background: `radial-gradient(ellipse at 50% 0%, ${C.sky} 0%, ${C.blue} 45%, ${C.navy} 100%)` }
 
-// gold letters with a dark brown outline and a drop, like the title screen's KINGFALL
+// gold letters with a dark brown outline and a drop, like the game's title screen logo
 export const goldText = (size: number): CSSProperties => ({
   fontFamily: DISPLAY, fontSize: size, lineHeight: 0.95, letterSpacing: '.03em', color: C.gold,
   background: `linear-gradient(#fff2b0, ${C.gold} 45%, ${C.goldD})`, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent',
@@ -31,11 +36,22 @@ export function Crown({ width, style }: { width: number; style?: CSSProperties }
   )
 }
 
+// the name in gold under a crown. A long name of several words goes on two lines; a line longer than 8 letters (SUITKEEP's)
+// gets smaller type, so the logo keeps about the same width whatever the name
+function lines(name: string) {
+  const words = name.split(' ')
+  if (name.length <= 10 || words.length < 2) return [name]
+  // the split whose longer line is shortest
+  const splits = words.slice(1).map((_, i) => [words.slice(0, i + 1).join(' '), words.slice(i + 1).join(' ')])
+  return splits.reduce((a, b) => (Math.max(...b.map(l => l.length)) < Math.max(...a.map(l => l.length)) ? b : a))
+}
+const NAME_LINES = lines(NAME)
 export function Logo({ size, style }: { size: number; style?: CSSProperties }) {
+  const fit = size * Math.min(1, 8 / Math.max(1, ...NAME_LINES.map(l => l.length)))
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', ...style }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: style?.alignItems ?? 'center', ...style }}>
       <Crown width={size * 1.05} style={{ marginBottom: -size * 0.08 }} />
-      <div style={goldText(size)}>KINGFALL</div>
+      {NAME_LINES.map(l => <div key={l} style={{ ...goldText(fit), whiteSpace: 'nowrap', textAlign: 'center' }}>{l.toUpperCase()}</div>)}
     </div>
   )
 }

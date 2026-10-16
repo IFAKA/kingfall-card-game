@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "Kingfall: solo card game",
-  "short_name": "Kingfall",
+  "name": "Suitkeep: solo card game",
+  "short_name": "Suitkeep",
   "description": "A one-player lane battle card game. Play on screen, or with a real 52-card deck while the app runs the enemy.",
   "start_url": "./",
   "scope": "./",

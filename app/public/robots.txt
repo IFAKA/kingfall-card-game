@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://kingfall-card-game.vercel.app/sitemap.xml
+Sitemap: https://suitkeep.vercel.app/sitemap.xml

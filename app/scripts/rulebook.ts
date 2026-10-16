@@ -1,4 +1,4 @@
-// Rebuilds the printable rulebook, ../print/Kingfall-Rulebook.pdf, from ../RULEBOOK.md: run `npm run rulebook` after every rules change.
+// Rebuilds the printable rulebook, ../print/Suitkeep-Rulebook.pdf, from ../RULEBOOK.md: run `npm run rulebook` after every rules change.
 // The markdown is laid out as an A4 page in headless Chrome: green headings over a gold rule, serif text, the cost table with a green header.
 // Uses the installed Google Chrome; without it, run `npx playwright install chromium` once and it uses that instead.
 import { readFileSync } from 'node:fs'
@@ -6,7 +6,7 @@ import { marked } from 'marked'
 import { chromium } from 'playwright-core'
 
 const root = new URL('../../', import.meta.url)
-const src = new URL('RULEBOOK.md', root), out = new URL('print/Kingfall-Rulebook.pdf', root)
+const src = new URL('RULEBOOK.md', root), out = new URL('print/Suitkeep-Rulebook.pdf', root)
 
 const css = `
 @page { size: A4; margin: 14mm 16mm; }
@@ -28,4 +28,4 @@ const page = await browser.newPage()
 await page.setContent(html, { waitUntil: 'load' })
 const pdf = await page.pdf({ path: out.pathname, format: 'A4', preferCSSPageSize: true, printBackground: true })
 await browser.close()
-console.log(`print/Kingfall-Rulebook.pdf: ${(pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length} pages`)
+console.log(`print/Suitkeep-Rulebook.pdf: ${(pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length} pages`)
