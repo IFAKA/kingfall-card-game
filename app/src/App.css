@@ -446,27 +446,20 @@ h3 { margin: 18px 0 8px; }
 .spot.slot.droppable > .half { position: relative; border-radius: 10px; background: rgba(255,207,58,.16); outline: 2px dashed var(--gold); outline-offset: -2px; }
 .spot.slot.droppable > .half::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 14px rgba(255,207,58,.6); opacity: calc(var(--pulse) * var(--on)); pointer-events: none; }
 .spot.slot.over > .half { background: rgba(255,207,58,.38); }
-.droptag { position: absolute; bottom: 0; left: 50%; translate: -50% 50%; z-index: 4; /* centred on the slot's bottom border */ white-space: nowrap; font-family: var(--display); font-size: 11px; color: var(--gold); text-shadow: 0 1px 0 #000; pointer-events: none; }
-/* one beat drives everything that pulses with a suggested or droppable slot: its glow and the star's, so they can't drift apart (--on fades the whole highlight in and out) */
+/* one beat drives everything that pulses with a suggested or droppable slot: its glow (--on fades the whole highlight in and out) */
 @property --pulse { syntax: '<number>'; inherits: true; initial-value: 0; }
 @property --on { syntax: '<number>'; inherits: true; initial-value: 0; }
 .spot.slot { transition: --on .25s ease; }
-.spot.slot.droppable { --on: 1; animation: dropbeat 1.1s ease-in-out infinite; }
+.spot.slot.droppable { --on: 1; }
+.arena:has(.hdrag.suggested, .spot.slot.droppable, .done.suggested) { animation: dropbeat 1.1s ease-in-out infinite; } /* the one beat: the arena runs it, the suggested card, its slot and Done all read --pulse, so they can't drift apart */
 @keyframes dropbeat { 50% { --pulse: 1; } }
 /* suggested move: the card and its lane glow green, or End turn does when waiting is best */
-/* the lane keeps the gold drop-target look (green vanishes on the field); a solid border and a green ★ tag set it apart from the other lane while dragging */
+/* the lane keeps the gold drop-target look (green vanishes on the field); a solid border sets it apart from the other lane while dragging */
 .spot.slot.suggested > .half { outline-style: solid; }
-.spot.slot.suggested .droptag { display: grid; place-items: center; box-sizing: border-box; width: 18px; height: 18px; padding: 0; border-radius: 50%; background: var(--green-d); color: #fff; line-height: 1; } /* round */
-/* its glow is the slot's own (same shadow, same opacity value), but only the bottom half of it: the half of the badge outside the slot */
-/* the slot's own border (2px, gold, solid when suggested) goes round the badge's bottom half, so the badge looks like a bump in the border */
-.droptag::before { content: ''; position: absolute; inset: -2px; box-sizing: border-box; border: 2px solid var(--gold); border-radius: 50%; clip-path: inset(calc(50% - 2px) -4px -4px -4px); pointer-events: none; }
-.droptag::after { content: ''; position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 14px rgba(255,207,58,.6); opacity: calc(var(--pulse) * var(--on)); clip-path: inset(50% -30px -30px -30px); pointer-events: none; z-index: -1; }
-.hdrag.suggested { animation: suggestglow 1.1s ease-in-out infinite; }
-@keyframes suggestglow { 0%, 100% { filter: drop-shadow(0 0 2px rgba(76,194,99,.6)); } 50% { filter: drop-shadow(0 0 9px var(--green)) drop-shadow(0 0 3px var(--green)); } }
+.hdrag.suggested { filter: drop-shadow(0 0 calc(2px + 7px * var(--pulse)) rgba(76,194,99, calc(.6 + .4 * var(--pulse)))) drop-shadow(0 0 3px rgba(76,194,99, var(--pulse))); }
 /* the end-turn button is shaped like a hand card, the last card of the row */
 .handrow .endturn { display: grid; place-items: center; box-sizing: border-box; flex: none; align-self: flex-end; width: var(--cw); height: var(--ch); padding: 2px; border-radius: 8px; font-size: calc(var(--ch) * .2); line-height: 1.05; }
-.elixrow .done.suggested:not(:disabled), .handrow .done.suggested:not(:disabled) { animation: suggestring 1.1s ease-in-out infinite; outline: 3px solid var(--green); outline-offset: 2px; }
-@keyframes suggestring { 0%, 100% { outline-color: rgba(76,194,99,.25); } 50% { outline-color: var(--green); } }
+.elixrow .done.suggested:not(:disabled), .handrow .done.suggested:not(:disabled) { outline: 3px solid rgba(76,194,99, calc(.25 + .75 * var(--pulse))); outline-offset: 2px; }
 .lanes .mid { --mfont: max(14px, min(calc(var(--cw) * .36), 15cqi)); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; z-index: 2; container-type: inline-size; }
 .round { font-family: var(--display); font-size: var(--mfont, 15px); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.5); background: rgba(11, 20, 48, .7); border-radius: 10px; padding: 2px 10px; }
 .sidechip { display: flex; align-items: center; gap: 6px; }
@@ -553,9 +546,7 @@ button.linkish:active { transform: none; }
 @media (prefers-reduced-motion: reduce) {
   .flip, .eflip, .crk { transition: none; }
   .gameover { animation-name: fadein; }
-  .spot.slot.droppable { animation: none; --pulse: 1; }
-  .hdrag.suggested { animation: none; filter: drop-shadow(0 0 6px var(--green)); }
-  .elixrow .done.suggested:not(:disabled), .handrow .done.suggested:not(:disabled) { animation: none; }
+  .arena { animation: none !important; --pulse: 1; }
 }
 
 
@@ -891,9 +882,17 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .spot.slot > .half::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 14px rgba(255,207,58,.6); opacity: calc(var(--pulse) * var(--on)); pointer-events: none; }
 .spot.slot.droppable > .half { background: rgba(255,207,58,.16); outline-color: var(--gold); }
 .spot.slot.droppable.over > .half { background: rgba(255,207,58,.38); }
-.droptag { opacity: 0; transition: opacity .25s ease; }
-.spot.slot.suggested .droptag { opacity: 1; }
 
 /* an empty Next or hand spot keeps its place as a dashed outline, so the row never shifts when cards run out */
 .cardph { flex: none; box-sizing: border-box; border: 2px dashed rgba(255,255,255,.25); border-radius: 8px; background: rgba(0,0,0,.1); }
 .cardph.hand { width: var(--cw); height: var(--ch); }
+
+/* Done and, under it with a gap, your turn bar of two halves (the right one is spent first); together as tall as a hand card */
+.handrow .donecol { flex: none; align-self: flex-end; display: flex; flex-direction: column; align-items: center; gap: 12px; width: var(--cw); height: var(--ch); }
+.handrow .donecol .endturn { flex: 1; min-height: 0; width: 100%; height: auto; align-self: auto; }
+.handrow .donecol .turncard { flex: none; width: 72%; height: auto; flex-direction: row; align-self: auto; gap: 2px; padding: 2px; border-radius: 6px; }
+.handrow .donecol .tp { flex: 1; height: var(--eseg); }
+.handrow .donecol .turncard.full .tp:first-child { border-radius: 4px 1px 1px 4px; }
+.handrow .donecol .turncard.full .tp:last-child { border-radius: 1px 4px 4px 1px; }
+/* the Done column sits the same 14px from the hand as its cards sit from each other */
+.handrow { gap: 14px; }

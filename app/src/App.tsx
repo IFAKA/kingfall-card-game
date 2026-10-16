@@ -262,7 +262,6 @@ function ArenaLane({ idx, units, fighting, laneLen, blocked, dragging, hint, sug
       ))}
       <div className={`spot slot mine ${blocked ? 'blocked' : ''} ${dragging || hint || suggested ? 'droppable' : ''} ${dragging && over ? 'over' : ''} ${suggested ? 'suggested' : ''}`} data-lane={idx} data-anchor={`lane-${idx}`} onClick={hint || suggested ? onPlace : undefined}>
         {here(u => u.pos === 0 || (u.side === 'E' && u.pos < 0))}
-        <span className="droptag" aria-hidden="true">★</span>
       </div>
       <div className="spot atk" />
     </div>
@@ -1184,8 +1183,8 @@ export default function App() {
   const HAND_BIG = 1.5 // your hand's cards are this much bigger than the cards on the field, so the two are easy to tell apart
   const HAND_MIN = 1.15 // the hand's cards stay at least this much bigger than the field's, even when the field could grow more
   const SMALL = 0.78 // the Next cards and the piles under them are this much of a normal card (the cards in the lanes); your hand's cards are the big size
-  const FIELD_K = 210 // the window height kept for everything but the field's rows of cards and the hand's cards (castles, status line, margins)
-  const handFit = (Math.min(view.sw, 640, 470) - 102) / 3.57 // the tallest hand card whose row fits the width: Next, 3 cards and done are 5 cards wide, plus the turn bar, the gaps and a margin at each side (102px)
+  const FIELD_K = 276 // the window height kept for everything but the field's rows of cards and the hand's cards (castles, status line, margins)
+  const handFit = (Math.min(view.sw, 640, 470) - 65) / 3.57 // the tallest hand card whose row fits the width: Next, 3 cards and done are 5 cards wide, plus the gaps and a margin at each side (65px; the turn bar sits under Done, in its column)
 
   // the arena; card size follows the window so the whole field, the bar and the hand always fit
   const arena = () => {
@@ -1320,13 +1319,12 @@ export default function App() {
             </div>}
           <div className="handwrap">
             <div className={`handrow${doNow && !atTable ? ' wait' : ''}`}>
-              <TurnBar n={g.P.elixir} spend={spend} max={g.rules.cap} />
               <div className="handgroup">
                 <NextPile slots={g.P.queue.map(c => ({ tid: c.id, card: c }))} side="P" />
                 {handCards}
                 {Array.from({ length: Math.max(0, 3 - g.P.hand.length) }, (_, i) => <div key={`ph${i}`} className="cardph hand" />)}
               </div>
-              <button className={`big done endturn ${advice?.kind === 'wait' ? 'suggested' : ''}`} title={advice?.kind === 'wait' ? advice.reason : 'End turn'} disabled={stage !== 'my_play'} aria-label="End turn" onClick={() => commit(endMyTurn(g))}><svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg></button>
+              <div className="donecol"><button className={`big done endturn ${advice?.kind === 'wait' ? 'suggested' : ''}`} title={advice?.kind === 'wait' ? advice.reason : 'End turn'} disabled={stage !== 'my_play'} aria-label="End turn" onClick={() => commit(endMyTurn(g))}><svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg></button><TurnBar n={g.P.elixir} spend={spend} max={g.rules.cap} /></div>
             </div>
           </div>
           {tableStep || coach}
