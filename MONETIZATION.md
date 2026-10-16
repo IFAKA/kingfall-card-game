@@ -227,7 +227,7 @@ It takes months, not weeks. The thing that decides everything is whether strange
 Written 2026-10-16 by Claude, nothing posted yet. Copy them as they are or change anything that doesn't sound like you. If a subreddit's rules ask about AI, answer honestly: the rules are your design, the code was written with an AI assistant, and there are no AI-generated images.
 
 Rule notes (from a rules index read October 2026; check the real rules tab before posting):
-- **r/playmygame:** the game must be free to play now, the post needs a description and a direct link, one post per game a month, and pure trailers get removed.
+- **r/playmygame** (rules read from the sidebar 2026-10-16): the game must be free to play now. The post needs a short description and **your role** in making it. The direct link to the game comes first, other links after. Be truthful about everything, AI included. One post per game per month. Use their **Make A Post** button (sidebar), not Reddit's normal Create Post, and read the Community Highlighted Posts first (they warn about shadowbans).
 - **r/WebGames:** a link post straight to the browser game, the title starts with the game's name.
 - **r/cardgames:** self-promotion allowed.
 - **r/soloboardgaming:** not in the index. Read its rules first.
@@ -240,8 +240,10 @@ Rule notes (from a rules index read October 2026; check the real rules tab befor
 **Title:**
 > Suitkeep: a free turn-based lane battle where every soldier is a playing card (browser, phone + desktop)
 
-**Body** (add `docs/screenshots/arena.png` with the image button under the link):
+**Body** (use the **Make A Post** button in the sidebar; add `docs/screenshots/arena.png` with the image button under the link):
 > Play (free, no sign-up, works on phone): https://suitkeep.vercel.app
+>
+> I designed and built this. The rules are mine; an AI assistant helped me write the code. The art and sound are made in code, no AI images or audio.
 >
 > Suitkeep is a solo card battle inspired by lane games like Clash Royale, but turn-based. You spend elixir to send cards down two lanes, they fight the enemy's cards in the middle, and whatever gets through hits the towers. Take down the enemy's king tower to win.
 >
