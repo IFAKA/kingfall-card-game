@@ -16,9 +16,14 @@ export function useViewport() {
   const read = () => ({ sw: innerWidth, sh: innerHeight - safeAreas() })
   const [v, setV] = useState(read)
   useEffect(() => {
-    const f = () => setV(read())
+    // a phone's address bar fires resize many times while it slides: measure once a frame, and re-render only when the size changed
+    let raf = 0
+    const f = () => {
+      if (raf) return
+      raf = requestAnimationFrame(() => { raf = 0; const n = read(); setV(o => (o.sw === n.sw && o.sh === n.sh ? o : n)) })
+    }
     addEventListener('resize', f); addEventListener('orientationchange', f)
-    return () => { removeEventListener('resize', f); removeEventListener('orientationchange', f) }
+    return () => { cancelAnimationFrame(raf); removeEventListener('resize', f); removeEventListener('orientationchange', f) }
   }, [])
   return v
 }

@@ -9,7 +9,7 @@
 // The numbers follow the game-feel research: hit-stop of about 50 ms for a plain hit up to about 120 ms for a heavy one (past that it
 // reads as a dropped frame), longer only for the blow that ends the game (Sakurai); each move 80-220 ms (NN/G: 100-400 ms per motion);
 // the bigger effects only for the bigger hits, so they stay readable.
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react'
 import type { RefObject } from 'react'
 import type { GameEvent, GuideState } from './guide'
 import { sfx } from './sfx'
@@ -26,6 +26,13 @@ export function quick(tid: string | undefined, seconds: number) {
 }
 
 let nextId = 1
+
+// The pop-ups on screen live outside React state: only the effects layer that draws them re-renders when one comes or goes, never the board.
+let shownPops: Pop[] = []
+const popListeners = new Set<() => void>()
+const setPops = (f: (ps: Pop[]) => Pop[]) => { shownPops = f(shownPops); for (const l of popListeners) l() }
+const subscribePops = (l: () => void) => { popListeners.add(l); return () => { popListeners.delete(l) } }
+export const usePops = () => useSyncExternalStore(subscribePops, () => shownPops)
 const STAGGER = 140 // ms between effects of the same step shown at once, so two fights read as two hits
 
 // A pop-up stays long enough to read: adults read about 238 words a minute (Brysbaert 2019), plus a moment to notice it. Only the
@@ -103,11 +110,12 @@ const MAX_PX = 12, MAX_DEG = 1.1, DRAIN = 1.7 /* per second */, NOISE_HZ = 18
 let trauma = 0, shaken: HTMLElement | null = null, raf = 0
 const hash = (n: number) => { const x = Math.sin(n * 127.1) * 43758.5453; return (x - Math.floor(x)) * 2 - 1 }
 const smooth = (seed: number, t: number) => { const i = Math.floor(t), f = t - i, u = f * f * (3 - 2 * f); return hash(seed * 57 + i) * (1 - u) + hash(seed * 57 + i + 1) * u }
-const still = (el: HTMLElement) => { el.style.translate = ''; el.style.rotate = '' }
+const still = (el: HTMLElement) => { el.style.translate = ''; el.style.rotate = ''; el.style.willChange = '' }
 function shake(el: HTMLElement | null, add: number) {
   if (!el || !add) return
   if (shaken && shaken !== el) still(shaken)
   shaken = el
+  el.style.willChange = 'translate, rotate' // its own layer while it shakes: each frame only moves it, nothing is repainted
   trauma = Math.min(1, trauma + add)
   if (raf) return
   let last = performance.now()
@@ -228,7 +236,6 @@ interface Flight { tid: string; x: number; y: number; w: number; r: number; dark
  * held(g): how long g's strike took, so the step's reading time can count it.
  */
 export function useFx(game: GuideState | null, fresh: GuideState | null, root: RefObject<HTMLElement | null>, speed = 1) {
-  const [pops, setPops] = useState<Pop[]>([])
   const run = useRef<Run | null>(null)
   const played = useRef(new WeakSet<GameEvent>()) // fights and hits the strike already sounded and told
   const took = useRef(new WeakMap<GuideState, number>())
@@ -438,7 +445,7 @@ export function useFx(game: GuideState | null, fresh: GuideState | null, root: R
   }
 
   return {
-    pops, strike, land,
+    strike, land,
     striking: () => run.current !== null,
     held: (g: GuideState | null) => (g && took.current.get(g)) ?? 0,
   }

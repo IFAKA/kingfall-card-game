@@ -7,7 +7,7 @@ import {
   advise, adviseLastStand, autoReveal, canPlay, describe, endMyTurn, extendBatch, fightingNext, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary, switchCards, takeBack,
 } from './guide'
 import type { ESlot, GuideState } from './guide'
-import { quick, useFx } from './fx'
+import { quick, useFx, usePops } from './fx'
 import { AnimatePresence, motion, useAnimate, useReducedMotion } from 'framer-motion'
 import type { Variants } from 'framer-motion'
 import type { Pop } from './fx'
@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { CardText, Choice, GameMenu, HowToPlay, InstallLink, RulesSheet, Section } from './Menu'
 import type { Topic } from './Menu'
 import { CastleArt, PlayingCard, TCard } from './Pieces'
+import { BoardTick } from './board-tick'
 import { useViewport } from '@/hooks/use-viewport'
 import DeckBuilder from './DeckBuilder'
 import { tutorialCards, tutorialSecret } from './tutorial'
@@ -89,20 +90,26 @@ function makeGhost(el: HTMLElement, x: number, y: number) {
 function WinConfetti() {
   useEffect(() => {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    // its own canvas, drawn in a worker (where the browser can), so the confetti never takes frames from the page
+    const canvas = document.createElement('canvas')
+    canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:10000'
+    document.body.appendChild(canvas)
+    const fire = confetti.create(canvas, { resize: true, useWorker: true })
     const end = Date.now() + 2500
-    const opts = { particleCount: 6, spread: 70, startVelocity: 55, zIndex: 10000 }
+    const opts = { particleCount: 6, spread: 70, startVelocity: 55 }
     const id = setInterval(() => {
-      confetti({ ...opts, angle: 60, origin: { x: 0, y: 0.8 } })
-      confetti({ ...opts, angle: 120, origin: { x: 1, y: 0.8 } })
+      void fire({ ...opts, angle: 60, origin: { x: 0, y: 0.8 } })
+      void fire({ ...opts, angle: 120, origin: { x: 1, y: 0.8 } })
       if (Date.now() > end) clearInterval(id)
     }, 120)
-    return () => { clearInterval(id); confetti.reset() }
+    return () => { clearInterval(id); fire.reset(); canvas.remove() }
   }, [])
   return null
 }
 
 // Pop-ups from the latest step (see fx.ts), drawn over the board.
-function FxLayer({ pops }: { pops: Pop[] }) {
+function FxLayer() {
+  const pops = usePops()
   return (
     <div className="fxlayer" aria-hidden>
       {pops.map(p => <PopView key={p.id} p={p} />)}
@@ -579,7 +586,17 @@ const PLAYED_KEY = 'suitkeep-games-played' // games finished, per mode: a player
 type Played = { play: number; guide: number }
 // what a player's first game did for them, so its end can say so and the next game can turn the help off again
 interface Intro { deck: boolean; help: boolean }
-const PULSES = ['droppulse', 'suggestglow', 'suggestring', 'flipglow']
+const PULSES = ['pulseop', 'pulsedone', 'flipglow']
+// what a game state works out to (a suggestion, the cards about to fight) is worked out once per state, not on every render
+const caches = new WeakMap<(g: GuideState) => unknown, WeakMap<GuideState, unknown>>()
+function cached<T>(f: (g: GuideState) => T, g: GuideState): T {
+  let c = caches.get(f)
+  if (!c) caches.set(f, c = new WeakMap())
+  if (!c.has(g)) c.set(g, f(g))
+  return c.get(g) as T
+}
+const whenIdle = (f: () => void) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(f, { timeout: 1500 }) : window.setTimeout(f, 300))
+const cancelIdle = (id: number) => (typeof cancelIdleCallback === 'function' ? cancelIdleCallback(id) : clearTimeout(id))
 const readJSON = <T,>(key: string, fallback: T): T => { try { const v = localStorage.getItem(key); return v ? (JSON.parse(v) as T) : fallback } catch { return fallback } }
 const writeJSON = (key: string, v: unknown) => { try { localStorage.setItem(key, JSON.stringify(v)) } catch { /* storage full or blocked */ } }
 
@@ -648,9 +665,13 @@ export default function App() {
   const kingOpen = !!game && (['L', 'R'] as const).some(k => !game.P.towers[k].length || !game.E.towers[k].length)
   useEffect(() => { music(scene, kingOpen) }, [scene, kingOpen])
   // the hint and drop-target pulses beat together: every one is pinned to the page clock, whenever it appeared
+  // (document.getAnimations() makes the browser work out every style, so only when something that pulses may have come or gone)
   useEffect(() => {
-    for (const a of document.getAnimations()) if (a instanceof CSSAnimation && PULSES.includes(a.animationName) && a.startTime !== 0) a.startTime = 0
-  })
+    const f = requestAnimationFrame(() => {
+      for (const a of document.getAnimations()) if (a instanceof CSSAnimation && PULSES.includes(a.animationName) && a.startTime !== 0) a.startTime = 0
+    })
+    return () => cancelAnimationFrame(f)
+  }, [game, screen, sel, drag, lift, pick, suggestOn])
   // every button answers with a soft click
   useEffect(() => {
     const click = (e: MouseEvent) => { if ((e.target as Element | null)?.closest?.('button:not(:disabled)')) sfx('tap') }
@@ -667,7 +688,6 @@ export default function App() {
   const fresh = useRef<GuideState | null>(null)
   const playRef = useRef<HTMLDivElement>(null)
   const fx = useFx(game, fresh.current, playRef, mode === 'play' && fast ? 1.6 : 1)
-  const { pops } = fx
   // a step with fights or tower hits is shown once they have struck on the board as it was (see fx.ts). Anything done during a
   // strike was meant for the step before it, so it only skips the strike to its end.
   const [striking, setStriking] = useState(false) // real cards: the table panel stays away while the board plays a step
@@ -730,10 +750,24 @@ export default function App() {
   const browsing = useRef(false) // undo/redo after the end is the player studying the game, so the result stays dismissed
   useEffect(() => { if (game?.stage !== 'over' && !browsing.current) { setOverSeen(false); setResultViewed(false) } browsing.current = false }, [game?.stage])
 
+  // saved when the browser is idle, not in the middle of a step's animations (the history makes it a big write), and always before the page goes away
+  const toSave = useRef<Saved | null>(null)
   useEffect(() => {
-    const s: Saved = { mode, secret, screen, dealt, deckIds, slotIds, help, order, game, history: history.slice(-60), intro, counted }
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)) } catch { /* storage full: ignore */ }
+    toSave.current = { mode, secret, screen, dealt, deckIds, slotIds, help, order, game, history: history.slice(-60), intro, counted }
+    const id = whenIdle(saveNow)
+    return () => cancelIdle(id)
   }, [mode, secret, screen, dealt, deckIds, slotIds, help, order, game, history, intro, counted])
+  useEffect(() => {
+    const flush = () => { if (document.visibilityState === 'hidden') saveNow() }
+    addEventListener('pagehide', saveNow); document.addEventListener('visibilitychange', flush)
+    return () => { removeEventListener('pagehide', saveNow); document.removeEventListener('visibilitychange', flush) }
+  }, [])
+  function saveNow() {
+    const s = toSave.current
+    if (!s) return
+    toSave.current = null
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)) } catch { /* storage full: ignore */ }
+  }
   // the whole log as text, to keep or send: what was dealt and built, the result, then every line of the game
   const logText = (g: GuideState) => {
     const cards = (ids: string[]) => ids.map(id => label(byId(id))).join(' ')
@@ -983,7 +1017,7 @@ export default function App() {
   // ---------- play: the same arena on screen and with real cards ----------
   const g = game!
   const stage = g.stage
-  const advice = help !== 'suggest' ? null : stage === 'my_play' ? advise(g) : stage === 'my_last_stand' ? adviseLastStand(g) : null
+  const advice = help !== 'suggest' ? null : stage === 'my_play' ? cached(advise, g) : stage === 'my_last_stand' ? cached(adviseLastStand, g) : null
   const hitEnemy = stage === 'tower_enter'
   const flipping = stage === 'enemy_enter' || stage === 'last_stand_enter' || hitEnemy
   const standing = stage === 'my_last_stand'
@@ -1010,19 +1044,29 @@ export default function App() {
       const t = (document.elementFromPoint(x, y) as HTMLElement | null)?.closest(tid ? '.spot.mine[data-lane]' : '.droppable[data-lane]') as HTMLElement | null
       return t?.dataset.lane === undefined ? null : (Number(t.dataset.lane) as 0 | 1)
     }
+    // a pointer can report many moves a frame (120Hz+ touch screens): the ghost follows, and the lane under it is looked up, once a frame
+    let at: [number, number] | null = null, frame = 0
+    const follow = () => {
+      frame = 0
+      if (!ghost || !at) return
+      ghost.move(at[0], at[1])
+      const l = laneAt(at[0], at[1])
+      if (l !== lane) { lane = l; setOverLane(l); if (l !== null) sfx('hover') }
+    }
     const move = (ev: PointerEvent) => {
       if (!ghost) {
         if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 8) return
         ghost = makeGhost(el, x0, y0); setBad(null); setSel(null); if (tid) setLift(tid); else setDrag(i); sfx('pick')
       }
       ev.preventDefault()
-      ghost?.move(ev.clientX, ev.clientY)
-      const l = laneAt(ev.clientX, ev.clientY)
-      if (l !== lane) { lane = l; setOverLane(l); if (l !== null) sfx('hover') }
+      at = [ev.clientX, ev.clientY]
+      if (!frame) frame = requestAnimationFrame(follow)
     }
     const end = (ev: PointerEvent) => {
       window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', end); window.removeEventListener('pointercancel', end)
+      cancelAnimationFrame(frame); frame = 0
       if (!ghost) return
+      if (at) ghost.move(at[0], at[1]) // where the pointer let go, not a frame behind it
       setOverLane(null)
       justDragged.current = true; setTimeout(() => { justDragged.current = false }, 0)
       const l = ev.type === 'pointerup' ? laneAt(ev.clientX, ev.clientY) : null
@@ -1068,8 +1112,8 @@ export default function App() {
   // while a placed card is picked, the hand cards it can switch with stand out (its share of your turn would come back first)
   const open = (i: number) => (pick ? switchCards(g, pick, g.P.hand[i].id) !== g : standing || canPlay(g, i))
   const handCards = g.P.hand.map((c, i) => (
-    <div key={c.id} data-i={i} className={`hdrag ${drag === i ? 'lifted' : ''} ${sel === i && drag === null && open(i) ? 'picked' : ''} ${!open(i) ? 'off' : ''} ${suggested?.handIndex === i && drag === null ? 'suggested' : ''}`} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} onPointerDown={e => startDrag(e, i)}>
-      <TCard tid={c.id} card={c} down={false} side="P" showCost selected={sel === i} dim={!open(i)} onClick={() => tapHand(i)} />
+    <div key={c.id} data-i={i} className={`hdrag ${drag === i ? 'lifted' : ''} ${sel === i && drag === null && open(i) ? 'picked' : ''} ${!open(i) ? 'off' : ''} ${suggested?.handIndex === i && drag === null ? 'suggested' : ''}`} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} onPointerDown={e => startDrag(e, i)} onClick={() => tapHand(i)}>
+      <TCard tid={c.id} card={c} down={false} side="P" showCost selected={sel === i} dim={!open(i)} />
     </div>
   ))
   // the Hints page of the menu: what the hints say about this turn, then the two switches that turn them on
@@ -1134,7 +1178,7 @@ export default function App() {
   )
   const overlays = (
     <>
-      <FxLayer pops={pops} />
+      <FxLayer />
       {stage === 'over' && !overSeen && (
         <div className="modal-backdrop">
           <div className={`gameover ${g.winner === 'P' ? 'won' : g.winner === 'E' ? 'lost' : 'drawn'}`}>
@@ -1226,7 +1270,7 @@ export default function App() {
     const lines = fights.length ? fights : standing ? [suggestion ?? standMsg] : stood ? [suggestion ?? stoodMsg]
       : suggestion ? [suggestion] : said.length ? said : [prompt]
     // the suggested lane glows only while no other card is picked up; tapping it with nothing picked plays the suggestion
-    const fighting = fightingNext(g)
+    const fighting = cached(fightingNext, g)
     const towerFx = (side: 'P' | 'E', k: 'L' | 'R' | 'K'): TowerFx => {
       for (const e of g.events ?? []) {
         if (e.type === 'tower' && e.side !== side && e.stack === k) return e.result
@@ -1309,6 +1353,7 @@ export default function App() {
       </div>
     )
     return (
+      <BoardTick.Provider value={g}>
       <div ref={playRef} className={`arena${mode === 'guide' ? ' guide' : ''}${wide ? ' wide' : ''}${side ? ' turn-' + side : ''}`} style={vars}>
         {mode === 'guide' ? table : field}
         <div className="tray">
@@ -1331,6 +1376,7 @@ export default function App() {
         </div>
         {overlays}
       </div>
+      </BoardTick.Provider>
     )
   }
 

@@ -13,7 +13,9 @@
   --ease-out: cubic-bezier(.23, 1, .32, 1); --ease-in-out: cubic-bezier(.77, 0, .175, 1);
 }
 html { background: var(--navy); }
-body { margin: 0; color: #f2f5ff; background: radial-gradient(ellipse at 50% 0%, #2c4a9a 0%, var(--blue) 45%, var(--navy) 100%) fixed; min-height: 100vh; min-height: 100dvh; }
+body { margin: 0; color: #f2f5ff; background: transparent; min-height: 100vh; min-height: 100dvh; }
+/* the backdrop stays put on its own layer, so scrolling a setup page doesn't repaint it (background-attachment: fixed would) */
+body::before { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(ellipse at 50% 0%, #2c4a9a 0%, var(--blue) 45%, var(--navy) 100%); }
 #root { max-width: none; margin: 0; padding: 0; text-align: left; }
 h1, h2, h3 { font-family: var(--display); font-weight: 400; letter-spacing: .01em; text-shadow: 0 3px 0 rgba(0,0,0,.45); }
 .page { max-width: 1000px; margin: 0 auto; padding: 16px 20px 60px; }
@@ -444,22 +446,22 @@ h3 { margin: 18px 0 8px; }
 /* a card can go here: only your half of the slot lights up, since that is where it will lie */
 .spot.slot.droppable { cursor: pointer; }
 .spot.slot.droppable > .half { position: relative; border-radius: 10px; background: rgba(255,207,58,.16); outline: 2px dashed var(--gold); outline-offset: -2px; }
-.spot.slot.droppable > .half::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 14px rgba(255,207,58,.6); opacity: calc(var(--pulse) * var(--on)); pointer-events: none; }
 .spot.slot.over > .half { background: rgba(255,207,58,.38); }
-/* one beat drives everything that pulses with a suggested or droppable slot: its glow (--on fades the whole highlight in and out) */
-@property --pulse { syntax: '<number>'; inherits: true; initial-value: 0; }
-@property --on { syntax: '<number>'; inherits: true; initial-value: 0; }
-.spot.slot { transition: --on .25s ease; }
-.spot.slot.droppable { --on: 1; }
-.arena:has(.hdrag.suggested, .spot.slot.droppable, .done.suggested) { animation: dropbeat 1.1s ease-in-out infinite; } /* the one beat: the arena runs it, the suggested card, its slot and Done all read --pulse, so they can't drift apart */
-@keyframes dropbeat { 50% { --pulse: 1; } }
+/* everything that pulses with a suggested or droppable slot (its glow, the suggested card, Done) is a glow layer whose opacity beats:
+   opacity runs on the compositor, so a pulse costs no style or paint work (App.tsx pins every beat to the page clock, so they stay in step) */
+@keyframes pulseop { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+@keyframes pulsedone { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
 /* suggested move: the card and its lane glow green, or End turn does when waiting is best */
 /* the lane keeps the gold drop-target look (green vanishes on the field); a solid border sets it apart from the other lane while dragging */
 .spot.slot.suggested > .half { outline-style: solid; }
-.hdrag.suggested { filter: drop-shadow(0 0 calc(2px + 7px * var(--pulse)) rgba(76,194,99, calc(.6 + .4 * var(--pulse)))) drop-shadow(0 0 3px rgba(76,194,99, var(--pulse))); }
+.hdrag { position: relative; }
+.hdrag.suggested::before, .hdrag.suggested::after { content: ''; position: absolute; inset: -4px; border-radius: 10px; pointer-events: none; } /* around the card's ring */
+.hdrag.suggested::before { box-shadow: 0 0 2px rgba(76,194,99,.6); }
+.hdrag.suggested::after { box-shadow: 0 0 9px rgba(76,194,99,1), 0 0 3px rgba(76,194,99,1); animation: pulseop 1.1s ease-in-out infinite; }
 /* the end-turn button is shaped like a hand card, the last card of the row */
 .handrow .endturn { display: grid; place-items: center; box-sizing: border-box; flex: none; align-self: flex-end; width: var(--cw); height: var(--ch); padding: 2px; border-radius: 8px; font-size: calc(var(--ch) * .2); line-height: 1.05; }
-.elixrow .done.suggested:not(:disabled), .handrow .done.suggested:not(:disabled) { outline: 3px solid rgba(76,194,99, calc(.25 + .75 * var(--pulse))); outline-offset: 2px; }
+.handrow .done { position: relative; }
+.handrow .done.suggested:not(:disabled)::after { content: ''; position: absolute; inset: -7px; border-radius: 13px; border: 3px solid rgb(76,194,99); pointer-events: none; animation: pulsedone 1.1s ease-in-out infinite; }
 .lanes .mid { --mfont: max(14px, min(calc(var(--cw) * .36), 15cqi)); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; z-index: 2; container-type: inline-size; }
 .round { font-family: var(--display); font-size: var(--mfont, 15px); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.5); background: rgba(11, 20, 48, .7); border-radius: 10px; padding: 2px 10px; }
 .sidechip { display: flex; align-items: center; gap: 6px; }
@@ -546,7 +548,7 @@ button.linkish:active { transform: none; }
 @media (prefers-reduced-motion: reduce) {
   .flip, .eflip, .crk { transition: none; }
   .gameover { animation-name: fadein; }
-  .arena { animation: none !important; --pulse: 1; }
+  .spot.slot > .half::after, .hdrag.suggested::after, .handrow .done.suggested::after { animation: none !important; opacity: 1; }
 }
 
 
@@ -696,7 +698,8 @@ button.linkish:active { transform: none; }
 .bc.flipme .bcb, .bc.flipme .bcf { animation: flipglow 1.1s ease-in-out .5s infinite; }
 
 /* the card to turn face-up now glows: the top of the enemy pile, or the front card of the tower being hit */
-.tpile.flipme .tcard .cf, .tfan.flipme .fc:first-child .cf { animation: flipglow 1.1s ease-in-out infinite; }
+.tpile.flipme .tcard .cf, .tfan.flipme .fc:first-child .cf { box-shadow: 0 0 0 2px rgba(255,207,58,.45); }
+.tpile.flipme .tcard .cf::after, .tfan.flipme .fc:first-child .cf::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: 0 0 0 3px var(--gold), 0 0 16px var(--gold); animation: pulseop 1.1s ease-in-out infinite; }
 @keyframes flipglow { 0%, 100% { box-shadow: 0 0 0 2px rgba(255,207,58,.45); } 50% { box-shadow: 0 0 0 3px var(--gold), 0 0 16px var(--gold); } }
 
 /* what to move on the table now: a panel over the tray (the hand is idle on these steps), so the field stays in view */
@@ -731,7 +734,8 @@ button.fkey:disabled { opacity: .25; filter: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .tsbody { animation: none; }
-  .tpile.flipme .tcard .cf, .tfan.flipme .fc:first-child .cf { animation: none; box-shadow: 0 0 0 3px var(--gold); }
+  .tpile.flipme .tcard .cf, .tfan.flipme .fc:first-child .cf { box-shadow: 0 0 0 3px var(--gold); }
+  .tpile.flipme .tcard .cf::after, .tfan.flipme .fc:first-child .cf::after { animation: none; display: none; }
   .bci, .fancards .fc { transition: none; }
   .bc.flipme .bcb, .bc.flipme .bcf { animation: none; box-shadow: 0 0 0 3px var(--gold); }
 }
@@ -879,7 +883,8 @@ button.fkey:disabled { opacity: .25; filter: none; }
 
 /* the drop highlight fades in when you pick a card up and out when you let go (the styles are always there, only their colours change) */
 .spot.slot > .half { position: relative; border-radius: 10px; background: rgba(255,207,58,0); outline: 2px dashed rgba(255,207,58,0); outline-offset: -2px; transition: background-color .25s ease, outline-color .25s ease; }
-.spot.slot > .half::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 14px rgba(255,207,58,.6); opacity: calc(var(--pulse) * var(--on)); pointer-events: none; }
+.spot.slot > .half::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 14px rgba(255,207,58,.6); opacity: 0; pointer-events: none; }
+.spot.slot.droppable > .half::after { animation: pulseop 1.1s ease-in-out infinite; }
 .spot.slot.droppable > .half { background: rgba(255,207,58,.16); outline-color: var(--gold); }
 .spot.slot.droppable.over > .half { background: rgba(255,207,58,.38); }
 
@@ -896,3 +901,10 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .handrow .donecol .turncard.full .tp:last-child { border-radius: 1px 4px 4px 1px; }
 /* the Done column sits the same 14px from the hand as its cards sit from each other */
 .handrow { gap: 14px; }
+
+/* a board card sits above its neighbours while it travels (TCard toggles .flying on the element itself, without a re-render) */
+.tcard[data-tid] { z-index: 5; }
+.tcard[data-tid].flying { z-index: 30; }
+/* a face-up card that isn't turning has no back and no 3D (see TCard): one flat layer, no GPU layer of its own */
+.flip.flat { transform-style: flat; transition: none; }
+.flip.flat > .cf { backface-visibility: visible; -webkit-backface-visibility: visible; }

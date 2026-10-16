@@ -1,7 +1,8 @@
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { memo, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { RANKS, SUITS, cost, isRed } from './engine'
 import { landing } from './fx'
+import { BoardTick } from './board-tick'
 import type { Card } from './engine'
 
 // Pieces shared by the deck screen and the arena.
@@ -37,37 +38,52 @@ export function PlayingCard({ card, down, showCost, selected, dim, className, on
 const faceMemory = new Map<string, boolean>()
 // fly: seconds a move takes (the board's moves are slow enough to follow; the deck screen's quicker)
 // side: whose card it is ('P' you, 'E' the enemy), drawn as a ring and a wash of that side's colour
-export function TCard({ tid, card, down, side, selected, dim, showCost, fly = 0.5, onClick }: {
+export const TCard = memo(function TCard({ tid, card, down, side, selected, dim, showCost, fly = 0.5, onClick }: {
   tid: string; card: Card | null; down: boolean; side?: 'P' | 'E'; selected?: boolean; dim?: boolean; showCost?: boolean; fly?: number; onClick?: () => void
 }) {
+  useContext(BoardTick)
   const [shown, setShown] = useState<boolean>(faceMemory.get(tid) ?? down)
-  // a card on its way from one place to another flies over everything, in either direction (the Next pile and the hand, a lane and the pile)
-  const [flying, setFlying] = useState(false)
-  const takeoff = () => { setFlying(true); setTimeout(() => setFlying(false), 1500) }
+  // a card on its way from one place to another flies over everything, in either direction (the Next pile and the hand, a lane and the pile);
+  // set on the element itself, so taking off and landing don't re-render (and re-measure) the card
+  const el = useRef<HTMLDivElement>(null)
+  const flying = useRef(false), timer = useRef(0)
+  const setFlying = (on: boolean) => {
+    flying.current = on
+    const x = el.current
+    x?.classList.toggle('flying', on)
+  }
+  const takeoff = () => { setFlying(true); clearTimeout(timer.current); timer.current = window.setTimeout(() => setFlying(false), 1500) }
   // a card that has just arrived in a new place (it is a new element there) already flies on the first frame, so it never starts behind the pile it left
-  useLayoutEffect(() => { if (landing.has(tid) || faceMemory.has(tid)) takeoff() }, [])
+  useLayoutEffect(() => { if (landing.has(tid) || faceMemory.has(tid)) takeoff(); return () => clearTimeout(timer.current) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // a re-render rewrites the class list: a card still in flight keeps flying
+  useLayoutEffect(() => { if (flying.current) el.current?.classList.add('flying') })
+  // a face-up card that isn't turning is drawn flat, without its back: a 3D card is two GPU layers, and a board full of them is heavy on a phone
+  const [turning, setTurning] = useState(false)
   useEffect(() => {
     faceMemory.set(tid, down)
-    // flip on the next frame, so a card that just moved here starts from the face it had before
-    const f = requestAnimationFrame(() => setShown(down))
-    return () => cancelAnimationFrame(f)
-  }, [tid, down])
+    if (shown === down) return
+    // flip on the next frame, so a card that just moved here starts from the face it had before (until then shown !== down keeps it 3D)
+    const f = requestAnimationFrame(() => { setShown(down); setTurning(true) })
+    const t = setTimeout(() => setTurning(false), 600) // the flip takes .45s
+    return () => { cancelAnimationFrame(f); clearTimeout(t) }
+  }, [tid, down]) // eslint-disable-line react-hooks/exhaustive-deps
+  const flat = !down && !shown && !turning
   return (
     <motion.div
-      layoutId={tid} layout
+      ref={el} layoutId={tid} layout
       transition={{ layout: landing.has(tid) ? { duration: landing.get(tid), ease: [0.23, 1, 0.32, 1] } : { duration: fly, ease: [0.77, 0, 0.175, 1] } }}
-      className={`tcard ${side ?? ''} ${selected ? 'selected' : ''} ${dim ? 'dim' : ''} ${flying ? 'flying' : ''} ${onClick ? 'clickable' : ''}`}
-      style={{ zIndex: flying ? 30 : 5 }} onLayoutAnimationStart={takeoff} onLayoutAnimationComplete={() => setFlying(false)} onClick={onClick} data-tid={tid}
+      className={`tcard ${side ?? ''} ${selected ? 'selected' : ''} ${dim ? 'dim' : ''} ${onClick ? 'clickable' : ''}`}
+      onLayoutAnimationStart={takeoff} onLayoutAnimationComplete={() => setFlying(false)} onClick={onClick} data-tid={tid}
     >
-      <div className={`flip ${shown ? 'down' : ''}`}>
+      <div className={`flip ${shown ? 'down' : ''}${flat ? ' flat' : ''}`}>
         <div className={`cf front ${card && isRed(card) ? 'red' : 'black'}`}>
           {card && <Face card={card} showCost={showCost} />}
         </div>
-        <div className="cf backside" />
+        {!flat && <div className="cf backside" />}
       </div>
     </motion.div>
   )
-}
+})
 
 // The picture of a tower: a crowned keep for the king, a smaller one for the left and right towers (coloured by the .castle around it).
 // A fallen tower is drawn as a ruin: its walls broken off, a crack, rubble at its foot (the king's crown lying beside it).
