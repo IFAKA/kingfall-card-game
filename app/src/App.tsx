@@ -1273,16 +1273,14 @@ export default function App() {
     const skip = (e: React.PointerEvent) => { if (!(e.target as Element).closest('button')) advance(settle(next(g))) }
     const field = (
       <div className={`field${skippable ? ' skippable' : ''}`} onPointerDown={skippable ? skip : undefined}>
-        <span className="corner left undoredo">{cheat}{DEBUG && undoRedo}</span> {/* undo/redo: debugging aid, dev server or any build opened with ?debug=1 */}
-        <span className="corner right">{menu}</span>
+        <span className="corner left">{round}</span>
+        <span className="corner right">{cheat}{DEBUG && undoRedo}{menu}</span> {/* undo/redo: debugging aid, dev server or any build opened with ?debug=1 */}
         <div className="castles theirs">
           {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} fx={towerFx('E', k)} shake={fighting.includes(`tower-E-${k}`)} />)}
         </div>
         <div className="lanes">
           <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} />
-          <div className="mid rows">
-            {round}
-          </div>
+          <div className="mid rows" />
           <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} />
         </div>
         <div className="castles mine">
