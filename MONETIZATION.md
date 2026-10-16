@@ -20,7 +20,7 @@ _Written 2026-10-16 for this game as it is today. Update it when a step is done 
 - **You** = things only you can do (accounts, payments, posting, photos). **Claude** = things Claude does.
 - Tick the box when a step is done.
 
-**➡️ Next step: 5.8** (play one game, check Umami Events), then 5.9. Steps 1, 2, 4 and 6 are done; step 3 is optional for now.
+**➡️ Next step: 5.9** (open `?nostats` on your devices), then step 7 (itch.io page). Steps 1, 2, 4 and 6 are done; step 3 is optional for now.
 
 ### While you wait (do these now, they make later steps work)
 
@@ -68,7 +68,7 @@ Without stats, posting the game teaches you nothing.
   - [x] **5.5 Claude:** the stats load through suitkeep.vercel.app (`app/vercel.json`), so fewer ad blockers hide players. ✅ 2026-10-16
   - [x] **5.6 Claude:** what it counts: page visits, `cards-open` (real-cards mode opened), `game-start` (mode, which game number), `first-game`, `second-game`, `round` (every round a game reaches), `game-end` (win/loss/draw and rounds), `game-leave` (left from the menu, which round), `setup-leave` (left during setup, which step). ✅ 2026-10-16, tested offline.
   - [x] **5.7 Claude:** ID set in `app/src/stats.ts`, checked, pushed, itch.io file rebuilt. ✅ 2026-10-16
-  - [ ] **5.8 You:** play one whole game on suitkeep.vercel.app, then open Umami → your website → **Events**. Your game should be there.
+  - [x] **5.8 You:** played one whole game, and `game-start`, `round` and `game-end` showed in Umami. ✅ 2026-10-16 (in Chrome. Brave's shields cut the counting off after round 1, so Brave players are undercounted.)
   - [ ] **5.9 You:** so your own games stop counting, open **suitkeep.vercel.app/?nostats** once on each phone and computer you play on (open **suitkeep.vercel.app/?stats** to count again).
   Done when: 5.8 shows your game. How to read it at Checkpoint A: **finish rate** = people with `game-end` ÷ people with `game-start`. **Come-back rate** = `second-game` ÷ `first-game`. **Where people stop** = the `n` values of the `round` event.
 
