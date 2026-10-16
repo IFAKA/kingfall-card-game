@@ -226,7 +226,7 @@ function TablePile({ top, down, side, n, name, flip, faces }: { top?: ESlot; dow
 function TurnBar({ n, spend, max }: { n: number; spend: number; max: number }) {
   const [a, b] = spendRange(n, spend, max)
   const left = n === max ? 'play 1 card, or 2 small cards (A to 5)' : n > 0 ? 'you may still play 1 small card (A to 5)' : 'your play is done'
-  return ( // a card-shaped bar of two halves, one piece while both halves share a state (full, or both red for a card you can't afford): the top half is used first (a small card), the bottom one next; a big card uses both
+  return ( // a bar of two halves under the ✓ button, one piece while both halves share a state (full, or both red for a card you can't afford): the first half is used first (a small card), the other one next; a big card uses both
     <div className={`turncard${n === max || (spend >= max && spend > n) ? ' full' : ''}`} role="meter" aria-valuemin={0} aria-valuemax={max} aria-valuenow={n} aria-label={`Your turn: ${left}`} title={`Your turn: ${left}`}>
       {Array.from({ length: max }, (_, i) => <span key={i} className={`tp${i < n ? ' on' : ''}${spend > 0 && i >= a && i < b ? (spend > n ? ' short' : ' spend') : ''}`} />)}
     </div>
@@ -524,7 +524,7 @@ const RULES: Topic[] = [
   </> },
   { id: 'turn', icon: <Hand />, title: 'Your turn', line: 'Play 1 card a round, or 2 small cards (A to 5).', body: <>
     <p>Each round you play <b>1 card</b>, or <b>2 small cards</b> (A to 5). You may also play nothing.</p>
-    <p>The dots on a card say how much of your turn it uses: a small card <b>one dot</b>, any other card <b>two</b>, your whole turn. The card-shaped bar under the ✓ button, right of your hand, shows what is left of your turn: two halves, a small card uses one, any other card both. Nothing carries over to the next round.</p>
+    <p>The dots on a card say how much of your turn it uses: a small card <b>one dot</b>, any other card <b>two</b>, your whole turn. The bar under the ✓ button, right of your hand, shows what is left of your turn: two halves, a small card uses one, any other card both. Nothing carries over to the next round.</p>
     <p>The enemy plays <b>2 cards every round</b>, the top two of its pile, whatever they are.</p>
   </> },
   { id: 'round', icon: <Repeat />, title: 'A round', line: 'You play, the enemy defends, the front cards fight, all move up.', body: <ol className="m-0 list-decimal pl-5">
@@ -558,16 +558,16 @@ const RULES: Topic[] = [
 type TipId = 'goal' | 'drag' | 'turn' | 'change' | 'enemy2' | 'rank' | 'suit' | 'ace' | 'armor' | 'crack' | 'next' | 'stand'
 const TIPS: Record<TipId, string> = {
   goal: "Goal: break the enemy's king, the crowned castle at the top. Your cards are soldiers.",
-  drag: 'Drag a card onto a lane at the bottom. Each round: 1 card, or 2 small ones (A to 5).',
-  turn: 'The dots on a card show how much of your turn it uses: big cards two, small cards one. The bar under the ✓ button shows what is left of your turn. Done? Press ✓ and the enemy moves.',
+  drag: 'Drag a card from your hand onto a lane. Each round: 1 card, or 2 small ones (A to 5).',
+  turn: 'The dots on a card show how much of your turn it uses: a small card one, a big card two. The bar under ✓ shows what is left. Done? Press ✓ and the enemy moves.',
   change: 'Changed your mind? Before ✓, drag a placed card back to your hand or to the other lane.',
-  enemy2: 'The enemy plays 2 cards a round: the first defends the lane where you have more cards, the second goes into the other lane. Its Next card is its first.',
-  rank: 'Cards fight where they meet: the higher rank wins. Equal? The enemy wins. The loser goes back to its pile.',
+  enemy2: 'The enemy plays 2 cards a round: the first defends the lane where you have more cards, the second goes into the other lane. Its Next card, at the top, is the first it plays.',
+  rank: 'Cards fight where they meet: the higher number wins (J is 11, Q 12, K 13). Equal? The enemy wins. The loser goes back to its pile.',
   suit: 'Suits beat each other in a circle:\n♠ beats ♥ beats ♦ beats ♣ beats ♠. The winning suit counts ×2. The ⚔ button, top right, shows it again.',
-  ace: 'Aces beat Kings! A small ace kills a big King.',
+  ace: 'Aces beat Kings! The smallest card beats the biggest, whatever the suits.',
   armor: 'Tower cards are armored: the first hit cracks them, the next breaks them. A card that wins its hit stays for that next hit. The king is safe until its side tower falls.',
   crack: 'Lost at a tower? The card goes back to its pile, but the tower card still cracks: the next hit breaks it.',
-  next: 'The Next card, left of your hand, joins your hand when you play (the enemy\'s is at the top, under its king). Cards that die come back later.',
+  next: 'Your Next card, left of your hand, comes into your hand each time you play one. Cards that die go to the bottom of their pile and come back later.',
   stand: 'LAST STAND! When a side tower falls, its owner puts one card into that lane for free.',
 }
 // with real cards the towers are the fanned cards on the table, not castles
@@ -1201,10 +1201,23 @@ export default function App() {
     </>
   )
 
-  // one tip at a time, pointing down at the tray (or at the table panel over it)
-  const coach = tip && (
+  // one tip at a time, pointing down at the tray (or at the table panel over it); it says what the board shows right now where that
+  // differs (what is left of your turn, the green suggestion, whose last stand), and steps aside while a card is dragged, since it
+  // covers the slots nearest you
+  const tipText = (id: TipId) => {
+    const table = mode === 'guide' && TABLE_TIPS[id]
+    if (table) return table
+    if (id === 'drag' && suggestOn) return `${TIPS.drag} Not sure? The card and lane glowing green are a good pick.`
+    if (id === 'turn' && game?.stage === 'my_play') return game.P.elixir > 0
+      ? 'The dots on a card show how much of your turn it uses: a small card one, a big card two. You have one left (the bar under ✓): play one more small card (A to 5), or press ✓ and the enemy moves.'
+      : 'The dots on a card show how much of your turn it uses: a small card one, a big card two. Your turn is used up: the bar under ✓ is empty and your other cards are grey. Press ✓ and the enemy moves.'
+    if (id === 'stand' && game?.stage === 'my_last_stand') return 'LAST STAND! Your side tower fell: drag any card from your hand into that lane. It is free: it doesn\'t use your turn.'
+    if (id === 'stand' && game?.events?.some(e => e.type === 'play' && e.side === 'E' && e.free)) return 'LAST STAND! The enemy\'s side tower fell, so it puts its Next card into that lane for free. When one of yours falls, you get one too.'
+    return TIPS[id]
+  }
+  const coach = tip && drag === null && lift === null && (
     <div className="coach" role="dialog" aria-label="Tip">
-      <p>{(mode === 'guide' && TABLE_TIPS[tip]) || TIPS[tip]}</p>
+      <p>{tipText(tip)}</p>
       <div className="row">
         <button className="big" onClick={() => seeTip([tip])}>Got it</button>
         <button className="linkish" onClick={() => { seeTip(Object.keys(TIPS) as TipId[]); setSuggestOn(false); setExplainOn(false) }}>Skip all tips</button>

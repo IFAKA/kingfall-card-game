@@ -816,7 +816,7 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .title { position: relative; }
 .titlemenu { position: absolute; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); }
 
-/* your turn as a card-shaped bar left of the hand: two halves, lit while you may still play; the top half is spent first.
+/* your turn as a bar of two halves under the ✓ button (see .donecol below), lit while you may still play; the first half is spent first.
    A card you hold rings the half or halves it would use (red when you can't afford it) */
 .turncard { flex: none; align-self: flex-end; box-sizing: border-box; width: calc(var(--eseg) + 7px); height: var(--ch); display: flex; flex-direction: column-reverse; gap: 2px; padding: 2px; border-radius: 6px; background: #0b1220; border: 1.5px solid #3b4a78; }
 .tp { flex: 1; border-radius: 5px; background: transparent; /* an empty half is just the dark frame around the lit one, so the lit half's rounded corners show as the frame's inverted corners */ transition: background .3s var(--ease-out), box-shadow .3s var(--ease-out); }
