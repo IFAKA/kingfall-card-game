@@ -107,16 +107,22 @@ function LogView({ log }: { log: string[] }) {
   ))
 }
 
+// a saved game's text is a header, then the log: the log starts at its first round line
+const pastLog = (text: string) => { const l = text.split('\n'), i = l.findIndex(x => x.startsWith('—')); return i < 0 ? l : l.slice(i) }
+
 // finished games, newest first: the result, when and how it was played, and its log to download
-function PastGames({ past }: { past: PastGame[] }) {
-  if (!past.length) return <p className="py-6 text-center text-muted-foreground">No finished games yet. Every game you finish is kept here, with its log to download.</p>
+function PastGames({ past, onOpen }: { past: PastGame[]; onOpen: (p: PastGame) => void }) {
+  if (!past.length) return <p className="py-6 text-center text-muted-foreground">No finished games yet. Every game you finish is kept here: tap one to read its log.</p>
   const result = { win: 'Win', loss: 'Loss', draw: 'Draw' }
   return <ItemGroup className="gap-3">{past.map(p => (
     <Item key={p.at} variant="outline" className={row}>
-      <ItemContent>
-        <ItemTitle className={`${rowTitle} ${p.result === 'win' ? 'text-primary' : ''}`}>{result[p.result]} · {p.rounds} {p.rounds === 1 ? 'round' : 'rounds'}</ItemTitle>
-        <ItemDescription>{new Date(p.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} · {p.mode === 'play' ? 'On screen' : 'Real cards'}</ItemDescription>
-      </ItemContent>
+      <button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => onOpen(p)}>
+        <ItemContent>
+          <ItemTitle className={`${rowTitle} ${p.result === 'win' ? 'text-primary' : ''}`}>{result[p.result]} · {p.rounds} {p.rounds === 1 ? 'round' : 'rounds'}</ItemTitle>
+          <ItemDescription>{new Date(p.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} · {p.mode === 'play' ? 'On screen' : 'Real cards'}</ItemDescription>
+        </ItemContent>
+        <ChevronRight className="size-5 shrink-0 opacity-60" />
+      </button>
       <ItemActions><Button variant="secondary" size="icon-lg" aria-label="Download log" title="Download log" onClick={() => downloadText(logName(p.at), p.text)}><SaveIcon /></Button></ItemActions>
     </Item>
   ))}</ItemGroup>
@@ -213,7 +219,7 @@ export function GameMenu({ topics = [], log, onExport, past, hints, hintsOn, set
   topics?: Topic[]; log?: string[]; onExport?: () => void; past?: PastGame[]; hints?: () => ReactNode; hintsOn?: boolean; settings?: ReactNode
   muted: boolean; toggleMute: () => void; musicOff: boolean; toggleMusic: () => void; onLeave?: () => void; onTipsAgain?: () => void
 }) {
-  const { open, close, page, go, panel, onOpenChange, reset } = usePages(p => p.startsWith('rule:') ? 'rules' : null)
+  const { open, close, page, go, panel, onOpenChange, reset } = usePages(p => p.startsWith('rule:') ? 'rules' : p.startsWith('game:') ? 'past' : null)
   const [leaving, setLeaving] = useState(false) // leave only once the menu has slid away, so the screen doesn't change under it
   const back = <Button variant="secondary" size="xl" onClick={() => go(null)}>Back</Button>
   const tipsAgain = onTipsAgain && <Button variant="link" size="lg" className="self-center text-base text-muted-foreground" onClick={() => { onTipsAgain(); close() }}><Lightbulb /> Show the first-game tips again</Button>
@@ -222,9 +228,15 @@ export function GameMenu({ topics = [], log, onExport, past, hints, hintsOn, set
     ...Object.fromEntries(topics.map(t => [`rule:${t.id}`, { title: t.title, body: <Rules rules={t.body} />, footer: <Button variant="secondary" size="xl" onClick={() => go('rules')}>Back</Button> }])),
     log: { title: 'What happened', body: <LogView log={log ?? []} />, footer: <>{onExport && <Button variant="success" size="xl" onClick={onExport}><SaveIcon /> Save log as a file</Button>}{back}</> },
     hints: { title: 'Hints', body: hints?.(), footer: back },
-    past: { title: 'Past games', description: past?.length ? `Your last ${past.length} finished ${past.length === 1 ? 'game' : 'games'}, kept on this device.` : undefined, body: <PastGames past={past ?? []} />, footer: <>
+    past: { title: 'Past games', description: past?.length ? `Your last ${past.length} finished ${past.length === 1 ? 'game' : 'games'}, kept on this device.` : undefined, body: <PastGames past={past ?? []} onOpen={p => go(`game:${p.at}`)} />, footer: <>
       {!!past?.length && <Button variant="success" size="xl" onClick={() => downloadText('suitkeep-logs.txt', past.map(p => p.text).join('\n\n'))}><SaveIcon /> Save all in one file</Button>}{back}
     </> },
+    ...Object.fromEntries((past ?? []).map(p => [`game:${p.at}`, {
+      title: `${{ win: 'Win', loss: 'Loss', draw: 'Draw' }[p.result]} · ${p.rounds} ${p.rounds === 1 ? 'round' : 'rounds'}`,
+      description: new Date(p.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }),
+      body: <LogView log={pastLog(p.text)} />,
+      footer: <><Button variant="success" size="xl" onClick={() => downloadText(logName(p.at), p.text)}><SaveIcon /> Save log as a file</Button><Button variant="secondary" size="xl" onClick={() => go('past')}>Back</Button></>,
+    }])),
     leave: { title: 'Leave this game?', description: 'It will be discarded.', footer: <>
       <Button variant="success" size="xl" onClick={() => go(null)}>Keep playing</Button>
       <Button variant="destructive" size="xl" onClick={() => { setLeaving(true); close() }}>Leave game</Button>
