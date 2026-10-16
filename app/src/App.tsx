@@ -633,6 +633,8 @@ export default function App() {
   const novice = played.play + played.guide === 0 // has never finished a game: the first one comes with its deck built
   const [intro, setIntro] = useState<Intro | null>(saved?.intro ?? null)
   const [counted, setCounted] = useState(saved?.counted ?? false)
+  // a finished game can be looked through with undo and redo (View board), but not changed: no move, step or Done goes through
+  const reviewing = screen === 'play' && counted
   const [record, setRecord] = useState<GameRecord>(() => readJSON(RECORD_KEY, { games: 0, wins: 0 }))
   const [newBest, setNewBest] = useState(false)
   const [fast, setFastState] = useState<boolean>(() => readJSON(FAST_KEY, false))
@@ -753,10 +755,12 @@ export default function App() {
   // saved when the browser is idle, not in the middle of a step's animations (the history makes it a big write), and always before the page goes away
   const toSave = useRef<Saved | null>(null)
   useEffect(() => {
-    toSave.current = { mode, secret, screen, dealt, deckIds, slotIds, help, order, game, history: history.slice(-60), intro, counted }
+    // looking back through a finished game saves its end, so a reload can't pick the game up again at an earlier step
+    const end = reviewing && future.length ? { game: future[0], history: [...history, game!, ...future.slice(1).reverse()] } : { game, history }
+    toSave.current = { mode, secret, screen, dealt, deckIds, slotIds, help, order, game: end.game, history: end.history.slice(-60), intro, counted }
     const id = whenIdle(saveNow)
     return () => cancelIdle(id)
-  }, [mode, secret, screen, dealt, deckIds, slotIds, help, order, game, history, intro, counted])
+  }, [mode, secret, screen, dealt, deckIds, slotIds, help, order, game, history, future, intro, counted, reviewing])
   useEffect(() => {
     const flush = () => { if (document.visibilityState === 'hidden') saveNow() }
     addEventListener('pagehide', saveNow); document.addEventListener('visibilitychange', flush)
@@ -806,22 +810,22 @@ export default function App() {
 
   // on screen, informational steps advance by themselves, slowly enough to follow what happens; not recorded for undo
   useEffect(() => {
-    if (mode !== 'play' || screen !== 'play' || !game || tip || !AUTO_STAGES.includes(game.stage)) return
+    if (mode !== 'play' || screen !== 'play' || !game || tip || reviewing || !AUTO_STAGES.includes(game.stage)) return
     // the strike that showed this step counts toward its time
     const t = setTimeout(() => advance(settle(next(game))), Math.max(400, autoDelay(game.lines.length, fast) - fx.held(game)))
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, screen, game, tip, fast])
+  }, [mode, screen, game, tip, fast, reviewing])
   // when no card in hand fits in what is left of your turn, ending it is the only move, so it ends by itself; not recorded for undo,
   // so undo goes back past it to your last real choice instead of landing here and ending again
   useEffect(() => {
-    if (screen !== 'play' || !game || tip || game.stage !== 'my_play' || game.P.hand.some((_, i) => canPlay(game, i))) return
+    if (screen !== 'play' || !game || tip || reviewing || game.stage !== 'my_play' || game.P.hand.some((_, i) => canPlay(game, i))) return
     if (mode === 'guide' && game.lastAction.length > 0 && doSeen !== game.log.length) return // still placing at the table
     if (mode === 'play' && game.turn?.length) return // you played: your turn is a draft until you tap Done, so you can still take a card back
     const t = setTimeout(() => advance(settle(endMyTurn(game))), autoDelay(game.lines.length))
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, screen, game, tip, doSeen])
+  }, [mode, screen, game, tip, doSeen, reviewing])
 
   const mine = dealt.map(byId).sort((a, b) => b.rank - a.rank || a.suit - b.suit)
   const deck = mine.filter(c => deckIds.includes(c.id))
@@ -848,7 +852,7 @@ export default function App() {
     advance(startRound(g)); setHistory([]); setFuture([]); setOrder([]); setCounted(false); setScreen('play')
   }
   const settle = (g: GuideState) => (mode === 'play' ? autoReveal(g, secret) : g)
-  const commit = (g: GuideState) => { if (fx.striking()) return fx.land(); setHistory(h => [...h, game!]); setFuture([]); advance(settle(g)); setSel(null); setBad(null); setPick(null) }
+  const commit = (g: GuideState) => { if (reviewing) return; if (fx.striking()) return fx.land(); setHistory(h => [...h, game!]); setFuture([]); advance(settle(g)); setSel(null); setBad(null); setPick(null) }
   const undo = () => { if (fx.striking()) return fx.land(); if (!history.length || !game) return; browsing.current = true; fresh.current = null; if (history[history.length - 1].stage === 'over') { setOverSeen(true); setResultViewed(true) } setFuture(f => [...f, game]); setGame(history[history.length - 1]); setHistory(h => h.slice(0, -1)); setSel(null); setBad(null) }
   const redo = () => { if (fx.striking()) return fx.land(); if (!future.length || !game) return; browsing.current = true; fresh.current = null; if (future[future.length - 1].stage === 'over') { setOverSeen(true); setResultViewed(true) } setHistory(h => [...h, game]); setGame(future[future.length - 1]); setFuture(f => f.slice(0, -1)); setSel(null); setBad(null) }
 
@@ -1017,7 +1021,7 @@ export default function App() {
   // ---------- play: the same arena on screen and with real cards ----------
   const g = game!
   const stage = g.stage
-  const advice = help !== 'suggest' ? null : stage === 'my_play' ? cached(advise, g) : stage === 'my_last_stand' ? cached(adviseLastStand, g) : null
+  const advice = help !== 'suggest' || reviewing ? null : stage === 'my_play' ? cached(advise, g) : stage === 'my_last_stand' ? cached(adviseLastStand, g) : null
   const hitEnemy = stage === 'tower_enter'
   const flipping = stage === 'enemy_enter' || stage === 'last_stand_enter' || hitEnemy
   const standing = stage === 'my_last_stand'
@@ -1036,7 +1040,7 @@ export default function App() {
   // pointer-based drag: one code path for mouse, touch and pen (HTML5 drag-and-drop never fires on touch screens).
   // It picks up a card from your hand (i), or on screen a card you placed this turn (tid): dropped off the lanes it goes back to your hand.
   const startDrag = (e: React.PointerEvent<HTMLElement>, i: number | null, tid?: string) => {
-    if ((i !== null && !standing && !canPlay(g, i)) || (e.pointerType === 'mouse' && e.button !== 0)) return
+    if (reviewing || (i !== null && !standing && !canPlay(g, i)) || (e.pointerType === 'mouse' && e.button !== 0)) return
     const from = tid ? g.units.find(u => u.tid === tid)?.lane : undefined
     const el = e.currentTarget, x0 = e.clientX, y0 = e.clientY
     let ghost: ReturnType<typeof makeGhost> = null, lane: 0 | 1 | null = null
@@ -1073,7 +1077,7 @@ export default function App() {
       if (tid) {
         // back where it was (or a cancelled drag): nothing changes; anywhere else: it moves lanes or goes back to your hand
         if (ev.type !== 'pointerup' || l === from) { ghost.glideBack(() => setLift(null)); return }
-        ghost.land(l === null ? 0.32 : 0.26); setLift(null); sfx(l === null ? 'unpick' : 'tap') // back to the hand is the longer trip
+        ghost.land(l === null ? 0.32 : 0.26); setLift(null); sfx(l === null ? 'unpick' : 'slide') // back to the hand is the longer trip
         return commit(takeBack(g, tid, l ?? undefined))
       }
       if (l === null) { sfx('unpick'); ghost.glideBack(() => setDrag(null)); return }
@@ -1087,11 +1091,11 @@ export default function App() {
   const trySwitch = (a: string, b: string) => {
     const n = switchCards(g, a, b)
     if (n === g) return false
-    quick(a, 0.32); quick(b, 0.32); sfx('tap'); commit(n)
+    quick(a, 0.32); quick(b, 0.32); sfx('slide'); commit(n)
     return true
   }
   const tapHand = (i: number) => {
-    if (justDragged.current) return
+    if (justDragged.current || reviewing) return
     if (pick) { if (trySwitch(pick, g.P.hand[i].id)) return; setPick(null) } // a card the picked one can't switch with: pick it instead
     const off = sel === i || bad === i
     const ok = standing || canPlay(g, i)
@@ -1103,7 +1107,7 @@ export default function App() {
   const suggested = advice?.kind === 'play' ? advice : null
   // a card placed this turn, tapped: tap another of yours to switch them, the other lane to move it there, its own lane to let go
   const tapUnit = (tid: string) => {
-    if (justDragged.current) return
+    if (justDragged.current || reviewing) return
     if (pick === tid) { sfx('unpick'); setPick(null); return }
     const other = pick ?? (sel !== null ? g.P.hand[sel]?.id : undefined)
     if (other && trySwitch(other, tid)) return
@@ -1329,12 +1333,12 @@ export default function App() {
       </>
     )
     // on screen, a tap on the field while a step plays out goes straight to the next one
-    const skippable = mode === 'play' && !tip && AUTO_STAGES.includes(stage)
+    const skippable = mode === 'play' && !tip && !reviewing && AUTO_STAGES.includes(stage)
     const skip = (e: React.PointerEvent) => { if (!(e.target as Element).closest('button')) advance(settle(next(g))) }
     const field = (
       <div className={`field${skippable ? ' skippable' : ''}`} onPointerDown={skippable ? skip : undefined}>
         <span className="corner left">{round}</span>
-        <span className="corner right">{cheat}{DEBUG && undoRedo}{menu}</span> {/* undo/redo: debugging aid, dev server or any build opened with ?debug=1 */}
+        <span className="corner right">{cheat}{(DEBUG || reviewing) && undoRedo}{menu}</span> {/* undo/redo: looking back through a finished game, or a debugging aid (dev server or any build opened with ?debug=1) */}
         <div className="castles theirs">
           {(['L', 'K', 'R'] as const).map(k => <Castle key={k} k={k} items={g.E.towers[k]} own={false} cracked={g.cracked ?? []} fx={towerFx('E', k)} shake={fighting.includes(`tower-E-${k}`)} />)}
         </div>
@@ -1369,10 +1373,10 @@ export default function App() {
                 {handCards}
                 {Array.from({ length: Math.max(0, 3 - g.P.hand.length) }, (_, i) => <div key={`ph${i}`} className="cardph hand" />)}
               </div>
-              <div className="donecol"><button className={`big done endturn ${advice?.kind === 'wait' ? 'suggested' : ''}`} title={advice?.kind === 'wait' ? advice.reason : 'End turn'} disabled={stage !== 'my_play'} aria-label="End turn" onClick={() => commit(endMyTurn(g))}><svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg></button><TurnBar n={g.P.elixir} spend={spend} max={g.rules.cap} /></div>
+              <div className="donecol"><button className={`big done endturn ${advice?.kind === 'wait' ? 'suggested' : ''}`} title={advice?.kind === 'wait' ? advice.reason : 'End turn'} disabled={stage !== 'my_play' || reviewing} aria-label="End turn" onClick={() => commit(endMyTurn(g))}><svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg></button><TurnBar n={g.P.elixir} spend={spend} max={g.rules.cap} /></div>
             </div>
           </div>
-          {tableStep || coach}
+          {!reviewing && (tableStep || coach)}
         </div>
         {overlays}
       </div>

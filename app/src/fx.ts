@@ -270,7 +270,7 @@ export function useFx(game: GuideState | null, fresh: GuideState | null, root: R
         continue
       }
       switch (e.type) {
-        case 'round': sfx('round', ms); break // the round chip on the bridge rolls its number (RoundChip)
+        case 'round': sfx('round', ms, { n: e.gain }); break // the round chip on the bridge rolls its number (RoundChip)
         case 'play': {
           const where = { mood: e.side === 'P' ? 'good' : 'bad', pan: b.pan(`lane-${e.lane}`) } as const
           // a last stand is a card nobody paid for, out of turn: it says so where it lands, so it never seems to come from nowhere
@@ -279,7 +279,7 @@ export function useFx(game: GuideState | null, fresh: GuideState | null, root: R
           n++
           break
         }
-        case 'reveal': sfx('tap', ms, { pan: b.pan(`tower-E-${e.stack}`) }); n++; break
+        case 'reveal': sfx('flip', ms, { pan: b.pan(`tower-E-${e.stack}`) }); n++; break
         case 'over': sfx(e.winner === 'P' ? 'win' : 'lose', ms + 350); break
         default: break
       }
