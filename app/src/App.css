@@ -854,3 +854,7 @@ button.fkey:disabled { opacity: .25; filter: none; }
 .castle.mine .topcard:not(.empty), .castle.theirs .topcard:not(.empty) { box-shadow: none; }
 .castle .topcard.empty { width: 1.9em; border: 0; background: rgba(255,255,255,.88); display: grid; place-items: center; }
 .castle .topcard.empty::after { content: '?'; color: #6b6b6b; font-weight: 800; }
+
+/* the enemy's Next card is as big as the cards in the lanes; its label hangs below it, in the free row above the river */
+.lanes .mid .nextcard .tcard { width: var(--cw); height: var(--ch); font-size: calc(var(--cw) * .27); }
+.mid.rows > .sidechip.enemy { align-self: start; margin-top: 4px; }
