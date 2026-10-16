@@ -114,16 +114,15 @@ const pastLog = (text: string) => { const l = text.split('\n'), i = l.findIndex(
 function PastGames({ past, onOpen }: { past: PastGame[]; onOpen: (p: PastGame) => void }) {
   if (!past.length) return <p className="py-6 text-center text-muted-foreground">No finished games yet. Every game you finish is kept here: tap one to read its log.</p>
   const result = { win: 'Win', loss: 'Loss', draw: 'Draw' }
-  return <ItemGroup className="gap-3">{past.map(p => (
-    <Item key={p.at} variant="outline" className={row}>
-      <button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => onOpen(p)}>
-        <ItemContent>
+  return <ItemGroup className="gap-1.5">{past.map(p => (
+    <Item key={p.at} variant="outline" className={`${row} min-h-12 py-1.5`}>
+      <button data-slot="past-open" className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 border-0 bg-transparent p-0 text-left" onClick={() => onOpen(p)}>
+        <ItemContent className="gap-0">
           <ItemTitle className={`${rowTitle} ${p.result === 'win' ? 'text-primary' : ''}`}>{result[p.result]} · {p.rounds} {p.rounds === 1 ? 'round' : 'rounds'}</ItemTitle>
           <ItemDescription>{new Date(p.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} · {p.mode === 'play' ? 'On screen' : 'Real cards'}</ItemDescription>
         </ItemContent>
-        <ChevronRight className="size-5 shrink-0 opacity-60" />
       </button>
-      <ItemActions><Button variant="secondary" size="icon-lg" aria-label="Download log" title="Download log" onClick={() => downloadText(logName(p.at), p.text)}><SaveIcon /></Button></ItemActions>
+      <ItemActions><button data-slot="past-open" aria-label="Open log" className="flex cursor-pointer items-center self-stretch border-0 bg-transparent p-0" onClick={() => onOpen(p)}><ChevronRight className="size-5 opacity-60" /></button></ItemActions>
     </Item>
   ))}</ItemGroup>
 }
