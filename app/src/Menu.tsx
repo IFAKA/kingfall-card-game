@@ -198,7 +198,6 @@ export function GameMenu({ topics = [], log, onExport, hints, hintsOn, settings,
 }) {
   const { open, close, page, go, panel, onOpenChange, reset } = usePages(p => p.startsWith('rule:') ? 'rules' : null)
   const [leaving, setLeaving] = useState(false) // leave only once the menu has slid away, so the screen doesn't change under it
-  const playing = !!log
   const back = <Button variant="secondary" size="xl" onClick={() => go(null)}>Back</Button>
   const tipsAgain = onTipsAgain && <Button variant="link" size="lg" className="self-center text-base text-muted-foreground" onClick={() => { onTipsAgain(); close() }}><Lightbulb /> Show the first-game tips again</Button>
   const pages: Record<string, { title: string; description?: string; body?: ReactNode; footer: ReactNode }> = {
@@ -206,15 +205,15 @@ export function GameMenu({ topics = [], log, onExport, hints, hintsOn, settings,
     ...Object.fromEntries(topics.map(t => [`rule:${t.id}`, { title: t.title, body: <Rules rules={t.body} />, footer: <Button variant="secondary" size="xl" onClick={() => go('rules')}>Back</Button> }])),
     log: { title: 'What happened', body: <LogView log={log ?? []} />, footer: <>{onExport && <Button variant="success" size="xl" onClick={onExport}><SaveIcon /> Save log as a file</Button>}{back}</> },
     hints: { title: 'Hints', body: hints?.(), footer: back },
-    leave: { title: playing ? 'Leave this game?' : 'Back to the title screen?', description: playing ? 'It will be discarded.' : 'This game will be discarded.', footer: <>
+    leave: { title: 'Leave this game?', description: 'It will be discarded.', footer: <>
       <Button variant="success" size="xl" onClick={() => go(null)}>Keep playing</Button>
-      <Button variant="destructive" size="xl" onClick={() => { setLeaving(true); close() }}>{playing ? 'Leave game' : 'Back to title'}</Button>
+      <Button variant="destructive" size="xl" onClick={() => { setLeaving(true); close() }}>Leave game</Button>
     </> },
   }
   const shown = page && pages[page]
   const footer = <>
-    <DrawerClose render={<Button variant="success" size="xl" />}>{playing ? 'Keep playing' : 'Close'}</DrawerClose>
-    {onLeave && <Button variant="outline" size="xl" onClick={() => go('leave')}><LogOut /> {playing ? 'Leave game' : 'Back to title'}</Button>}
+    <DrawerClose render={<Button variant="success" size="xl" />}>Keep playing</DrawerClose>
+    {onLeave && <Button variant="outline" size="xl" onClick={() => go('leave')}><LogOut /> Leave game</Button>}
   </>
   return (
     <Sheet open={open} onOpenChange={onOpenChange}
