@@ -1124,7 +1124,7 @@ export default function App() {
   // while a placed card is picked, the hand cards it can switch with stand out (its share of your turn would come back first)
   const open = (i: number) => (pick ? switchCards(g, pick, g.P.hand[i].id) !== g : standing || canPlay(g, i))
   const handCards = g.P.hand.map((c, i) => (
-    <div key={c.id} data-i={i} className={`hdrag ${drag === i ? 'lifted' : ''} ${sel === i && drag === null && open(i) ? 'picked' : ''} ${!open(i) ? 'off' : ''} ${suggested?.handIndex === i && drag === null ? 'suggested' : ''}`} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} onPointerDown={e => startDrag(e, i)} onClick={() => tapHand(i)}>
+    <div key={c.id} data-i={i} className={`hdrag ${drag === i ? 'lifted' : ''} ${sel === i && drag === null && open(i) ? 'picked' : ''} ${reviewing ? 'static' : !open(i) ? 'off' : ''} ${suggested?.handIndex === i && drag === null ? 'suggested' : ''}`} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} onPointerDown={e => startDrag(e, i)} onClick={() => tapHand(i)}>
       <TCard tid={c.id} card={c} down={false} side="P" showCost selected={sel === i} dim={!open(i)} />
     </div>
   ))
@@ -1305,7 +1305,7 @@ export default function App() {
         if (e.type === 'reveal' && side === 'E' && e.stack === k) return 'reveal'
       }
     }
-    const grabbable = mode === 'play' && stage === 'my_play' ? (g.turn ?? []).map(p => p.id) : []
+    const grabbable = mode === 'play' && !reviewing && stage === 'my_play' ? (g.turn ?? []).map(p => p.id) : []
     const lane = (l: 0 | 1) => ({
       grabbable, lifted: lift, picked: pick, onGrab: (e: React.PointerEvent<HTMLElement>, tid: string) => startDrag(e, null, tid), onTap: tapUnit,
       dragging: (drag !== null && (!standing || g.lastStand?.lane === l)) || (lift !== null && g.units.find(u => u.tid === lift)?.lane !== l), hint: standing ? g.lastStand?.lane === l : sel !== null || pick !== null, blocked: standing && g.lastStand?.lane !== l,

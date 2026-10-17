@@ -262,6 +262,7 @@ h3 { margin: 18px 0 8px; }
 .hdrag { display: inline-block; cursor: grab; touch-action: none; -webkit-touch-callout: none; transition: opacity .2s var(--ease-out); }
 .hdrag:active { cursor: grabbing; }
 .hdrag.off { cursor: not-allowed; }
+.hdrag.static { cursor: default; }
 .lanecell.droppable { outline: 2px dashed #ffd36b; outline-offset: -2px; cursor: pointer; }
 .lanecell.droppable.over { background: #ffd36b33; outline-style: solid; }
 
