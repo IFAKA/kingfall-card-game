@@ -405,7 +405,7 @@ One good photo does most of the work:
 **Update post** (2026-10-17, itch.io → Edit game → Devlog → Create new post; type Update):
 > **Title:** Small cards run
 >
-> A player told me small cards felt useless: they lost every fight and did nothing. He was right, and the simulator agreed. So now **small cards (A to 5) run**: they move two slots a round instead of one, straight at a tower, and any hit cracks a tower card. The enemy's small cards run too, and its Next card shows » when one is coming.
+> A player told me small cards felt useless: they lost every fight and did nothing. The player was right, and the simulator agreed. So now **small cards (A to 5) run**: they move two slots a round instead of one, straight at a tower, and any hit cracks a tower card. The enemy's small cards run too, and its Next card shows » when one is coming.
 >
 > Look for » on your small cards. Games are a bit shorter now (about 6 rounds), and always playing your strongest card wins less than before: it pays to think about when to send a runner.
 >
