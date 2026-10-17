@@ -298,6 +298,11 @@ h3 { margin: 18px 0 8px; }
 .unit.grab { cursor: grab; touch-action: none; -webkit-touch-callout: none; }
 .unit.grab:active { cursor: grabbing; }
 .unit.lifted { opacity: .35; }
+/* the suit wheel before you play: while you hold a hand card, enemy cards it counts double against glow green, those that count double against it red */
+.unit.x2good .cf.front, .nextcard.x2good .tcard .cf.front { box-shadow: 0 0 0 3px #5dff9a, 0 0 14px #5dff9a; animation: x2pulse 1s ease-in-out infinite; }
+.unit.x2bad .cf.front, .nextcard.x2bad .tcard .cf.front { box-shadow: 0 0 0 3px #ff6b61, 0 0 14px #ff6b61; animation: x2pulse 1s ease-in-out infinite; }
+@keyframes x2pulse { 50% { filter: brightness(1.12); } }
+@media (prefers-reduced-motion: reduce) { .unit.x2good .cf.front, .unit.x2bad .cf.front, .nextcard.x2good .tcard .cf.front, .nextcard.x2bad .tcard .cf.front { animation: none; } }
 
 .gameover { animation: dlgin .2s var(--ease-out); }
 .modal-backdrop { animation: fadein .2s var(--ease-out); }

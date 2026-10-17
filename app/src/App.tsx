@@ -241,11 +241,12 @@ function TurnBar({ n, spend, max }: { n: number; spend: number; max: number }) {
 // fight it there. A wounded one (it broke a tower card, one hit left) leans like a cracked card.
 // On screen, the cards you placed this turn (grabbable) can be dragged out of their slot again until you end your turn.
 // Tapped, one of them is picked (picked): tapping another card then switches the two.
-function ArenaLane({ idx, units, fighting, laneLen, blocked, dragging, hint, suggested, over, onPlace, grabbable = [], lifted, picked, onGrab, onTap }: { idx: 0 | 1; units: Unit[]; fighting: string[]; laneLen: number; blocked?: boolean; dragging: boolean; hint: boolean; suggested: boolean; over: boolean; onPlace: () => void; grabbable?: string[]; lifted?: string | null; picked?: string | null; onGrab?: (e: React.PointerEvent<HTMLElement>, tid: string) => void; onTap?: (tid: string) => void }) {
+// x2: while you hold a hand card, an enemy card it counts double against glows green ('good'), one that counts double against it red ('bad')
+function ArenaLane({ idx, units, fighting, laneLen, blocked, dragging, hint, suggested, over, onPlace, grabbable = [], lifted, picked, onGrab, onTap, x2 }: { idx: 0 | 1; units: Unit[]; fighting: string[]; laneLen: number; blocked?: boolean; dragging: boolean; hint: boolean; suggested: boolean; over: boolean; onPlace: () => void; grabbable?: string[]; lifted?: string | null; picked?: string | null; onGrab?: (e: React.PointerEvent<HTMLElement>, tid: string) => void; onTap?: (tid: string) => void; x2?: (c: Card) => X2 }) {
   const atTower = (u: Unit) => (u.side === 'P' && u.pos >= laneLen) || (u.side === 'E' && u.pos < 0)
   const cards = (pred: (u: Unit) => boolean) => units.filter(u => u.lane === idx && pred(u)).sort((a, b) => +atTower(b) - +atTower(a))
   const card = (u: Unit, i: number) => (
-    <div key={u.uid} style={{ '--i': i } as CSSProperties} className={`unit ${u.side} ${atTower(u) ? 'atk' : ''} ${u.wounded ? 'wounded' : ''} ${u.free ? 'free' : ''} ${fighting.includes(u.tid!) ? 'tremble' : ''} ${grabbable.includes(u.tid!) ? 'grab' : ''} ${lifted === u.tid ? 'lifted' : ''}`}
+    <div key={u.uid} style={{ '--i': i } as CSSProperties} className={`unit ${u.side} ${atTower(u) ? 'atk' : ''} ${u.wounded ? 'wounded' : ''} ${u.free ? 'free' : ''} ${fighting.includes(u.tid!) ? 'tremble' : ''} ${grabbable.includes(u.tid!) ? 'grab' : ''} ${lifted === u.tid ? 'lifted' : ''} ${u.side === 'E' && x2?.(u.card) ? `x2${x2(u.card)}` : ''}`}
       title={atTower(u) ? `${u.side === 'P' ? 'Your' : 'Enemy'} card at the tower: ${u.wounded ? 'wounded, it hits once more, then goes back to its pile' : 'it hits the tower this round'}` : u.free ? `${u.side === 'P' ? 'Your' : 'Enemy'} last stand: a tower in this lane fell, so this card came in free. It fights in the next round.` : grabbable.includes(u.tid!) ? 'Changed your mind? Drag it back to your hand or onto the other lane, or tap it, then tap another card to switch them' : undefined}
       onPointerDown={grabbable.includes(u.tid!) ? e => onGrab?.(e, u.tid!) : undefined}
       onClick={grabbable.includes(u.tid!) ? e => { e.stopPropagation(); onTap?.(u.tid!) } : undefined}>
@@ -288,9 +289,10 @@ function ArenaPile({ slots, side }: { slots: { tid: string; card: Card | null }[
 }
 
 // One side's Next card with its pile under it and the label below: the same component for the enemy (between the lanes) and for you (beside your hand), only the cards differ.
-function NextPile({ slots, side }: { slots: { tid: string; card: Card | null }[]; side: 'P' | 'E' }) {
+type X2 = 'good' | 'bad' | undefined
+function NextPile({ slots, side, x2 }: { slots: { tid: string; card: Card | null }[]; side: 'P' | 'E'; x2?: X2 }) {
   return (
-    <div className={`nextcard${side === 'P' ? ' mine' : ''}`} title={side === 'P' ? 'Your next card: it comes into your hand when you play one' : undefined}>
+    <div className={`nextcard${side === 'P' ? ' mine' : ''}${x2 ? ` x2${x2}` : ''}`} title={side === 'P' ? 'Your next card: it comes into your hand when you play one' : undefined}>
       {slots.length ? <ArenaPile slots={slots} side={side} /> : <div className="cardph" />}
       {/* the enemy's next card is a runner: it says so before it comes, so its run never seems to come from nowhere */}
       <span>Next{side === 'E' && (slots[0]?.card?.rank ?? 99) <= 5 && <b className="run" title="A small card: it runs 2 slots a round"> »</b>}</span>
@@ -558,7 +560,7 @@ const RULES: Topic[] = [
 // The goal comes first, so every rule after it has something to serve; each tip says one thing. The fight rules come one at a time,
 // each when it first decides a fight (the first game's fixed deal shows them in this order: rank, then suit, then ace).
 // (the turn, enemy and armor tips are new with the 22-card rules: their ids are new too, so players who saw the old ones see them)
-type TipId = 'goal' | 'drag' | 'turn' | 'change' | 'enemy2' | 'rank' | 'suit' | 'ace' | 'run' | 'armor' | 'crack' | 'next' | 'stand'
+type TipId = 'goal' | 'drag' | 'turn' | 'change' | 'enemy2' | 'rank' | 'suit' | 'x2' | 'ace' | 'run' | 'armor' | 'crack' | 'next' | 'stand'
 const TIPS: Record<TipId, string> = {
   goal: "Goal: break the enemy's king, the crowned castle at the top. Your cards are soldiers.",
   drag: 'Drag a card from your hand onto a lane. Each round: 1 card, or 2 small ones (A to 5).',
@@ -568,6 +570,7 @@ const TIPS: Record<TipId, string> = {
   rank: 'Cards fight where they meet: the higher number wins (J is 11, Q 12, K 13). Equal? The enemy wins. The loser goes back to its pile.',
   suit: 'Suits beat each other in a circle:\n♠ beats ♥ beats ♦ beats ♣ beats ♠. The winning suit counts ×2. The ⚔ button, top right, shows it again.',
   ace: 'Aces beat Kings! The smallest card beats the biggest, whatever the suits.',
+  x2: 'Holding a card? A green glow: your card counts ×2 against that enemy card (♠ beats ♥). A red glow: that card counts ×2 against yours (♦ beats ♣).',
   run: 'Small cards (A to 5) run »: they move 2 slots a round, so they reach a tower fast. The enemy\'s small cards run too: » on its Next card warns you.',
   armor: 'Tower cards are armored: the first hit cracks them, the next breaks them. A card that wins its hit stays for that next hit. The king is safe until its side tower falls.',
   crack: 'Lost at a tower? The card goes back to its pile, but the tower card still cracks: the next hit breaks it.',
@@ -727,6 +730,10 @@ export default function App() {
     const wants = (id: TipId) => !tipsSeen.includes(seenId(id)) && !doneNow.includes(id) && !(['rank', 'suit', 'ace'].includes(id) && tipsSeen.includes('fight'))
     const happened = (f: (e: NonNullable<GuideState['events']>[number]) => boolean) => isFresh && ev.some(f)
     const firstPlay = game.stage === 'my_play' && game.stats.placed === 0
+    // the card you hold makes an enemy card glow (the suit wheel, before you play): the x2 tip says what the glow means
+    const holding = drag ?? sel, held = holding !== null ? game.P.hand[holding] : undefined
+    const doubles = (a: Card, b: Card) => effective(a, b, game.rules.wheel) > a.rank
+    const glowing = !!held && [...game.units.filter(u => u.side === 'E').map(u => u.card), game.E.queue[0]?.card].some(c => !!c && (doubles(held, c) || doubles(c, held)))
     const next: TipId | undefined = ([
       ['stand', game.stage === 'my_last_stand' || happened(e => e.type === 'play' && !!e.free)],
       ['goal', firstPlay],
@@ -737,6 +744,7 @@ export default function App() {
       ['rank', happened(e => e.type === 'fight')],
       ['suit', happened(e => e.type === 'fight' && !!e.double)],
       ['ace', happened(e => e.type === 'fight' && !!e.ace)],
+      ['x2', game.stage === 'my_play' && glowing],
       ['run', happened(e => e.type === 'move' && !!e.ran?.length)],
       ['armor', happened(e => e.type === 'tower')],
       ['crack', happened(e => e.type === 'tower' && e.result === 'crack' && !e.armor)],
@@ -744,7 +752,7 @@ export default function App() {
     ] as [TipId, boolean][]).find(([id, now]) => now && wants(id))?.[0]
     if (next) setTip(next)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game, screen, tip]) // when a tip closes, the next one the same step called for comes up
+  }, [game, screen, tip, sel, drag]) // when a tip closes, the next one the same step called for comes up; holding a card can call one
   // the arena's "what happened" line keeps the last thing worth saying until something new happens
   const [said, setSaid] = useState<string[]>([])
   useEffect(() => {
@@ -1317,8 +1325,12 @@ export default function App() {
       }
     }
     const grabbable = mode === 'play' && !reviewing && stage === 'my_play' ? (g.turn ?? []).map(p => p.id) : []
+    // the hand card you hold (tapped or dragged): enemy cards it counts double against glow green, those that count double against it red
+    const holding = drag ?? sel, held = holding !== null ? g.P.hand[holding] : undefined
+    const x2 = (c: Card | null | undefined): X2 => !held || !c ? undefined
+      : effective(held, c, g.rules.wheel) > held.rank ? 'good' : effective(c, held, g.rules.wheel) > c.rank ? 'bad' : undefined
     const lane = (l: 0 | 1) => ({
-      grabbable, lifted: lift, picked: pick, onGrab: (e: React.PointerEvent<HTMLElement>, tid: string) => startDrag(e, null, tid), onTap: tapUnit,
+      grabbable, lifted: lift, picked: pick, x2, onGrab: (e: React.PointerEvent<HTMLElement>, tid: string) => startDrag(e, null, tid), onTap: tapUnit,
       dragging: (drag !== null && (!standing || g.lastStand?.lane === l)) || (lift !== null && g.units.find(u => u.tid === lift)?.lane !== l), hint: standing ? g.lastStand?.lane === l : sel !== null || pick !== null, blocked: standing && g.lastStand?.lane !== l,
       suggested: suggested?.lane === l && (drag ?? sel ?? suggested.handIndex) === suggested.handIndex,
       over: overLane === l, onPlace: () => {
@@ -1381,7 +1393,7 @@ export default function App() {
           <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} />
           <div className="mid rows">
             <div className="sidechip enemy" title="The next card of the enemy pile (face-down until you have seen it). The enemy plays two cards per round: this one first.">
-              <NextPile slots={eNext ? g.E.queue : []} side="E" />
+              <NextPile slots={eNext ? g.E.queue : []} side="E" x2={x2(eNext?.card)} />
             </div>
           </div>
           <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} />
