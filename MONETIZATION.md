@@ -94,7 +94,7 @@ Without stats, posting the game teaches you nothing.
 - [x] **6. Finish the trailer with the new name.** _Claude._
   Needs: the renamed game (step 4). Do: run the trailer's rebuild command.
   Done when: you have watched both videos and like them.
-  ✅ Done 2026-10-16: `trailer/out/suitkeep-trailer-tall.mp4` and `suitkeep-trailer-wide.mp4`, 33 seconds each. After the game changes a lot, rebuild them with `cd trailer && npm run rebuild` (about an hour). If only the name or address changes, edit `trailer/trailer.config.json` and run `npm run master` (about 2 minutes).
+  ✅ Done 2026-10-16: `trailer/out/suitkeep-trailer-tall.mp4` and `suitkeep-trailer-wide.mp4`, 33 seconds each. After the game changes a lot, rebuild them with `cd trailer && npm run rebuild` (about 6 minutes). If only the name or address changes, edit `trailer/trailer.config.json` and run `npm run master` (about 2 minutes).
 
 ## Phase 3: First strangers (no money yet, this is the practice round)
 
