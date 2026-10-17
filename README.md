@@ -7,9 +7,9 @@
 Free, no sign-up, works on phones and desktops.
 
 <p align="center">
-  <img src="docs/screenshots/arena.png?v=3" alt="Suitkeep on screen in round 4: red enemy castles at the top, the left one cracked with its 4♥ showing, your black cards in both lanes of 3 slots, the enemy's face-up next card K♦ between the lanes, your blue castles with their tower cards, and your hand of 3 with the turn bar on its left and the Done button on its right" width="300" />
+  <img src="docs/screenshots/arena.png?v=4" alt="Suitkeep on screen in round 4: red enemy castles at the top, the left one cracked with its 4♥ showing, your black cards in both lanes of 3 slots, the enemy's face-up next card K♦ between the lanes, your blue castles with their tower cards, and below them your next card on the left, your hand of 3 big cards, and the Done button with the turn bar under it" width="300" />
   &nbsp;
-  <img src="docs/screenshots/title.png?v=3" alt="Suitkeep title screen with a gold crown logo and the Play, Play with real cards and How to play buttons" width="520" />
+  <img src="docs/screenshots/title.png?v=4" alt="Suitkeep title screen with a gold crown logo and the tagline "A solo card battle, one deck" and the Play, Play with real cards and How to play buttons" width="520" />
 </p>
 
 ## Two ways to play
@@ -46,9 +46,9 @@ Full rules: [RULEBOOK.md](RULEBOOK.md) · Printable rulebook (3 pages, A4): [pri
 - **Balanced by simulation and real games:** thousands of simulated games, checked against a first-time player's playtests, tuned the rules. Games last about 8 rounds. A first-time player who thinks wins a bit more than half, a careless one about 4 in 10, and decks with 4 to 6 big cards win about as often: skill is in the playing. One deal per game, as at the table.
 
 <p align="center">
-  <img src="docs/screenshots/deck.png?v=3" alt="Suitkeep deck building screen: the 8 deck cards on top, each with a one- or two-dot turn badge, the three towers of one card each under blue castles, and the big/small meter with Start the game at the bottom" width="420" />
+  <img src="docs/screenshots/deck.png?v=4" alt="Suitkeep deck building screen: the 8 deck cards on top, each with a one- or two-dot turn badge, the three towers of one card each under blue castles, and the big/small meter with Start the game at the bottom" width="420" />
   &nbsp;
-  <img src="docs/screenshots/real-cards-setup.png?v=3" alt="Suitkeep real-cards setup, first step: split the deck by colour, black cards for you and red cards for the enemy" width="420" />
+  <img src="docs/screenshots/real-cards-setup.png?v=4" alt="Suitkeep real-cards setup, first step: split the deck by colour, black cards for you and red cards for the enemy" width="420" />
 </p>
 
 ## Run it locally
