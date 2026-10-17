@@ -35,7 +35,8 @@ _Written 2026-10-16 for this game as it is today. Update it when a step is done 
 - [ ] **Read r/playmygame's Community Highlighted Posts** once, and post only with their **Make A Post** button.
 - [x] **New itch.io upload** with the 22-card rules (zip, PDF, description, screenshots, cover). ✅ 2026-10-17, game runs on the page and is the new version.
 - [x] **Rebuild both trailers** with the current game. ✅ 2026-10-17 (`cd trailer && npm run rebuild`; needs the trailer-kit repo cloned at `../../trailer-kit` from the repo root, i.e. `games/trailer-kit`, and Docker/Colima).
-- [ ] **Watch both trailers** (`trailer/out/`) and tell Claude if anything should change. Then add the wide one to the itch.io page.
+- [x] **Watch both trailers** (`trailer/out/`) and tell Claude if anything should change. Then add the wide one to the itch.io page. ✅ 2026-10-17, trailer is on the itch.io page.
+- [x] **itch.io is indexed** (shows in search for "Suitkeep"), **announcement posted** in itch.io's Release Announcements, and **posted on r/itchio** (flair Free). ✅ 2026-10-17. Not crossposted anywhere else on purpose (new account, each subreddit has its own self-promo rules).
 
 ### How to leave the comments
 
