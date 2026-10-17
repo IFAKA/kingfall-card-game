@@ -91,9 +91,11 @@ function hitOf(e: HitEvent, b: Board): Hit {
   }
   const name = towerAnchor(e), p = b.at(name), pan = b.pan(name)
   const good = e.side === 'P' ? 'good' : 'bad'
-  if (e.result === 'crack') return { pop: p && { ...p, text: 'CRACK', kind: `crack ${good}` }, sound: 'crack', mood: good, pan, weight: 1, pitched: false }
-  if (!e.destroyed) return { pop: p && { ...p, text: 'BREAK!', kind: `break ${good}` }, sound: 'break', mood: good, pan, weight: 2, pitched: false }
-  return { pop: p && { ...p, text: e.stack === 'K' ? 'KING DOWN!' : 'TOWER DOWN!', kind: `down ${good}` }, sound: 'boom', mood: good, pan, weight: e.stack === 'K' ? 4 : 3, pitched: false }
+  // a small card that ran in gets the credit where it lands: small cards' job is cracking towers
+  const sub = e.ran ? '» runner' : undefined
+  if (e.result === 'crack') return { pop: p && { ...p, text: 'CRACK', sub, kind: `crack ${good}` }, sound: 'crack', mood: good, pan, weight: 1, pitched: false }
+  if (!e.destroyed) return { pop: p && { ...p, text: 'BREAK!', sub, kind: `break ${good}` }, sound: 'break', mood: good, pan, weight: 2, pitched: false }
+  return { pop: p && { ...p, text: e.stack === 'K' ? 'KING DOWN!' : 'TOWER DOWN!', sub, kind: `down ${good}` }, sound: 'boom', mood: good, pan, weight: e.stack === 'K' ? 4 : 3, pitched: false }
 }
 
 // Fights in a row climb in pitch, a semitone each (as Balatro's scoring does), so a busy round builds instead of repeating one clash.
@@ -280,6 +282,18 @@ export function useFx(game: GuideState | null, fresh: GuideState | null, root: R
           break
         }
         case 'reveal': sfx('flip', ms, { pan: b.pan(`tower-E-${e.stack}`) }); n++; break
+        // a small card that runs hops twice on its way (it moves 2 slots), with a skip for each hop: a run never looks like a plain move
+        case 'move': {
+          if (!e.ran?.length) break
+          for (const r of e.ran) {
+            const u = game.units.find(x => x.tid === r.tid)
+            sfx('run', ms, { mood: r.side === 'P' ? 'good' : 'bad', pan: u ? b.pan(`lane-${u.lane}`) : 0 })
+            if (!calm()) el.querySelector<HTMLElement>(`[data-tid="${r.tid}"]`)?.animate(
+              [{ scale: 1 }, { scale: 1.16 }, { scale: 1 }, { scale: 1.16 }, { scale: 1 }], { duration: 500, easing: 'ease-in-out' }) // as long as the board's slide (TCard fly)
+          }
+          n++
+          break
+        }
         case 'over': sfx(e.winner === 'P' ? 'win' : 'lose', ms + 350); break
         default: break
       }

@@ -3,7 +3,7 @@
 export type Side = 'P' | 'E'
 export type StackKey = 'L' | 'R' | 'K'
 export interface Card { id: string; rank: number; suit: number } // suit: 0♠ 1♥ 2♦ 3♣
-export interface Unit { uid: number; card: Card; side: Side; lane: 0 | 1; pos: number; tid?: string; held?: boolean; wounded?: boolean; free?: boolean } // wounded: broke a tower card, has one hit left; free: came in as a last stand, until its first fight or tower hit
+export interface Unit { uid: number; card: Card; side: Side; lane: 0 | 1; pos: number; tid?: string; held?: boolean; wounded?: boolean; free?: boolean; ran?: boolean } // wounded: broke a tower card, has one hit left; free: came in as a last stand, until its first fight or tower hit; ran: a small card that has run 2 slots
 export interface Towers { L: Card[]; R: Card[]; K: Card[] } // index 0 = top card
 export interface SideState {
   hand: Card[]
@@ -328,6 +328,8 @@ export function endRound(g0: GameState): GameState {
   const g = clone(g0)
   enemyPlays(g)
   for (const u of g.units) if (!atTower(g, u)) u.pos += u.side === 'P' ? 1 : -1
+  // small cards run a second slot (this quick engine has no blocking, so they always do)
+  if (g.rules.runners) for (const u of g.units) if (u.card.rank <= 5 && !atTower(g, u)) u.pos += u.side === 'P' ? 1 : -1
   fight(g, 0)
   fight(g, 1)
   towerHits(g)

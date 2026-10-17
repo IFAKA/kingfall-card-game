@@ -15,11 +15,11 @@ export interface Discarded { tid: string; card: Card; owner: 'P' | 'E' }
 export type GameEvent =
   | { type: 'round'; round: number; gain: number }
   | { type: 'play'; side: 'P' | 'E'; tid: string; card: Card; lane: 0 | 1; cost: number; free?: boolean }
-  | { type: 'move'; tids: string[]; ran?: string[] } // cards that stepped one slot (a card stepping up after a fight, or the move once the fights are over); ran: small cards among them that stepped two
+  | { type: 'move'; tids: string[]; ran?: { tid: string; card: Card; side: 'P' | 'E' }[] } // cards that stepped one slot (a card stepping up after a fight, or the move once the fights are over); ran: small cards among them that stepped two
   | { type: 'fight'; lane: 0 | 1; mine: { tid: string; card: Card; value: number }; theirs: { tid: string; card: Card; value: number }
       double: 'P' | 'E' | null; ace: 'P' | 'E' | null; winner: 'P' | 'E' | 'tie' }
   | { type: 'reveal'; tid: string; card: Card; stack: StackKey } // an enemy tower card turned face-up before a hit
-  | { type: 'tower'; side: 'P' | 'E'; tid: string; card: Card; stack: StackKey; top: { tid: string; card: Card }; result: 'break' | 'crack'; wasCracked: boolean; destroyed: boolean; armor?: boolean } // armor: a winning hit that only cracked an armored card
+  | { type: 'tower'; side: 'P' | 'E'; tid: string; card: Card; stack: StackKey; top: { tid: string; card: Card }; result: 'break' | 'crack'; wasCracked: boolean; destroyed: boolean; armor?: boolean; ran?: boolean } // armor: a winning hit that only cracked an armored card; ran: the attacker is a small card that ran
   | { type: 'over'; winner: 'P' | 'E' | 'draw' }
 
 export interface Stats {
@@ -28,6 +28,9 @@ export interface Stats {
   undefended?: number    // your tower cards broken by an enemy card in a lane where you had no card when you ended your turn
   wheelLosses?: string[] // fights you lost only because the enemy's suit beat yours
   aceLosses?: string[]   // your picture cards beaten by an enemy ace
+  runs?: number          // times one of your small cards ran 2 slots
+  runHits?: number       // tower hits by your small cards that ran
+  enemyRunHits?: number  // hits on your towers by enemy small cards that ran
 }
 
 export interface GuideState {
@@ -542,7 +545,7 @@ function resolveNext(g: GuideState): GuideState {
     stepForward(g, go)
     // runners: a small card that moved steps once more, unless an enemy card is now in its slot (cards never pass through each other)
     const twice = g.rules.runners ? go.filter(u => u.card.rank <= 5 && !atTower(g, u) && !blocked(g, u)) : []
-    for (const u of twice) u.pos += towardEnemy(u)
+    for (const u of twice) { u.pos += towardEnemy(u); u.ran = true; if (u.side === 'P') g.stats.runs = (g.stats.runs ?? 0) + 1 }
     g.units = [...g.units.filter(u => !twice.includes(u)), ...twice]
     if (go.length) {
       const once = go.filter(u => !twice.includes(u)), names = (us: Unit[]) => us.map(u => `${whose(u)} ${label(u.card)}`).join(', ')
@@ -555,7 +558,7 @@ function resolveNext(g: GuideState): GuideState {
       g.why = [g.rules.runners
         ? 'When the fights are over, every card that hasn\'t moved yet this round steps one slot, and a small card (A to 5) steps two, unless an enemy card is in its slot after the first. A card at a tower stays there until an enemy card beats it.'
         : 'When the fights are over, every card that hasn\'t moved yet this round steps one slot. A card at a tower stays there until an enemy card beats it.']
-      emit(g, { type: 'move', tids: go.map(u => u.tid!), ...(twice.length ? { ran: twice.map(u => u.tid!) } : {}) })
+      emit(g, { type: 'move', tids: go.map(u => u.tid!), ...(twice.length ? { ran: twice.map(u => ({ tid: u.tid!, card: u.card, side: u.side })) } : {}) })
       return g
     }
   }
@@ -640,7 +643,9 @@ function resolveHit(g: GuideState, u: Unit, k: StackKey): GuideState {
     ? `${label(aceWins(u.card, top, g.rules) ? u.card : top)} is an ace, and an ace beats a king`
     : `${label(u.card)}${av > u.card.rank ? ` counts ${av}` : ''} ${won ? '≥' : '<'} ${label(top)}${tv > top.rank ? ` counts ${tv}` : ''}`
   const stackLeft = (mineHit ? g.E.towers[k] : g.P.towers[k]).length - (broken ? 1 : 0)
-  emit(g, { type: 'tower', side: u.side, tid: u.tid!, card: u.card, stack: k, top: { tid: topId, card: top }, result: broken ? 'break' : 'crack', wasCracked, destroyed: stackLeft === 0, armor: armorHolds || undefined })
+  emit(g, { type: 'tower', side: u.side, tid: u.tid!, card: u.card, stack: k, top: { tid: topId, card: top }, result: broken ? 'break' : 'crack', wasCracked, destroyed: stackLeft === 0, armor: armorHolds || undefined, ran: u.ran || undefined })
+  if (u.ran) { if (mineHit) g.stats.runHits = (g.stats.runHits ?? 0) + 1; else g.stats.enemyRunHits = (g.stats.enemyRunHits ?? 0) + 1 }
+  delete u.ran // a wounded runner's next hit is from where it stands: it didn't run to make it
   delete u.free
   const lines: string[] = []
   lines.push(`${mineHit ? 'Your' : 'Enemy'} ${label(u.card)} (rank ${u.card.rank}) hits ${owner} ${stackName(k)}, tower card ${label(top)} (rank ${top.rank}${wasCracked ? ', CRACKED' : ''}).`)
@@ -902,13 +907,18 @@ export function describe(e: GameEvent): string | null {
       return `${head} (${mine.value} vs ${theirs.value}).`
     }
     case 'tower': {
-      const who = `${e.side === 'P' ? 'Your' : 'Enemy'} ${label(e.card)}`, where = stackName(e.stack).toLowerCase()
+      const who = `${e.side === 'P' ? 'Your' : 'Enemy'} ${label(e.card)}${e.ran ? ' runs in and' : ''}`, where = stackName(e.stack).toLowerCase()
       if (e.armor) return `${who} cracks the armored ${label(e.top.card)} on the ${where}: it stays for one more hit.`
       if (e.result === 'crack') return `${who} is too weak to break ${label(e.top.card)}: the tower holds, but cracks.`
       const how = e.wasCracked ? `breaks the cracked ${label(e.top.card)}` : `breaks ${label(e.top.card)}`
       return `${who} ${how} on the ${where}${e.destroyed ? `. The ${where} is DESTROYED!` : '.'}`
     }
     case 'reveal': return `The enemy ${stackName(e.stack).toLowerCase()} card is ${label(e.card)}.`
+    case 'move': {
+      if (!e.ran?.length) return null
+      const names = e.ran.map(r => `${r.side === 'P' ? 'your' : 'the enemy'} ${label(r.card)}`).join(' and ')
+      return `Small cards run: ${names} ${e.ran.length > 1 ? 'move' : 'moves'} 2 slots.`
+    }
     default: return null
   }
 }
@@ -921,20 +931,24 @@ export interface Summary {
   rounds: number
   close: boolean     // you lost, but their king was down to its last card
   tip: string | null // one thing to do better next game; null for a clean game
+  runHits: number    // tower hits by your small cards that ran: small cards get the credit for them
 }
 export function summary(g: GuideState): Summary {
   const s = g.stats
   const left = (t: Record<'L' | 'R' | 'K', unknown[]>) => t.L.length + t.R.length + t.K.length
-  // the lesson that cost the most: tower cards lost to an open lane, then a fight lost to an ace or the wheel, then waste
-  const open = s.undefended ?? 0
+  // the lesson that cost the most: tower cards lost to an open lane, then to enemy runners, then a fight lost to an ace or the wheel,
+  // then waste, then small cards that never ran
+  const open = s.undefended ?? 0, theirRuns = s.enemyRunHits ?? 0
   const tip = open >= 2 ? `${open} of your tower cards broke to enemy cards in a lane where you had no card. When an enemy card is coming down a lane, put a card there to meet it.`
+    : theirRuns >= 2 ? `Enemy runners » hit your towers ${theirRuns} times. A small red card reaches your tower in 2 rounds: when one is the enemy's Next card, meet it early.`
     : s.aceLosses?.[0] ?? s.wheelLosses?.[0]
     ?? (s.leakRounds ? `${s.leakRounds === 1 ? 'Once' : `${s.leakRounds} times`} you ended a round without playing a card. A turn you don't use is lost: even a small card in an empty lane helps.` : null)
+    ?? (g.rules.runners && !s.runs && s.rounds >= 4 ? 'None of your small cards ran this game. Send one » down a lane with no enemy card: it reaches the tower in 2 rounds, and any hit cracks a tower card.' : null)
     ?? s.overkills[0] ?? null
   return {
     broke: s.theirsBroken, theirTotal: s.theirsBroken + left(g.E.towers),
     standing: left(g.P.towers), mineTotal: s.mineBroken + left(g.P.towers),
-    rounds: s.rounds, close: g.winner !== 'P' && g.E.towers.K.length === 1, tip,
+    rounds: s.rounds, close: g.winner !== 'P' && g.E.towers.K.length === 1, tip, runHits: s.runHits ?? 0,
   }
 }
 

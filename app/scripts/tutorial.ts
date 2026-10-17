@@ -48,7 +48,6 @@ function play(deal: Deal, player: Player | null, rnd: () => number) {
 function lessons(events: Timed[]) {
   const first = (f: (e: Timed) => boolean) => events.find(f)?.round ?? Infinity
   const fights = events.filter(e => e.type === 'fight') as (Timed & { type: 'fight' })[]
-  const mine = new Set(events.flatMap(e => (e.type === 'play' && e.side === 'P' ? [e.tid] : [])))
   return {
     firstFight: fights[0],
     plainWin: first(e => e.type === 'fight' && !e.double && !e.ace && e.winner === 'P'),
@@ -60,7 +59,7 @@ function lessons(events: Timed[]) {
     myBreak: first(e => e.type === 'tower' && e.side === 'P' && e.result === 'break'),
     crack: first(e => e.type === 'tower' && e.result === 'crack'),
     stand: first(e => e.type === 'play' && !!e.free),
-    run: first(e => e.type === 'move' && !!e.ran?.some(t => mine.has(t))), // one of your small cards runs 2 slots
+    run: first(e => e.type === 'move' && !!e.ran?.some(r => r.side === 'P')), // one of your small cards runs 2 slots
   }
 }
 

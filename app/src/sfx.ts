@@ -167,7 +167,7 @@ function horn(s: S, freq: number, { dur = 0.3, gain = 0.06, at = 0, bright = 240
 // a low drum-like knock, the weight under a card, a hit or a section of tower landing
 const thud = (s: S, freq: number, dur: number, gain: number, at = 0) => tone(s, { freq, to: freq * 0.4, dur, gain, at })
 
-export type Sfx = 'tap' | 'pick' | 'unpick' | 'slide' | 'flip' | 'hover' | 'deny' | 'place' | 'clash' | 'big' | 'crack' | 'break' | 'boom' | 'round' | 'win' | 'lose'
+export type Sfx = 'tap' | 'pick' | 'unpick' | 'slide' | 'flip' | 'hover' | 'deny' | 'place' | 'clash' | 'big' | 'crack' | 'break' | 'boom' | 'round' | 'win' | 'lose' | 'run'
 // whose way it went: 'good' for you, 'bad' for the enemy (an enemy card played, your tower hit)
 export type Mood = 'good' | 'bad' | 'tie'
 
@@ -179,6 +179,17 @@ const SOUNDS: Record<Sfx, { wet: number; play: (s: S, mood: Mood) => void }> = {
   pick: { wet: 0.05, play: s => { noise(s, { dur: 0.07, freq: 1800, to: 4200, q: 1.2, gain: 0.22, attack: 0.02 }); bar(s, 1568, { dur: 0.15, gain: 0.045, at: 0.03 }) } },
   // a card put back: paper sliding down
   unpick: { wet: 0.05, play: s => { noise(s, { dur: 0.08, freq: 3800, to: 1500, q: 1.2, gain: 0.18, attack: 0.02 }); thud(s, 300, 0.05, 0.08, 0.04) } },
+  // a small card runs 2 slots: two quick skips across the grass, each a flick of air and a light tap, timed with its two hops;
+  // the enemy's runner is a little lower
+  run: {
+    wet: 0.05, play: (s, m) => {
+      const v = m === 'bad' ? 0.82 : 1
+      for (const at of [0.04, 0.27]) {
+        noise(s, { dur: 0.09, freq: 2800 * v, to: 1300 * v, q: 0.9, gain: 0.15, attack: 0.02, at })
+        thud(s, 170 * v, 0.05, 0.22, at + 0.09)
+      }
+    },
+  },
   // a card on the board moved to another lane or switched with another: paper sliding across, then a soft landing on the grass
   slide: {
     wet: 0.06, play: s => {

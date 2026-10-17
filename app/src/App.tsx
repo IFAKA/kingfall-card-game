@@ -291,7 +291,9 @@ function ArenaPile({ slots, side }: { slots: { tid: string; card: Card | null }[
 function NextPile({ slots, side }: { slots: { tid: string; card: Card | null }[]; side: 'P' | 'E' }) {
   return (
     <div className={`nextcard${side === 'P' ? ' mine' : ''}`} title={side === 'P' ? 'Your next card: it comes into your hand when you play one' : undefined}>
-      {slots.length ? <ArenaPile slots={slots} side={side} /> : <div className="cardph" />}<span>Next</span>
+      {slots.length ? <ArenaPile slots={slots} side={side} /> : <div className="cardph" />}
+      {/* the enemy's next card is a runner: it says so before it comes, so its run never seems to come from nowhere */}
+      <span>Next{side === 'E' && (slots[0]?.card?.rank ?? 99) <= 5 && <b className="run" title="A small card: it runs 2 slots a round"> »</b>}</span>
     </div>
   )
 }
@@ -566,7 +568,7 @@ const TIPS: Record<TipId, string> = {
   rank: 'Cards fight where they meet: the higher number wins (J is 11, Q 12, K 13). Equal? The enemy wins. The loser goes back to its pile.',
   suit: 'Suits beat each other in a circle:\n♠ beats ♥ beats ♦ beats ♣ beats ♠. The winning suit counts ×2. The ⚔ button, top right, shows it again.',
   ace: 'Aces beat Kings! The smallest card beats the biggest, whatever the suits.',
-  run: 'Small cards (A to 5) run: they move 2 slots a round, so they reach a tower fast. The enemy\'s small cards run too.',
+  run: 'Small cards (A to 5) run »: they move 2 slots a round, so they reach a tower fast. The enemy\'s small cards run too: » on its Next card warns you.',
   armor: 'Tower cards are armored: the first hit cracks them, the next breaks them. A card that wins its hit stays for that next hit. The king is safe until its side tower falls.',
   crack: 'Lost at a tower? The card goes back to its pile, but the tower card still cracks: the next hit breaks it.',
   next: 'Your Next card, left of your hand, comes into your hand each time you play one. Cards that die go to the bottom of their pile and come back later.',
@@ -805,7 +807,7 @@ export default function App() {
     const rec: GameRecord = { games: record.games + 1, wins: record.wins + (won ? 1 : 0), best: best ? game.round : record.best }
     setPast(addGame({ at: new Date().toISOString(), mode, result: won ? 'win' : game.winner === 'E' ? 'loss' : 'draw', rounds: game.round, runners: !!game.rules.runners, text: logText(game) }))
     setRecord(rec); writeJSON(RECORD_KEY, rec); setNewBest(best && record.wins > 0) // a first win is its own news
-    track('game-end', { mode: modeName(mode), result: won ? 'win' : game.winner === 'E' ? 'loss' : 'draw', rounds: game.round })
+    track('game-end', { mode: modeName(mode), result: won ? 'win' : game.winner === 'E' ? 'loss' : 'draw', rounds: game.round, runs: game.stats.runs ?? 0, runHits: game.stats.runHits ?? 0, enemyRunHits: game.stats.enemyRunHits ?? 0 })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.stage, screen])
   // every round a game reaches counts once (not again when undo and redo pass it), so the stats show the round where games stop
@@ -1184,6 +1186,7 @@ export default function App() {
         <div><b>{sum.standing}<small>/{sum.mineTotal}</small></b><span>of your tower cards standing</span></div>
       </div>
       {sum.close && <p className="goclose">So close! Their king had one card left.</p>}
+      {sum.runHits > 0 && <p className="goruns">Your small cards ran » and hit a tower {sum.runHits === 1 ? 'once' : `${sum.runHits} times`}.</p>}
       <p className="gorecord">{newBest ? `Your fastest win yet: ${sum.rounds} rounds! ` : ''}{record.wins} {record.wins === 1 ? 'win' : 'wins'} in {record.games} {record.games === 1 ? 'game' : 'games'}.</p>
       {intro?.deck && g.winner !== 'P' && <p className="goclose">This first game was for learning the rules. Following the glowing suggestions wins it.</p>}
       <div className="gotip"><Lightbulb aria-hidden /><p>{sum.tip ? <CardText text={sum.tip} /> : 'Clean game: no turn wasted and no big cards spent on small enemies.'}</p></div>

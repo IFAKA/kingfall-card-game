@@ -322,6 +322,22 @@ const NO_ARMOR = { ...DEFAULT_RULES, armor: false }
     `J♥ and K♥ fight first, then A♠ steps up behind the fallen J♥ (to the end of the slot), then A♠ fights K♥ (got: ${seen.join(' | ')})`)
 }
 
+{
+  // small cards run: a small card steps 2 slots in the move, a big one 1; a runner stops when an enemy card is in its slot after the first
+  const c = (rank: number, suit: number): Card => ({ id: `r${rank}-${suit}`, rank, suit })
+  const d = freshDeck()
+  const g: GuideState = { ...makeGame(d.slice(0, DECK_SIZE), d.slice(DECK_SIZE, PER_SIDE), d.slice(0, PER_SIDE)), stage: 'move' }
+  g.units = [{ uid: 1, card: c(3, 0), side: 'P', lane: 0, pos: 0, tid: 'run' }, { uid: 2, card: c(9, 0), side: 'P', lane: 1, pos: 0, tid: 'walk' }]
+  const m = next(g), ev = m.events?.find(e => e.type === 'move')
+  const pos = (x: GuideState, tid: string) => x.units.find(u => u.tid === tid)?.pos
+  check(pos(m, 'run') === 2 && pos(m, 'walk') === 1 && !!m.units.find(u => u.tid === 'run')?.ran && m.stats.runs === 1
+    && ev?.type === 'move' && ev.ran?.length === 1 && ev.ran[0].tid === 'run' && describe(ev) === 'Small cards run: your 3♠ moves 2 slots.',
+    `a small card runs 2 slots, a big one walks 1, and the feed says so (got run ${pos(m, 'run')}, walk ${pos(m, 'walk')}, "${ev && describe(ev)}")`)
+  const b: GuideState = { ...g, units: [{ uid: 1, card: c(3, 0), side: 'P', lane: 0, pos: 0, tid: 'run' }, { uid: 3, card: c(9, 1), side: 'E', lane: 0, pos: 2, tid: 'foe' }] }
+  check(pos(next(b), 'run') === 1, 'a runner stops after one slot when an enemy card is in its slot')
+  check(pos(next({ ...g, rules: { ...g.rules, runners: false } }), 'run') === 1, 'a game saved before small cards ran keeps its rules: the small card walks 1')
+}
+
 // The first game's fixed deal still teaches in order: rules or advice changes can quietly break it (re-pick with scripts/tutorial.ts).
 {
   const mine = TUTORIAL.mine, all = [...mine, ...TUTORIAL.enemyPile, ...TUTORIAL.enemyTowers]
