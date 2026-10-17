@@ -2,6 +2,8 @@
 // Off until UMAMI_ID is set, and only on the real site (and an itch.io embed): local tests never count.
 // The tracker loads and reports through suitkeep.vercel.app (rewrites in vercel.json), so fewer ad blockers drop it.
 // Open the site once with ?nostats and that browser stops counting (?stats turns it back on): for your own plays.
+// Every event carries `visit`, a random id for this page load (never stored): Umami sees our proxy, not the player, so it splits
+// one player's events across sessions; the visit id puts a game's events back together, and a reload starts a new one.
 const UMAMI_ID = '6ffc9650-8a7b-425d-a355-29114394dc9f'
 const HOST = 'https://suitkeep.vercel.app/stats'
 const counts = (host: string) => host === 'suitkeep.vercel.app' || host.endsWith('.itch.zone')
@@ -11,6 +13,7 @@ declare global { interface Window { umami?: { track: (name: string, data?: Data)
 
 const queue: [string, Data | undefined][] = [] // events from before the tracker has loaded
 let on = false
+const visit = Math.random().toString(36).slice(2, 10)
 
 export function startStats() {
   try {
@@ -31,6 +34,7 @@ export function startStats() {
 
 export function track(name: string, data?: Data) {
   if (!on) return
+  data = { ...data, visit }
   try {
     if (window.umami) window.umami.track(name, data)
     else queue.push([name, data])

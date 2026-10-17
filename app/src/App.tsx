@@ -764,8 +764,13 @@ export default function App() {
   }, [mode, secret, screen, dealt, deckIds, slotIds, help, order, game, history, future, intro, counted, reviewing])
   useEffect(() => {
     const flush = () => { if (document.visibilityState === 'hidden') saveNow() }
-    addEventListener('pagehide', saveNow); document.addEventListener('visibilitychange', flush)
-    return () => { removeEventListener('pagehide', saveNow); document.removeEventListener('visibilitychange', flush) }
+    // closing the tab mid-game: the stats see where it stopped (the game is saved, so it may still be picked up again)
+    const close = () => {
+      const s = toSave.current
+      if (s?.screen === 'play' && s.game && s.game.stage !== 'over') track('game-close', { mode: modeName(s.mode ?? 'guide'), round: s.game.round })
+    }
+    addEventListener('pagehide', saveNow); addEventListener('pagehide', close); document.addEventListener('visibilitychange', flush)
+    return () => { removeEventListener('pagehide', saveNow); removeEventListener('pagehide', close); document.removeEventListener('visibilitychange', flush) }
   }, [])
   function saveNow() {
     const s = toSave.current
