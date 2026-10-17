@@ -1,7 +1,7 @@
 // Lists the moments worth cutting to, from out/timeline.json: each step that had a fight, a tower hit or a free card, with its time.
 // A step is logged when it lands; its strike (wind-up, contact, pop-up) plays just before that.
 import fs from 'node:fs'
-const { timeline } = JSON.parse(fs.readFileSync(new URL('../out/timeline.json', import.meta.url)))
+const { timeline } = JSON.parse(fs.readFileSync(new URL('./out/timeline.json', import.meta.url)))
 const name = c => c ? `${['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'][c.rank]}${'♠♥♦♣'[c.suit]}` : '?'
 for (const s of timeline.filter(e => e.type === 'step')) {
   const what = (s.events ?? []).flatMap(e =>

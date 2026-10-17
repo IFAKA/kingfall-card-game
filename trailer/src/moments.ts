@@ -50,5 +50,5 @@ export const M = {
 }
 
 // where things are on the board, in the game's CSS pixels (432 x 768)
-export const LANE_X = (lane?: number) => (lane === 1 ? 342 : 90)
-export const TOWER_X = (stack?: string) => (stack === 'R' ? 350 : stack === 'K' ? 216 : 90)
+export const LANE_X = (lane?: number) => (lane === 1 ? 350 : 82)
+export const TOWER_X = (stack?: string) => (stack === 'R' ? 350 : stack === 'K' ? 216 : 82)

@@ -1,4 +1,10 @@
 {
   "name": "Suitkeep",
-  "url": "suitkeep.vercel.app"
+  "url": "suitkeep.vercel.app",
+  "build": { "command": "cd ../app && npx vite build --outDir ../trailer/app-build --emptyOutDir --logLevel warn", "dir": "app-build" },
+  "driver": "driver.mjs",
+  "mount": "..",
+  "music": "node music/make-music.ts",
+  "afterRecord": "node moments.mjs | grep -E 'ACE|×2|DOWN|FREE|crack|break' | head -20",
+  "expectedSeconds": 270
 }

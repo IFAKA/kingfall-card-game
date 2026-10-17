@@ -1,5 +1,5 @@
 // The clips each section shows: moments found in the recording (src/moments.ts) plus how long before them a clip starts and how the
-// camera frames them. Framings are points of the game in CSS pixels (432 x 768): the river at y 286, enemy towers near y 80, yours near y 460.
+// camera frames them. Framings are points of the game in CSS pixels (432 x 768): the river at y 292, enemy towers near y 77, yours near y 503, your hand near y 697.
 import type { Framing } from './GameClip'
 import { LANE_X, M, TOWER_X } from './moments'
 
@@ -34,7 +34,7 @@ export const CUTS: { titleBack: number; hook: Clip[]; hookContact: number; loop:
   build: [
     { at: M.planPress + 0.32, beats: 2, from: F(1, 216, 500), to: F(1.15, 216, 520) },
     { at: M.strike.contact - 0.44, beats: 2, from: F(1.4, lane(M.strike) - 10, 290), to: F(1.7, lane(M.strike), 285) },
-    { at: M.yourTowerDown.contact - 0.47, beats: 2, from: F(1.05, 216, 420), to: F(1.15, 216, 440) },
+    { at: M.yourTowerDown.contact - 0.47, beats: 2, from: F(1.05, 216, 460), to: F(1.15, 216, 480) },
     { at: M.lastStand.step - 1.03, beats: 2, from: F(1.3, lane(M.lastStand) + 30, 330), to: F(1.5, lane(M.lastStand) + 10, 320) },
   ],
   // the king falls on the drop's first beat, close; then again, slowly, the whole board (cut before the result panel comes up)
