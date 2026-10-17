@@ -853,10 +853,13 @@ export function advise(g: GuideState): Advice {
   const first = best.plays.find(p => base.leaks[p.lane].length > best.leaks[p.lane].length) ?? best.plays[0]
   const c = hand[first.i], ln = laneName(first.lane).toLowerCase()
   const stops = base.leaks[first.lane].length > best.leaks[first.lane].length
-  const short = stops ? `it stops the enemy ${cardList(base.leaks[first.lane])}` : 'nothing there beats it, so it can reach a tower'
+  const runs = !!g.rules.runners && c.rank <= 5 // a small card with a clear path runs: 2 slots a round
+  const short = stops ? `it stops the enemy ${cardList(base.leaks[first.lane])}` : runs ? 'nothing there beats it, and it runs » to a tower' : 'nothing there beats it, so it can reach a tower'
   let reason = stops
     ? `Without help, the enemy ${cardList(base.leaks[first.lane])} would get through the ${ln} lane and crack or break your tower. ${label(c)} stops ${base.leaks[first.lane].length > 1 ? 'them' : 'it'}.`
-    : `${label(c)} has a clear path in the ${ln} lane: nothing the enemy has there beats it, so it should reach the enemy tower. If it breaks a card there, it stays for one more hit.`
+    : runs
+      ? `${label(c)} has a clear path in the ${ln} lane, and small cards run: 2 slots a round, so it reaches the enemy tower fast. Any hit cracks a tower card.`
+      : `${label(c)} has a clear path in the ${ln} lane: nothing the enemy has there beats it, so it should reach the enemy tower. If it breaks a card there, it stays for one more hit.`
   if (best.plays.length > 1) reason += ` Plan for this turn: ${best.plays.map(p => `${label(hand[p.i])} → ${laneName(p.lane)}`).join(', ')}.`
   const stillLeaks = [0, 1].filter(l => best.leaks[l].length)
   if (stillLeaks.length) reason += ` You can't stop everything: ${stillLeaks.map(l => cardList(best.leaks[l])).join(', ')} will still get through.`

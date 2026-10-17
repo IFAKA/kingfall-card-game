@@ -395,11 +395,21 @@ One good photo does most of the work:
 > - Suit wheel: ♠ beats ♥ beats ♦ beats ♣ beats ♠. A card counts double against the suit it beats.
 > - Aces beat Kings.
 > - Each round you play 1 card, or 2 small ones. The enemy plays two, and its next card is always face-up.
+> - Small cards run: they move two slots a round, straight at a tower.
 > - Towers are armored: two hits each. Take the enemy's king tower to win.
 >
 > 1 player · 10 minutes · phone and desktop · plays offline after the first visit
 >
 > The rulebook PDF is free. If you enjoy the game, a small donation helps me keep improving it.
+
+**Update post** (2026-10-17, itch.io → Edit game → Devlog → Create new post; type Update):
+> **Title:** Small cards run
+>
+> A player told me small cards felt useless: they lost every fight and did nothing. He was right, and the simulator agreed. So now **small cards (A to 5) run**: they move two slots a round instead of one, straight at a tower, and any hit cracks a tower card. The enemy's small cards run too, and its Next card shows » when one is coming.
+>
+> Look for » on your small cards. Games are a bit shorter now (about 6 rounds), and always playing your strongest card wins less than before: it pays to think about when to send a runner.
+>
+> The rulebook PDF is updated too. Thanks for the feedback, keep it coming!
 
 **Tags** (up to 10): `card-game`, `solitaire`, `strategy`, `turn-based`, `tabletop`, `print-and-play`, `singleplayer`, `minimalist`, `casual`, `mobile`
 
