@@ -3,7 +3,7 @@
 import rec from '../out/timeline.json'
 
 type Card = { rank: number; suit: number }
-type Ev = { type: string; side?: 'P' | 'E'; lane?: 0 | 1; stack?: 'L' | 'R' | 'K'; result?: string; destroyed?: boolean; free?: boolean; winner?: string; ace?: string; double?: string; mine?: { card: Card }; theirs?: { card: Card } }
+type Ev = { type: string; side?: 'P' | 'E'; lane?: 0 | 1; stack?: 'L' | 'R' | 'K'; result?: string; destroyed?: boolean; free?: boolean; winner?: string; ace?: string; double?: string; mine?: { card: Card }; theirs?: { card: Card }; ran?: true | { side: 'P' | 'E' }[] }
 type Step = { t: number; type: 'step'; stage: string; round: number; events: Ev[] }
 type Mark = { t: number; type: string }
 
@@ -29,7 +29,9 @@ const x2b = find('last ×2 win', e => won(e) && e.double === 'P', { last: true, 
 // towers are one armored card each: your first hit on an enemy tower only cracks it
 const towerBreak = find('first tower you crack', e => e.type === 'tower' && e.side === 'P' && e.result === 'crack')
 const towerDown = find('first enemy side tower you destroy', e => e.type === 'tower' && e.side === 'P' && !!e.destroyed && e.stack !== 'K')
-const towerCrack = find('a crack after that', e => e.type === 'tower' && e.side === 'P' && e.result === 'crack', { after: towerDown.step })
+// small cards run: one of yours moving 2 slots, and a runner of yours hitting a tower after it
+const run = find('a small card of yours running 2 slots', e => e.type === 'move' && Array.isArray(e.ran) && e.ran.some(r => r.side === 'P'))
+const runHit = find('a runner of yours hitting a tower', e => e.type === 'tower' && e.side === 'P' && e.ran === true, { after: run.step })
 const yourTowerDown = find('your first side tower falling', e => e.type === 'tower' && e.side === 'E' && !!e.destroyed)
 const strike = find('a plain win just before it', e => won(e) && !e.ace && !e.double, { last: true, before: yourTowerDown.step })
 const lastStand = find('your last stand', e => e.type === 'play' && e.side === 'P' && !!e.free)
@@ -44,7 +46,7 @@ const pressAfter = (t: number) => {
 }
 
 export const M = {
-  firstPress: pressAfter(0), firstFight, ace, x2a, x2b, towerBreak, towerDown, towerCrack, yourTowerDown, strike, lastStand, king,
+  firstPress: pressAfter(0), firstFight, ace, x2a, x2b, towerBreak, towerDown, run, runHit, yourTowerDown, strike, lastStand, king,
   planPress: pressAfter(roundStart(x2a.round)),
   busyBoard: (ace.contact + king.contact) / 2, // somewhere in the late game, for the title's blurred background
 }

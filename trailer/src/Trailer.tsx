@@ -1,4 +1,4 @@
-// The trailer: hook (an ace kills a king), title, how a round plays, the suit wheel, towers, a build, the king falls, end card.
+// The trailer: hook (an ace kills a king), title, how a round plays, the suit wheel, small cards run and towers, a build, the king falls, end card.
 // Every section starts on a beat of the music (src/plan.ts); the moments of the game it shows are picked in src/cuts.ts.
 import type { CSSProperties, ReactNode } from 'react'
 import { AbsoluteFill, Audio, Easing, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion'
@@ -137,7 +137,7 @@ export function Trailer({ layout }: { layout: Layout }) {
       {sec(S.title, S.loop, <Title layout={layout} />)}
       {sec(S.loop, S.suits, <Section layout={layout} clips={CUTS.loop} caption={half(cap([{ text: 'Every card is a soldier' }, { text: 'SEND THEM IN', big: true }]), cap([{ text: 'Where they meet,' }, { text: 'HIGHER WINS', big: true }]), CUTS.loopSplit)} />)}
       {sec(S.suits, S.towers, <Section layout={layout} clips={CUTS.suits} caption={cap([{ text: '♠ › ♥ › ♦ › ♣ › ♠' }, { text: 'SUIT WINS ×2', big: true }])} />)}
-      {sec(S.towers, S.build, <Section layout={layout} clips={CUTS.towers} caption={cap([{ text: 'Every hit counts' }, { text: 'TAKE THE TOWERS', big: true }])} />)}
+      {sec(S.towers, S.build, <Section layout={layout} clips={CUTS.towers} caption={half(cap([{ text: 'Small cards' }, { text: 'RUN »', big: true }]), cap([{ text: 'Every hit counts' }, { text: 'TAKE THE TOWERS', big: true }]), CUTS.towersSplit)} />)}
       {sec(S.build, S.drop, <Section layout={layout} clips={CUTS.build} caption={
         <>{['PLAN.', 'STRIKE.', 'BREAK.', 'HOLD.'].map((w, i) => <Sequence key={w} from={frames(i * 2)} durationInFrames={frames(2)} layout="none"><Caption lines={[{ text: w, big: true }]} size={size * 1.15} align={align} /></Sequence>)}</>
       } />)}

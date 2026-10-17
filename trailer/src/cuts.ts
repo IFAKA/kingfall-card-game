@@ -9,7 +9,7 @@ const lane = (m: { ev: { lane?: number } }) => LANE_X(m.ev.lane)
 const tower = (m: { ev: { stack?: string } }) => TOWER_X(m.ev.stack)
 const towerWide = (m: { ev: { stack?: string } }) => (TOWER_X(m.ev.stack) + 216) / 2 // keeps the wide TOWER DOWN! pop-up in the shot
 
-export const CUTS: { titleBack: number; hook: Clip[]; hookContact: number; loop: Clip[]; loopSplit: number; suits: Clip[]; towers: Clip[]; build: Clip[]; drop: Clip[] } = {
+export const CUTS: { titleBack: number; hook: Clip[]; hookContact: number; loop: Clip[]; loopSplit: number; suits: Clip[]; towers: Clip[]; towersSplit: number; build: Clip[]; drop: Clip[] } = {
   titleBack: M.busyBoard, // under the title: a busy board, blurred
   // the ace steps up to the king and strikes on beat 3; the contact plays again at half speed
   hook: [
@@ -24,12 +24,14 @@ export const CUTS: { titleBack: number; hook: Clip[]; hookContact: number; loop:
   ],
   loopSplit: 5,
   suits: [M.x2a, M.x2b].map(m => ({ at: m.contact - 1.5, beats: 4, from: F(1.3, lane(m) + 30, 300), to: F(1.7, lane(m), 275), volume: 1 })),
-  // your cards at the enemy towers: a break, a side tower down, a tower that shoots back and cracks
+  // a small card runs (it hops 2 slots: the whole board, so the hop reads), then your cards at the enemy towers: a side tower down,
+  // and the runner's own hit (its pop-up says "» runner")
   towers: [
-    { at: M.towerBreak.contact - 1.2, beats: 4, from: F(1.2, (tower(M.towerBreak) + 216) / 2, 250), to: F(1.7, tower(M.towerBreak), 120) },
+    { at: M.run.step - 0.9, beats: 4, from: F(1.05, 216, 420), to: F(1.2, 216, 360) },
     { at: M.towerDown.contact - 1.14, beats: 4, from: F(1.15, towerWide(M.towerDown), 250), to: F(1.4, towerWide(M.towerDown), 140), flash: 0.25 },
-    { at: M.towerCrack.contact - 1.1, beats: 4, from: F(1.2, (tower(M.towerCrack) + 216) / 2, 250), to: F(1.7, tower(M.towerCrack), 120) },
+    { at: M.runHit.contact - 1.1, beats: 4, from: F(1.2, (tower(M.runHit) + 216) / 2, 250), to: F(1.7, tower(M.runHit), 120) },
   ],
+  towersSplit: 4, // the first clip is the run, under its own caption
   // one second each, one word each: a card dragged in, a fight, your own tower falls, your last stand
   build: [
     { at: M.planPress + 0.32, beats: 2, from: F(1, 216, 500), to: F(1.15, 216, 520) },
