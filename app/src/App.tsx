@@ -815,7 +815,7 @@ export default function App() {
     const rec: GameRecord = { games: record.games + 1, wins: record.wins + (won ? 1 : 0), best: best ? game.round : record.best }
     setPast(addGame({ at: new Date().toISOString(), mode, result: won ? 'win' : game.winner === 'E' ? 'loss' : 'draw', rounds: game.round, runners: !!game.rules.runners, text: logText(game) }))
     setRecord(rec); writeJSON(RECORD_KEY, rec); setNewBest(best && record.wins > 0) // a first win is its own news
-    track('game-end', { mode: modeName(mode), result: won ? 'win' : game.winner === 'E' ? 'loss' : 'draw', rounds: game.round, runs: game.stats.runs ?? 0, runHits: game.stats.runHits ?? 0, enemyRunHits: game.stats.enemyRunHits ?? 0 })
+    track('game-end', { mode: modeName(mode), result: won ? 'win' : game.winner === 'E' ? 'loss' : 'draw', rounds: game.round, runs: game.stats.runs ?? 0, runHits: game.stats.runHits ?? 0, enemyRunHits: game.stats.enemyRunHits ?? 0, plays: game.stats.plays ?? 0, agreed: game.stats.agreed ?? 0, suggest: suggestOn })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.stage, screen])
   // every round a game reaches counts once (not again when undo and redo pass it), so the stats show the round where games stop
@@ -1048,6 +1048,16 @@ export default function App() {
   const g = game!
   const stage = g.stage
   const advice = help !== 'suggest' || reviewing ? null : stage === 'my_play' ? cached(advise, g) : stage === 'my_last_stand' ? cached(adviseLastStand, g) : null
+  // a card played on screen: the game counts it, and whether the suggestion would have played it there too (shown or not), so the
+  // stats can say whether new players follow the suggestions and how close anyone's play is to them
+  const playOnScreen = (g0: GuideState, i: number, l: 0 | 1) => {
+    const n = playCard(g0, i, l)
+    if (n === g0 || mode !== 'play') return n
+    const a = cached(advise, g0)
+    n.stats.plays = (n.stats.plays ?? 0) + 1
+    if (a.kind === 'play' && a.handIndex === i && a.lane === l) n.stats.agreed = (n.stats.agreed ?? 0) + 1
+    return n
+  }
   const hitEnemy = stage === 'tower_enter'
   const flipping = stage === 'enemy_enter' || stage === 'last_stand_enter' || hitEnemy
   const standing = stage === 'my_last_stand'
@@ -1108,7 +1118,7 @@ export default function App() {
       }
       if (l === null) { sfx('unpick'); ghost.glideBack(() => setDrag(null)); return }
       ghost.land(0.26); setDrag(null)
-      commit(standing ? lastStandPlay(g, i!) : playCard(g, i!, l))
+      commit(standing ? lastStandPlay(g, i!) : playOnScreen(g, i!, l))
     }
     window.addEventListener('pointermove', move, { passive: false }); window.addEventListener('pointerup', end); window.addEventListener('pointercancel', end)
   }
@@ -1336,7 +1346,7 @@ export default function App() {
       over: overLane === l, onPlace: () => {
         if (standing) { const i = sel ?? suggested?.handIndex; if (i !== undefined && g.lastStand?.lane === l) { quick(g.P.hand[i].id, 0.32); commit(lastStandPlay(g, i)) } return }
         if (pick) { const n = takeBack(g, pick, l); if (n === g) { sfx('unpick'); setPick(null) } else { quick(pick, 0.26); commit(n) } return }
-        const i = sel ?? suggested?.handIndex; if (i !== undefined) { quick(g.P.hand[i].id, 0.32); commit(playCard(g, i, l)) } },
+        const i = sel ?? suggested?.handIndex; if (i !== undefined) { quick(g.P.hand[i].id, 0.32); commit(playOnScreen(g, i, l)) } },
     })
     const eNext = g.E.queue[0]
     const undoRedo = <>

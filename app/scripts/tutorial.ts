@@ -28,10 +28,11 @@ function play(deal: Deal, player: Player | null, rnd: () => number) {
   const settle = (g: GuideState) => autoReveal(g, deal.secret)
   let g = settle(startRound(makeGame(deal.deck, deal.slots, deal.mine, DEFAULT_RULES, true)))
   const events: Timed[] = []
-  let plays = 0
+  let plays = 0, trap = Infinity // the first round the suggestion steers you off your strongest card, because an enemy card beats it
   for (let n = 0; g.stage !== 'over' && n < 20000; n++) {
     if (g.stage === 'my_play') {
       const a = plays++ < 8 ? (player ? player(g, rnd) : advise(g)) : { kind: 'wait' as const }
+      if (!player && plays === 1 && trap === Infinity && a.kind === 'play' && a.short.startsWith('not your ')) trap = g.round
       if (a.kind === 'play') g = playCard(g, a.handIndex, a.lane)
       else { g = endMyTurn(g); plays = 0 }
     } else if (g.stage === 'my_last_stand') {
@@ -41,7 +42,7 @@ function play(deal: Deal, player: Player | null, rnd: () => number) {
     g = settle(g)
     for (const e of g.events ?? []) events.push({ ...e, round: g.round })
   }
-  return { g, events }
+  return { g, events, trap }
 }
 
 // the moments the first game should teach, each the first time it happens
@@ -65,7 +66,7 @@ function lessons(events: Timed[]) {
 
 /** null if the suggested line breaks a must-have, else a score (higher is better). */
 export function judge(deal: Deal) {
-  const { g, events } = play(deal, null, Math.random)
+  const { g, events, trap } = play(deal, null, Math.random)
   if (g.winner !== 'P') return null
   const L = lessons(events), r = g.round, lost = g.stats.mineBroken
   const enemyFirst = deal.secret.ep0
@@ -77,6 +78,7 @@ export function judge(deal: Deal) {
     L.ace > L.suit && L.aceMine && L.enemyAceKills === 0,       // then your ace beats a king; theirs never beats yours
     L.myBreak <= 5, L.crack < r, L.stand < r,                   // a tower breaks early, a card cracks, a last stand comes before the end
     L.run <= 4,                                                 // early on, one of your small cards runs
+    trap <= 3,                                                  // early on, your strongest card is the wrong play and the suggestion says why
     lost >= 1 && lost <= 3,                                     // the enemy hurts you, so the win feels earned
   ]
   if (must.some(x => !x)) return null
@@ -110,10 +112,10 @@ function describeDeal(deal: Deal) {
 
 function report(name: string, deal: Deal) {
   const j = judge(deal), rb = robustness(deal)
-  const { g, events } = play(deal, null, Math.random)
+  const { g, events, trap } = play(deal, null, Math.random)
   console.log(`\n${name}: suggested line ${g.winner === 'P' ? 'wins' : 'does not win'} in ${g.round} rounds, ${g.stats.mineBroken} of your tower cards lost${j ? '' : ' (FAILS a must-have)'}`)
   const L = lessons(events)
-  console.log(`  rounds: plain win ${L.plainWin}, suit ×2 ${L.suit}, ace ${L.ace}, your first run ${L.run}, your first break ${L.myBreak}, crack ${L.crack}, last stand ${L.stand}`)
+  console.log(`  rounds: plain win ${L.plainWin}, suit ×2 ${L.suit}, ace ${L.ace}, your first run ${L.run}, best card is a trap ${trap}, your first break ${L.myBreak}, crack ${L.crack}, last stand ${L.stand}`)
   console.log(`  win rate: slip 25% ${(rb.slip25 * 100).toFixed(0)}%, slip 50% ${(rb.slip50 * 100).toFixed(0)}%, naive ${(rb.naive * 100).toFixed(0)}%, random ${(rb.random * 100).toFixed(0)}%`)
   console.log(describeDeal(deal))
   return { j, rb }

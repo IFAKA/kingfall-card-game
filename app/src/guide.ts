@@ -31,6 +31,8 @@ export interface Stats {
   runs?: number          // times one of your small cards ran 2 slots
   runHits?: number       // tower hits by your small cards that ran
   enemyRunHits?: number  // hits on your towers by enemy small cards that ran
+  plays?: number         // cards you played on your turns (on screen)
+  agreed?: number        // of them, the ones the suggestion would have played there too (counted whether suggestions are shown or not)
 }
 
 export interface GuideState {
@@ -828,6 +830,18 @@ function evaluate(g: GuideState, plays: Play[]): Plan {
 const cardList = (cs: Card[]) => cs.map(label).join(' + ')
 
 /** Looks one round ahead: tries every play you may make this round and picks the one that lets the fewest enemy cards through. */
+/** Your strongest playable card, when an enemy card in play (its face-up next card first, then the board) beats it although it is
+ *  lower: an ace against your king, or a suit that doubles. The trap "always play your best card" falls into. */
+export function bestCardTrap(g: GuideState): { mine: Card; theirs: Card; why: string } | null {
+  const top = g.P.hand.filter((_, i) => canPlay(g, i)).sort((a, b) => b.rank - a.rank)[0]
+  if (!top) return null
+  const foes = [g.E.queue[0]?.card, ...g.units.filter(u => u.side === 'E').map(u => u.card)].filter((c): c is Card => !!c)
+  const t = foes.find(f => f.rank < top.rank && fightResult(top, f, g.rules) < 0)
+  if (!t) return null
+  const why = aceWins(t, top, g.rules) ? 'an ace beats a king' : `${SUITS[t.suit]} beats ${SUITS[top.suit]}, so its ${RANKS[t.rank]} counts double`
+  return { mine: top, theirs: t, why }
+}
+
 export function advise(g: GuideState): Advice {
   const hand = g.P.hand
   let best = evaluate(g, [])
@@ -860,10 +874,14 @@ export function advise(g: GuideState): Advice {
     : runs
       ? `${label(c)} has a clear path in the ${ln} lane, and small cards run: 2 slots a round, so it reaches the enemy tower fast. Any hit cracks a tower card.`
       : `${label(c)} has a clear path in the ${ln} lane: nothing the enemy has there beats it, so it should reach the enemy tower. If it breaks a card there, it stays for one more hit.`
+  // the suggestion skips your strongest card because an enemy card beats it: it says so, since "play your best card" is what a new player tries
+  const trap = bestCardTrap(g), not = trap && !best.plays.some(p => hand[p.i].id === trap.mine.id)
+    ? `not your ${label(trap.mine)}, the enemy ${label(trap.theirs)} beats it (${trap.why})` : null
+  if (not) reason = `${not[0].toUpperCase()}${not.slice(1)}. ${reason}`
   if (best.plays.length > 1) reason += ` Plan for this turn: ${best.plays.map(p => `${label(hand[p.i])} → ${laneName(p.lane)}`).join(', ')}.`
   const stillLeaks = [0, 1].filter(l => best.leaks[l].length)
   if (stillLeaks.length) reason += ` You can't stop everything: ${stillLeaks.map(l => cardList(best.leaks[l])).join(', ')} will still get through.`
-  return { kind: 'play', handIndex: first.i, lane: first.lane, reason: reason + nextNote(best), short }
+  return { kind: 'play', handIndex: first.i, lane: first.lane, reason: reason + nextNote(best), short: not ?? short }
 }
 
 /** Last stand: the card is free, so pick the one that stops the most enemy cards, spending the weakest card that does the job. */
