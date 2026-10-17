@@ -578,7 +578,7 @@ const TABLE_TIPS: Partial<Record<TipId, string>> = {
   change: 'Wrong card? Undo, top right, takes back any step.',
   armor: 'Tower cards are armored: the first hit cracks them (turn it sideways), the next breaks them. A card that wins its hit stays for that next hit. The king is safe until its side tower falls.',
   crack: 'Lost at a tower? The card goes back to its pile, but turn the tower card sideways anyway: the next hit breaks it.',
-  next: 'When you play a card, draw the top of your queue. Cards that die go to the bottom of it.',
+  next: 'When you play a card, draw the top of your pile. Cards that die go to the bottom of it.',
 }
 const DEBUG = import.meta.env.DEV || new URLSearchParams(location.search).has('debug')
 const TIPS_KEY = 'suitkeep-tips-seen'
@@ -816,6 +816,13 @@ export default function App() {
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, screen, game, tip, fast, reviewing])
+  // with real cards too, a new round goes straight to your turn: nothing moves on the table at its start, so a Done there would be a tap
+  // for nothing (the round chip counts it, as on screen); the enemy card to flip, if any, still waits for you
+  useEffect(() => {
+    if (mode !== 'guide' || screen !== 'play' || !game || tip || reviewing || game.stage !== 'round_start') return
+    advance(batch(next(game)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, screen, game, tip, reviewing])
   // when no card in hand fits in what is left of your turn, ending it is the only move, so it ends by itself; not recorded for undo,
   // so undo goes back past it to your last real choice instead of landing here and ending again
   useEffect(() => {
@@ -987,11 +994,11 @@ export default function App() {
     const steps: SetupStep[] = [
       { title: 'Build your three towers', pic: <div className="mcols">{stack('Left', g.P.towers.L)}{stack('King', g.P.towers.K)}{stack('Right', g.P.towers.R)}</div>,
         body: <p>{novice && <>For your first game I picked your deck and towers; next game you build your own. </>}Put three cards <b>face-up</b> in a row in front of you: <b>Left</b> {g.P.towers.L.map(label).join(' · ')}, <b>King</b> {g.P.towers.K.map(label).join(' · ')} in the middle, <b>Right</b> {g.P.towers.R.map(label).join(' · ')}. Each one is a tower.</p> },
-      { title: 'Your hand and your queue', ready: n === DECK_SIZE,
+      { title: 'Your hand and your pile', ready: n === DECK_SIZE,
         pic: <div className="mbars"><span className="mlbl">Hand, face-up</span><div className="row">{HANDS.map(i => <PlayingCard key={i} card={tapped[i] ? byId(tapped[i]) : undefined} showCost={!!tapped[i]} className={tapped[i] ? '' : 'mtodo'} />)}</div>
-          <span className="mlbl">Queue, face-up stack, top card first</span><div className="mrow">{QUEUE.map(i => <PlayingCard key={i} card={tapped[i] ? byId(tapped[i]) : undefined} className={`mc${tapped[i] ? '' : ' mtodo'}`} />)}</div></div>,
+          <span className="mlbl">Pile, face-up stack, top card first</span><div className="mrow">{QUEUE.map(i => <PlayingCard key={i} card={tapped[i] ? byId(tapped[i]) : undefined} className={`mc${tapped[i] ? '' : ' mtodo'}`} />)}</div></div>,
         body: <>
-          <p><b>Shuffle your 8 deck cards</b> and take the top <b>{HAND_SIZE} into your hand</b>. Put the other <b>{DECK_SIZE - HAND_SIZE} face-up</b> in a stack: that's your queue, and its top card is the one you draw next.</p>
+          <p><b>Shuffle your 8 deck cards</b> and take the top <b>{HAND_SIZE} into your hand</b>. Put the other <b>{DECK_SIZE - HAND_SIZE} face-up</b> in a stack: that's your pile, and its top card is the one you draw next.</p>
           <p>{n < HAND_SIZE ? <>Tap your <b>{HAND_SIZE} hand cards</b> here ({n}/{HAND_SIZE}).</>
             : n < DECK_SIZE ? <>Now fan your queue and tap its cards, <b>top card first</b> ({n - HAND_SIZE}/{DECK_SIZE - HAND_SIZE}). Then square it again.</>
             : <>Got it: I know your hand and the order of your queue.</>}</p>
@@ -1253,13 +1260,16 @@ export default function App() {
     // with real cards every card is the same size, as on the table: about nine card widths across (pile, three towers, discard; each lane two cards wide) and six card rows down (two tower rows, three lane slots, the hand).
     // A wide window puts the instructions and the hand in a column beside the table; otherwise they get a fixed space under it.
     const wide = mode === 'guide' && view.sw >= 860 && view.sw >= view.sh * 1.3
+    // your hand is the same on screen and with real cards: as big as its row fits (in the column beside the table, inside its 16px padding, when wide)
+    const col = view.sw >= 1200 ? 500 : 420
+    const fit = wide ? (col - 32 - 65) / 3.57 : handFit
     const ch = mode === 'guide'
       ? wide
-        ? Math.max(44, Math.min((view.sh - 168) / 6.9, (Math.min(view.sw - 460, 760) - 60) / 8.9 / 0.714, (420 - 32 - 10 * HAND_SIZE - 8) / (HAND_SIZE + 1) / 0.714, 128)) // the hand (its cards + Done, 10px apart) fits the 420px column inside its 16px padding
-        : Math.max(44, Math.min((view.sh - 308) / 7.84, (aw - 60) / 8.9 / 0.714, 128))
+        ? Math.max(44, Math.min((view.sh - 168) / 6.9, (Math.min(view.sw - col - 40, 760) - 60) / 8.9 / 0.714, 128))
+        : Math.max(44, Math.min((view.sh - 308 - fit) / 6.34, (aw - 60) / 8.9 / 0.714, 128))
       : Math.max(48, Math.min(Math.max((view.sh - FIELD_K) / (4.54 + HAND_BIG), (view.sh - FIELD_K - handFit) / 4.54), handFit / HAND_MIN, (aw - 72) / 4.75 / 0.714, 128)) // the field grows to fill the height, but never past the point where the hand (HAND_BIG times its cards, or as big as its row fits) is only HAND_MIN times them
-    const hch = Math.min(ch * HAND_BIG, handFit) // your hand's card height
-    const vars = { '--cw': `${ch * 0.714}px`, '--ch': `${ch}px`, '--fcw': `${ch * 0.714}px`, '--fch': `${ch}px`, '--hcw': `${hch * 0.714}px`, '--hch': `${hch}px`, '--scw': `${ch * SMALL * 0.714}px`, '--sch': `${ch * SMALL}px` } as CSSProperties
+    const hch = mode === 'guide' ? fit : Math.min(ch * HAND_BIG, handFit) // your hand's card height
+    const vars = { '--tcol': `${col}px`, '--cw': `${ch * 0.714}px`, '--ch': `${ch}px`, '--fcw': `${ch * 0.714}px`, '--fch': `${ch}px`, '--hcw': `${hch * 0.714}px`, '--hch': `${hch}px`, '--scw': `${ch * SMALL * 0.714}px`, '--sch': `${ch * SMALL}px` } as CSSProperties
     // the tips teach how to play a card, what ✓ does and what a turn holds, and the river shows the round: the line only says whose turn it is
     const prompt = stage === 'my_play' ? 'Your turn: 1 card, or 2 small ones.' : standing ? TITLES[stage] : stage === 'round_start' ? 'New round.' : 'Enemy turn…'
     // the enemy's last-stand card came in during its turn: your turn still says where it came from, until it has fought
@@ -1323,7 +1333,7 @@ export default function App() {
     // with real cards the screen is the table as you sit at it: every card where it lies, all the same size
     const table = (
       <>
-        <div className="tbar"><span className="undoredo">{undoRedo}</span>{cheat}<span className="modechip">Real cards</span><span className="tmenu">{menu}</span></div>
+        <div className="tbar">{round}<span className="modechip">Real cards</span><span className="tmenu">{cheat}<span className="undoredo">{undoRedo}</span>{menu}</span></div> {/* the same bar as on screen: round at the left, then the buttons in the same order */}
         <div className={`cardtable${striking ? ' striking' : ''}`} onPointerDown={striking ? () => fx.land() : undefined}> {/* a tap while a step plays out skips to its end */}
           <div className="trow theirs">
             <TablePile top={eNext} down={!eNext?.card} side="E" n={g.E.queue.length} name="Pile" flip={stage === 'enemy_enter' || stage === 'last_stand_enter'} />
@@ -1333,12 +1343,12 @@ export default function App() {
           <div className="lanes">
             <span />
             <ArenaLane idx={0} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(0)} />
-            <div className="mid">{round}</div>
+            <div className="mid" />
             <ArenaLane idx={1} units={g.units} fighting={fighting} laneLen={g.rules.laneLen} {...lane(1)} />
             <span />
           </div>
           <div className="trow mine">
-            <TablePile top={g.P.queue[0] && { tid: g.P.queue[0].id, card: g.P.queue[0] }} down={false} side="P" n={g.P.queue.length} name="Queue" faces />
+            <TablePile top={g.P.queue[0] && { tid: `pile-${g.P.queue[0].id}`, card: g.P.queue[0] }} down={false} side="P" n={g.P.queue.length} name="Pile" faces /> {/* its own id: the same card is also the Next card beside your hand, and two cards with one id show only once */}
             {(['L', 'K', 'R'] as const).map(k => <TowerFan key={k} k={k} items={mineSlots(k)} own cracked={g.cracked ?? []} shake={fighting.includes(`tower-P-${k}`)} />)}
             {discard('P')}
           </div>

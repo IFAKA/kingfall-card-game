@@ -38,12 +38,12 @@ The enemy plays **2 cards every round**: the top two of its pile, whatever they 
 3. **Enemy cards:** turn the red pile face-down, shuffle it and deal **11** face-down without looking. Put the **other 30 cards** (15 black, 15 red) back in the box without looking: they sit this game out, so you never know which red cards the enemy has.
 4. **Your 11:** choose **8 as your deck**; the other 3 are your **towers**, one card each: **left**, **right**, **king**.
    - Tip: keep your strong cards. Decks with 4 or more big cards (6 to K) win most; a deck of only small cards loses. A good start: your **4 highest and 4 lowest** in the deck, the **3 in the middle** as towers, the highest of them on the king.
-5. Shuffle your 8 deck cards. Take 3 as your **hand**; the other 5 are your **queue**, a face-up stack: its top card is the next one you draw.
+5. Shuffle your 8 deck cards. Take 3 as your **hand**; the other 5 are your **pile**, a face-up stack: its top card is the next one you draw.
 6. **Enemy 11:** without looking, 8 form its **pile** (face-down); 3 form its towers (**left, right, king**), face-down. Turn the **top card of its pile face-up**: the enemy's top card is always face-up, so you always know the first card it plays next.
-7. **Table:** your towers in a row in front of you (left, king, right), your queue on their left and your discard on their right; the enemy's the same way across the table (its pile on your left, its discard on your right). Two lanes (left, right) between the tower rows. Each lane has **3 slots**: slot 1 next to you, slot 2 in the middle, slot 3 next to the enemy. Several cards may share a slot, yours and the enemy's: the colour says whose a card is. Cards in a lane are **units**.
+7. **Table:** your towers in a row in front of you (left, king, right), your pile on their left and your discard on their right; the enemy's the same way across the table (its pile on your left, its discard on your right). Two lanes (left, right) between the tower rows. Each lane has **3 slots**: slot 1 next to you, slot 2 in the middle, slot 3 next to the enemy. Several cards may share a slot, yours and the enemy's: the colour says whose a card is. Cards in a lane are **units**.
 
 ## A round
-1. **You play.** 1 card, or 2 small cards (A to 5), or nothing: put each in **slot 1** of a lane, and refill your hand to 3 from the top of your queue.
+1. **You play.** 1 card, or 2 small cards (A to 5), or nothing: put each in **slot 1** of a lane, and refill your hand to 3 from the top of your pile.
 2. **Enemy plays (automaton).** It plays **2 cards**, each the top of its pile at the time, into **slot 3**:
    - the **first** into the **lane where you have more units** (tie: the lane with your highest-ranked unit, an ace counting as the lowest rank; still tied, left), so it defends against your biggest push;
    - the **second** into the **other lane**.
@@ -67,7 +67,7 @@ The enemy hits your towers the same way. You know your own cards.
 When a left or right tower falls, its owner immediately places **one card in that lane for free** (it is not part of anyone's turn). You pick any card from your hand, put it in slot 1 and refill your hand. The enemy puts its face-up top card in slot 3, then turns its next top card face-up. The king has no last stand.
 
 ## Your pile
-A card that loses a fight, is shot back by a tower, or is a wounded unit after its second hit goes to the **bottom of its owner's pile** (the enemy's goes face-up: you know it now). Whenever one of your cards returns to your queue, refill your hand to 3.
+A card that loses a fight, is shot back by a tower, or is a wounded unit after its second hit goes to the **bottom of its owner's pile** (the enemy's goes face-up: you know it now). Whenever one of your cards returns to your pile, refill your hand to 3.
 So your 8 cards keep cycling, and you will face the enemy's cards again.
 
 ## Designer's notes (from thousands of simulated games)

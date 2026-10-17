@@ -167,7 +167,7 @@ function refill(g: GuideState): string[] {
   while (g.P.hand.length < HAND_SIZE && g.P.queue.length) {
     const c = g.P.queue.shift()!
     g.P.hand.unshift(c) // the new card comes in on the left, the cards left of the one you played shift right
-    out.push(`Draw ${label(c)} from the top of your queue into your hand.`)
+    out.push(`Draw ${label(c)} from the top of your pile into your hand.`)
   }
   return out
 }
@@ -466,7 +466,7 @@ function kill(g: GuideState, u: Unit): string[] {
   g.units = g.units.filter(x => x.uid !== u.uid)
   if (u.side === 'P') {
     g.P.queue.push(u.card)
-    return [`Put your ${label(u.card)} at the BOTTOM of your queue.`, ...refill(g)]
+    return [`Put your ${label(u.card)} at the BOTTOM of your pile.`, ...refill(g)]
   }
   g.E.queue.push({ tid: u.tid!, card: u.card })
   return [`Put the enemy ${label(u.card)} at the BOTTOM of the enemy pile, FACE-UP (you know this card now, so you won't need to flip it again).`]
@@ -666,7 +666,7 @@ function resolveHit(g: GuideState, u: Unit, k: StackKey): GuideState {
   } else {
     const gone = broken || armorHolds ? `${mineHit ? 'Your' : 'The enemy'} ${label(u.card)} was wounded, so that was its last hit.` : 'The tower shoots it back.'
     g.units = g.units.filter(x => x.uid !== u.uid)
-    if (u.side === 'P') { g.P.queue.push(u.card); lines.push(`${gone} Put your ${label(u.card)} at the BOTTOM of your queue.`, ...refill(g)) }
+    if (u.side === 'P') { g.P.queue.push(u.card); lines.push(`${gone} Put your ${label(u.card)} at the BOTTOM of your pile.`, ...refill(g)) }
     else { g.E.queue.push({ tid: u.tid!, card: u.card }); lines.push(`${gone} Put the enemy ${label(u.card)} at the BOTTOM of the enemy pile, FACE-UP (it is a known card now).`) }
   }
   if (g.lastStand) lines.push(`The ${owner} ${stackName(k)} is DESTROYED. ${mineHit ? 'The enemy gets a LAST STAND' : 'You get a LAST STAND'}: one free card in that lane (next step).`)

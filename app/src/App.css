@@ -400,7 +400,7 @@ h3 { margin: 18px 0 8px; }
 .arena .top { flex: none; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .arena .topbar { flex-wrap: nowrap; gap: 6px; padding: 0; }
 .arena .top button:where(:not([data-slot])) { padding: 4px 9px; font-size: 13px; }
-@media (max-width: 520px) { .arena .logo, .arena .modechip { display: none; } }
+@media (max-width: 520px) { .arena .logo { display: none; } }
 
 .field { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 6px 4px; border-radius: 18px;
   background: radial-gradient(ellipse at 50% 50%, #5cbf4a, #3f9a37 60%, #2f7d2b);
@@ -657,19 +657,27 @@ button.linkish:active { transform: none; }
 
 /* the menu button keeps to the right of the bar, also when the mode label is hidden on narrow screens */
 .tbar .tmenu { margin-left: auto; }
+/* the same bar as on screen (.field > .corner): the round in a pill as tall as the buttons, then ⚔, undo, redo and the menu */
+.tbar .round { box-sizing: border-box; height: 32px; padding: 0 14px; border-radius: 999px; font-size: 15px; }
+.tbar .tmenu { display: flex; align-items: center; gap: 4px; }
+.tbar .tmenu button { width: 32px; height: 32px; }
+.tbar .undoredo { display: contents; }
 /* the count sits on the corner away from the pile's name; pile names are short enough for a one-card column */
 .trow.mine .pcount { bottom: auto; top: -6px; }
 .tpile .cname { font-size: 10px; letter-spacing: 0; }
 /* narrow screens: a fixed space under the table for the instructions (or the hand), so the panel never covers your cards */
-.arena.guide:not(.wide) .tray { min-height: max(200px, calc(var(--ch) + 70px)); justify-content: space-between; }
+.arena.guide:not(.wide) .tray { min-height: max(200px, calc(var(--hch) + 100px)); justify-content: flex-end; }
 .arena.guide .tslist li { font-size: 15px; }
-/* wide screens: the table on the left at full height, the instructions and your hand in a column on the right */
-.arena.guide.wide { max-width: 1180px; display: grid; grid-template-columns: minmax(0, 1fr) 420px; grid-template-rows: auto minmax(0, 1fr); column-gap: 12px; }
+/* wide screens: the table on the left at full height, the instructions and your hand in a column on the right (420px, or 500px on big screens: see App.tsx);
+   the line and the hand sit together at its foot, as on screen */
+.arena.guide.wide { max-width: 1180px; display: grid; grid-template-columns: minmax(0, 1fr) var(--tcol, 420px); grid-template-rows: auto minmax(0, 1fr); column-gap: 12px; }
 .arena.guide.wide > .tbar { grid-column: 1 / -1; }
 .arena.guide.wide > .cardtable { grid-column: 1; grid-row: 2; justify-self: center; width: min(100%, calc(var(--cw) * 13)); box-sizing: border-box; }
-.arena.guide.wide > .tray { grid-column: 2; grid-row: 2; justify-content: space-between; padding: 4px 16px 12px; box-sizing: border-box; }
-.arena.guide.wide .handrow { gap: 10px; } /* 4 cards and ✓ with room to breathe in the 420px column (see the card size in App.tsx) */
+.arena.guide.wide > .tray { grid-column: 2; grid-row: 2; justify-content: flex-end; padding: 4px 16px 12px; box-sizing: border-box; }
 .arena.guide.wide .tsbody { max-height: none; }
+/* the panel covers the line and the hand at the column's foot, no more: a short step stays a short panel, its card keys right under its words */
+.arena.guide.wide .tablestep { min-height: calc(var(--hch) + 120px); }
+.arena.guide.wide .flippick { margin-top: 4px; }
 /* a tip sits over the table's corner beside the column, never over the instructions */
 .arena.guide.wide .tray .coach { left: auto; right: calc(100% + 16px); bottom: 16px; transform: none; width: min(340px, 60vw); animation-name: fadein; }
 .arena.guide.wide .tray .coach::after { display: none; }
