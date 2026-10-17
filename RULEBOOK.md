@@ -30,6 +30,8 @@ It works both ways: an enemy ace kills your king. It counts against towers too: 
 ## Your turn
 Each round you play **1 card**, or **2 small cards** (A to 5). You may also play nothing. Nothing carries over to the next round, so there is nothing to count or keep track of.
 
+Small cards are weak in a fight, but they **run**: they move two slots a round instead of one (see **A round**), so they reach a tower fast, and any hit cracks a tower card. The enemy's small cards run too.
+
 The enemy plays **2 cards every round**: the top two of its pile, whatever they are.
 
 ## Setup (52 = 11 + 11 + 30 in the box)
@@ -37,7 +39,7 @@ The enemy plays **2 cards every round**: the top two of its pile, whatever they 
 2. **Your cards:** shuffle the black pile and take the top **11**. Look at them.
 3. **Enemy cards:** turn the red pile face-down, shuffle it and deal **11** face-down without looking. Put the **other 30 cards** (15 black, 15 red) back in the box without looking: they sit this game out, so you never know which red cards the enemy has.
 4. **Your 11:** choose **8 as your deck**; the other 3 are your **towers**, one card each: **left**, **right**, **king**.
-   - Tip: keep your strong cards. Decks with 4 or more big cards (6 to K) win most; a deck of only small cards loses. A good start: your **4 highest and 4 lowest** in the deck, the **3 in the middle** as towers, the highest of them on the king.
+   - Tip: keep your strong cards, and a few runners. Decks with 4 to 6 big cards (6 to K) win most; a deck of only small cards loses. A good start: your **4 highest and 4 lowest** in the deck, the **3 in the middle** as towers, the highest of them on the king.
 5. Shuffle your 8 deck cards. Take 3 as your **hand**; the other 5 are your **pile**, a face-up stack: its top card is the next one you draw.
 6. **Enemy 11:** without looking, 8 form its **pile** (face-down); 3 form its towers (**left, right, king**), face-down. Turn the **top card of its pile face-up**: the enemy's top card is always face-up, so you always know the first card it plays next.
 7. **Table:** your towers in a row in front of you (left, king, right), your pile on their left and your discard on their right; the enemy's the same way across the table (its pile on your left, its discard on your right). Two lanes (left, right) between the tower rows. Each lane has **3 slots**: slot 1 next to you, slot 2 in the middle, slot 3 next to the enemy. Several cards may share a slot, yours and the enemy's: the colour says whose a card is. Cards in a lane are **units**.
@@ -50,7 +52,7 @@ The enemy plays **2 cards every round**: the top two of its pile, whatever they 
    Then turn its next top card face-up: that is its first play next round.
 3. **Fight.** In each lane with units from both sides, your front-most unit fights the enemy's front-most where they stand, if they are in the same slot or next to each other (front-most = furthest advanced; in a shared slot, the one that got there first). Nothing has moved yet. They fight as in **Fights**.
    - The winner stays where it is. The next unit behind the loser **steps up one slot** (that is its move this round; if an enemy card is in its own slot, it stays) and fights the winner, and so on until one side has no units left in that lane.
-4. **Move.** Every unit that hasn't moved this round steps one slot toward the other side. Cards never pass through each other. A unit that steps past the last slot is **at the tower**. Units already at a tower stay there.
+4. **Move.** Every unit that hasn't moved this round steps one slot toward the other side. **Small cards run:** a small card (A to 5), yours or the enemy's, steps **two** slots, unless an enemy card is in its slot after the first. Cards never pass through each other. A unit that steps past the last slot is **at the tower**. Units already at a tower stay there.
 5. **Tower hits.** Left lane first, then right. Every unit at the tower hits that lane's side tower, or the king if that side tower is gone. **The king can only be hit once that lane's side tower is gone.** Each hit is resolved as in **Towers**; a side tower that falls gets a **Last stand**.
 6. **End.** A king gone ends the game (see **Goal**). Otherwise start the next round.
 
@@ -71,12 +73,13 @@ A card that loses a fight, is shot back by a tower, or is a wounded unit after i
 So your 8 cards keep cycling, and you will face the enemy's cards again.
 
 ## Designer's notes (from thousands of simulated games)
-- Expect to lose a good share of your games: the enemy is meant to be a real threat. Measured over thousands of simulated games: following the companion app's suggestions wins about 58%, which is about where a first-time player who thinks about each move lands (checked against real playtest games); a player who makes a careless move 3 times in 10 wins about 42%, and one who always plays their strongest card about 33%. Thinking wins.
-- Play the first deal. Dealing again until you like your hand (say, until you hold Q♠ and an ace) is worth about 17 points of win rate: it skips the game you were given.
-- What wins: meet every enemy card coming down a lane, use two small cards when both lanes need an answer, and push a lane when the enemy's face-up next card can't beat what you send.
+- Expect to lose a good share of your games: the enemy is meant to be a real threat. Measured over thousands of simulated games: following the companion app's suggestions wins about 58%, which is about where a first-time player who thinks about each move lands (checked against real playtest games); a player who makes a careless move 3 times in 10 wins about 42%, and one who always plays their strongest card about 29%. Thinking wins.
+- Play the first deal. Dealing again until you like your hand (say, until you hold Q♠ and an ace) is worth about 16 points of win rate: it skips the game you were given.
+- What wins: meet every enemy card coming down a lane, use two small cards when both lanes need an answer, send a runner down a lane the enemy has left open, and push a lane when the enemy's face-up next card can't beat what you send.
+- Why small cards run: a small card that loses a fight does nothing, so without a job of their own they were dead weight (a player said so, and the simulator agreed). Running gives them one, cracking towers, without making a single fight harder to work out. It is the newest rule (October 2026): the numbers above are from the simulator, and real games are still being played to check them.
 - Why the enemy's second card goes into the other lane: both lanes always feel pressure, and a game can't stall with every card stuck fighting in one lane.
-- Games last about 8 rounds.
+- Games last about 6 rounds.
 - Every game is winnable: armor cracks on any hit, so no deck is ever stuck against towers it can't break.
-- Deck building matters, but only so far: with good play, decks with 4 to 6 big cards win about 58%, all big cards about 54%, and all small cards fall far behind (about 22%).
+- Deck building matters, but only so far: with good play, decks with 4 to 6 big cards win about 55 to 58%, all big cards about 50%, and all small cards fall far behind (about 27%).
 - Black against red is fair: in testing, swapping the colours made no real difference.
-- No numbers to memorise: the wheel doubles, aces beat kings, 1 big card or 2 small ones.
+- No numbers to memorise: the wheel doubles, aces beat kings, 1 big card or 2 small ones, small cards run.

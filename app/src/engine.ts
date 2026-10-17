@@ -18,6 +18,7 @@ export interface Rules {
   enemyPlays?: number  // cards the enemy plays each round (1 when missing)
   armor?: boolean      // every tower card takes two hits: a winning hit only cracks it (false when missing)
   enemyWinsTies?: boolean // equal cards: the enemy's wins (when missing, both go)
+  runners?: boolean    // small cards (A to 5), both sides', step 2 slots in the move instead of 1 (false when missing: games saved before 2026-10-17)
 } // wheel: rank multiplier for the winning suit (1 = off)
 export interface GameState {
   rules: Rules
@@ -40,7 +41,7 @@ export const isSmall = (c: Card) => c.rank <= 5
 export const isRed = (c: Card) => c.suit === 1 || c.suit === 2 // the enemy's colour: you play the black cards (♠ ♣)
 
 // the budget refills to 2 every round and nothing carries over, so there is nothing to keep track of
-export const DEFAULT_RULES: Rules = { regen: 2, startElixir: 2, cap: 2, wheel: 2, laneLen: 3, acesBeatPictures: true, aceMin: 13, enemyPlays: 2, armor: true, enemyWinsTies: true }
+export const DEFAULT_RULES: Rules = { regen: 2, startElixir: 2, cap: 2, wheel: 2, laneLen: 3, acesBeatPictures: true, aceMin: 13, enemyPlays: 2, armor: true, enemyWinsTies: true, runners: true }
 
 export function freshDeck(): Card[] {
   const d: Card[] = []

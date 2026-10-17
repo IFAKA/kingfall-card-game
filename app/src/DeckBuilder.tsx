@@ -27,7 +27,7 @@ const FLY = 0.35
 const GUIDE = <>
   <ul>
     <li><b>Keep your strong cards.</b> A big card takes your whole turn, but it wins fights and pushes towers.</li>
-    <li><b>But keep some small ones too</b> (A to 5): two of them fit in one turn, so you can answer both lanes in a round.</li>
+    <li><b>But keep some small ones too</b> (A to 5): two of them fit in one turn, so you can answer both lanes in a round, and they run 2 slots a round, straight at a tower.</li>
     <li><b>Put an ace on a tower:</b> it beats any King that hits it.</li>
     <li><b>Mix your suits:</b> ♠ beats the enemy's ♥, ♣ fears its ♦.</li>
   </ul>

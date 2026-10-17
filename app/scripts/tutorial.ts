@@ -48,6 +48,7 @@ function play(deal: Deal, player: Player | null, rnd: () => number) {
 function lessons(events: Timed[]) {
   const first = (f: (e: Timed) => boolean) => events.find(f)?.round ?? Infinity
   const fights = events.filter(e => e.type === 'fight') as (Timed & { type: 'fight' })[]
+  const mine = new Set(events.flatMap(e => (e.type === 'play' && e.side === 'P' ? [e.tid] : [])))
   return {
     firstFight: fights[0],
     plainWin: first(e => e.type === 'fight' && !e.double && !e.ace && e.winner === 'P'),
@@ -59,6 +60,7 @@ function lessons(events: Timed[]) {
     myBreak: first(e => e.type === 'tower' && e.side === 'P' && e.result === 'break'),
     crack: first(e => e.type === 'tower' && e.result === 'crack'),
     stand: first(e => e.type === 'play' && !!e.free),
+    run: first(e => e.type === 'move' && !!e.ran?.some(t => mine.has(t))), // one of your small cards runs 2 slots
   }
 }
 
@@ -69,17 +71,18 @@ export function judge(deal: Deal) {
   const L = lessons(events), r = g.round, lost = g.stats.mineBroken
   const enemyFirst = deal.secret.ep0
   const must = [
-    r >= 7 && r <= 11,                                         // long enough to see every rule, short enough to want another
+    r >= 6 && r <= 11,                                         // long enough to see every rule, short enough to want another
     enemyFirst.rank >= 3 && enemyFirst.rank <= 9,               // its first card is plain: no ace, no picture
     !!L.firstFight && !L.firstFight.double && !L.firstFight.ace && L.firstFight.winner === 'P' && L.firstFight.round <= 2, // the first fight is just "higher wins", and you win it
     L.suit > L.plainWin && L.suit <= 5 && L.suitFirstMine,      // then the suit rule, on your side
     L.ace > L.suit && L.aceMine && L.enemyAceKills === 0,       // then your ace beats a king; theirs never beats yours
     L.myBreak <= 5, L.crack < r, L.stand < r,                   // a tower breaks early, a card cracks, a last stand comes before the end
+    L.run <= 4,                                                 // early on, one of your small cards runs
     lost >= 1 && lost <= 3,                                     // the enemy hurts you, so the win feels earned
   ]
   if (must.some(x => !x)) return null
   // the rules arrive one per round, not piled into one step
-  const rounds = [L.plainWin, L.suit, L.ace, L.myBreak, L.crack, L.stand]
+  const rounds = [L.plainWin, L.suit, L.ace, L.run, L.myBreak, L.crack, L.stand]
   const spread = new Set(rounds).size
   return { r, lost, L, spread }
 }
@@ -111,7 +114,7 @@ function report(name: string, deal: Deal) {
   const { g, events } = play(deal, null, Math.random)
   console.log(`\n${name}: suggested line ${g.winner === 'P' ? 'wins' : 'does not win'} in ${g.round} rounds, ${g.stats.mineBroken} of your tower cards lost${j ? '' : ' (FAILS a must-have)'}`)
   const L = lessons(events)
-  console.log(`  rounds: plain win ${L.plainWin}, suit ×2 ${L.suit}, ace ${L.ace}, your first break ${L.myBreak}, crack ${L.crack}, last stand ${L.stand}`)
+  console.log(`  rounds: plain win ${L.plainWin}, suit ×2 ${L.suit}, ace ${L.ace}, your first run ${L.run}, your first break ${L.myBreak}, crack ${L.crack}, last stand ${L.stand}`)
   console.log(`  win rate: slip 25% ${(rb.slip25 * 100).toFixed(0)}%, slip 50% ${(rb.slip50 * 100).toFixed(0)}%, naive ${(rb.naive * 100).toFixed(0)}%, random ${(rb.random * 100).toFixed(0)}%`)
   console.log(describeDeal(deal))
   return { j, rb }

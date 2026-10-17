@@ -1,6 +1,7 @@
 // finished games, newest first, each with its whole log as text: the menu's Past games page lists them to download one by one.
 // Kept in this browser only, and only the last MAX, so storage stays small (a log is a few KB).
-export interface PastGame { at: string; mode: 'guide' | 'play'; result: 'win' | 'loss' | 'draw'; rounds: number; text: string }
+// runners: played with small cards running 2 slots (2026-10-17 on); missing on games played under the rules before
+export interface PastGame { at: string; mode: 'guide' | 'play'; result: 'win' | 'loss' | 'draw'; rounds: number; runners?: boolean; text: string }
 
 const HISTORY_KEY = 'suitkeep-history'
 const MAX = 50

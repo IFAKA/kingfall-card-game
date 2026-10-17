@@ -119,7 +119,7 @@ function PastGames({ past, onOpen }: { past: PastGame[]; onOpen: (p: PastGame) =
       <button data-slot="past-open" className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 border-0 bg-transparent p-0 text-left" onClick={() => onOpen(p)}>
         <ItemContent className="gap-0">
           <ItemTitle className={`${rowTitle} ${p.result === 'win' ? 'text-primary' : ''}`}>{result[p.result]} · {p.rounds} {p.rounds === 1 ? 'round' : 'rounds'}</ItemTitle>
-          <ItemDescription>{new Date(p.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} · {p.mode === 'play' ? 'On screen' : 'Real cards'}</ItemDescription>
+          <ItemDescription>{new Date(p.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} · {p.mode === 'play' ? 'On screen' : 'Real cards'}{p.runners ? '' : ' · old rules'}</ItemDescription>
         </ItemContent>
       </button>
       <ItemActions><button data-slot="past-open" aria-label="Open log" className="flex cursor-pointer items-center self-stretch border-0 bg-transparent p-0" onClick={() => onOpen(p)}><ChevronRight className="size-5 opacity-60" /></button></ItemActions>
@@ -232,7 +232,7 @@ export function GameMenu({ topics = [], log, onExport, past, hints, hintsOn, set
     </> },
     ...Object.fromEntries((past ?? []).map(p => [`game:${p.at}`, {
       title: `${{ win: 'Win', loss: 'Loss', draw: 'Draw' }[p.result]} · ${p.rounds} ${p.rounds === 1 ? 'round' : 'rounds'}`,
-      description: new Date(p.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }),
+      description: `${new Date(p.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}${p.runners ? '' : ' · old rules (before small cards ran)'}`,
       body: <LogView log={pastLog(p.text)} />,
       footer: <><Button variant="success" size="xl" onClick={() => downloadText(logName(p.at), p.text)}><SaveIcon /> Save log as a file</Button><Button variant="secondary" size="xl" onClick={() => go('past')}>Back</Button></>,
     }])),

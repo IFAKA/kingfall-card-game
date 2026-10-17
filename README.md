@@ -23,7 +23,7 @@ Free, no sign-up, works on phones and desktops.
 - **Cards are soldiers.** Higher rank wins a fight (A=1 … K=13); equal, and the enemy wins.
 - **Suit wheel:** a card of the suit that beats the other counts **double** in a fight: ♠ beats ♥, ♥ beats ♦, ♦ beats ♣, ♣ beats ♠.
 - **Aces beat Kings** in a fight, whatever the suits.
-- **Your turn:** play 1 card, or 2 small cards (A to 5), from a hand of 3. Nothing to count, nothing carries over.
+- **Your turn:** play 1 card, or 2 small cards (A to 5), from a hand of 3. Nothing to count, nothing carries over. Small cards run: they move 2 slots a round, straight at a tower.
 - **The enemy** plays 2 cards a round, the top of its pile: the first defends the lane where you pushed harder, the second goes into the other lane. Its top card is always face-up, so you know its next play.
 - **Each round:** you play, the enemy plays, the front cards fight (when one falls, the card behind it steps up and fights next), then every card that hasn't moved steps forward through the 3 slots of its lane. Cards that get through hit a tower.
 - **Towers are armored:** every tower card takes two hits, the first cracks it, the next breaks it. A hit is a fight against the tower card (the wheel and aces count): win and your card stays, wounded, for that next hit; lose or tie and it goes home.
@@ -43,7 +43,7 @@ Full rules: [RULEBOOK.md](RULEBOOK.md) · Printable rulebook (3 pages, A4): [pri
 - **Learn from each game:** the end of a game names the one thing that cost you most (an open lane, an enemy ace, the suit wheel, a wasted turn), and keeps your record: wins, games and fastest win.
 - Game saved in the browser, an optional suggested move, and a log of everything that happened.
 - **Anonymous play counts** (Umami: no cookies, no names), so we can see whether players finish a game and come back. Open the site with `?nostats` to stop counting in your browser.
-- **Balanced by simulation and real games:** thousands of simulated games, checked against a first-time player's playtests, tuned the rules. Games last about 8 rounds. A first-time player who thinks wins a bit more than half, a careless one about 4 in 10, and decks with 4 to 6 big cards win about as often: skill is in the playing. One deal per game, as at the table.
+- **Balanced by simulation and real games:** thousands of simulated games, checked against a first-time player's playtests, tuned the rules. Games last about 6 rounds. A first-time player who thinks wins a bit more than half, a careless one about 4 in 10, and decks with 4 to 6 big cards win about as often: skill is in the playing. One deal per game, as at the table.
 
 <p align="center">
   <img src="docs/screenshots/deck.png?v=4" alt="Suitkeep deck building screen: the 8 deck cards on top, each with a one- or two-dot turn badge, the three towers of one card each under blue castles, and the big/small meter with Start the game at the bottom" width="420" />

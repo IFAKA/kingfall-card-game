@@ -15,7 +15,7 @@ export interface Discarded { tid: string; card: Card; owner: 'P' | 'E' }
 export type GameEvent =
   | { type: 'round'; round: number; gain: number }
   | { type: 'play'; side: 'P' | 'E'; tid: string; card: Card; lane: 0 | 1; cost: number; free?: boolean }
-  | { type: 'move'; tids: string[] } // cards that stepped one slot (a card stepping up after a fight, or the move once the fights are over)
+  | { type: 'move'; tids: string[]; ran?: string[] } // cards that stepped one slot (a card stepping up after a fight, or the move once the fights are over); ran: small cards among them that stepped two
   | { type: 'fight'; lane: 0 | 1; mine: { tid: string; card: Card; value: number }; theirs: { tid: string; card: Card; value: number }
       double: 'P' | 'E' | null; ace: 'P' | 'E' | null; winner: 'P' | 'E' | 'tie' }
   | { type: 'reveal'; tid: string; card: Card; stack: StackKey } // an enemy tower card turned face-up before a hit
@@ -540,14 +540,22 @@ function resolveNext(g: GuideState): GuideState {
     const go = ms.filter(u => !blocked(g, u))
     ;(g.stepped ??= []).push(...ms.map(u => u.uid))
     stepForward(g, go)
+    // runners: a small card that moved steps once more, unless an enemy card is now in its slot (cards never pass through each other)
+    const twice = g.rules.runners ? go.filter(u => u.card.rank <= 5 && !atTower(g, u) && !blocked(g, u)) : []
+    for (const u of twice) u.pos += towardEnemy(u)
+    g.units = [...g.units.filter(u => !twice.includes(u)), ...twice]
     if (go.length) {
+      const once = go.filter(u => !twice.includes(u)), names = (us: Unit[]) => us.map(u => `${whose(u)} ${label(u.card)}`).join(', ')
       g.stage = 'move'
       g.lines = [
-        `MOVE ${go.map(u => `${whose(u)} ${label(u.card)}`).join(', ')} one slot toward the other side: your cards go away from you, enemy cards come toward you.`,
+        ...(once.length ? [`MOVE ${names(once)} one slot toward the other side: your cards go away from you, enemy cards come toward you.`] : []),
+        ...(twice.length ? [`${once.length ? 'Small cards run: move' : 'MOVE'} ${names(twice)} TWO slots${once.length ? '' : ' toward the other side (small cards run)'}.`] : []),
         'A card that moves past the last slot is now "at the tower" (the board shows it in the slot next to that tower). Cards already at a tower stay there.',
       ]
-      g.why = ['When the fights are over, every card that hasn\'t moved yet this round steps one slot. A card at a tower stays there until an enemy card beats it.']
-      emit(g, { type: 'move', tids: go.map(u => u.tid!) })
+      g.why = [g.rules.runners
+        ? 'When the fights are over, every card that hasn\'t moved yet this round steps one slot, and a small card (A to 5) steps two, unless an enemy card is in its slot after the first. A card at a tower stays there until an enemy card beats it.'
+        : 'When the fights are over, every card that hasn\'t moved yet this round steps one slot. A card at a tower stays there until an enemy card beats it.']
+      emit(g, { type: 'move', tids: go.map(u => u.tid!), ...(twice.length ? { ran: twice.map(u => u.tid!) } : {}) })
       return g
     }
   }
@@ -807,7 +815,7 @@ function evaluate(g: GuideState, plays: Play[]): Plan {
   let score = 0.5 * left - waste
   for (const l of [0, 1]) {
     score -= 10 * leaks[l].length
-    if (pushers[l].length) score += 1
+    if (pushers[l].length) score += 1 + (g.rules.runners && pushers[l].some(c => c.rank <= 5) ? 1 : 0) // a small card with a clear path runs at a tower
   }
   return { plays, score, spent, leaks, pushers, enemyNext }
 }

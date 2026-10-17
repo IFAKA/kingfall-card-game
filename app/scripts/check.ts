@@ -106,7 +106,7 @@ const strong = playGuided(400, suggestions, 7)
 check(strong.error === null, `rules stay consistent in 400 games with the app's suggestions${strong.error ? ` (${strong.error})` : ''}`)
 check(strong.unfinished === 0, `every game finishes (${strong.unfinished} unfinished)`)
 check(strong.winRate >= 0.5 && strong.winRate <= 0.7, `following the suggestions wins 50–70%, about a beginner's level (got ${pct(strong.winRate)}, ${strong.avgRounds.toFixed(0)} rounds on average)`)
-check(strong.avgRounds >= 7 && strong.avgRounds <= 14, `games are short: 7–14 rounds on average (got ${strong.avgRounds.toFixed(1)})`)
+check(strong.avgRounds >= 5 && strong.avgRounds <= 14, `games are short: 5–14 rounds on average (got ${strong.avgRounds.toFixed(1)}; about 6 since small cards run)`)
 
 const batched = playGuided(400, suggestions, 7, true)
 check(batched.error === null && batched.winRate === strong.winRate && batched.avgRounds === strong.avgRounds,
@@ -327,7 +327,7 @@ const NO_ARMOR = { ...DEFAULT_RULES, armor: false }
   const mine = TUTORIAL.mine, all = [...mine, ...TUTORIAL.enemyPile, ...TUTORIAL.enemyTowers]
   check(new Set(all).size === 2 * PER_SIDE && TUTORIAL.enemyPile.length === DECK_SIZE && [...TUTORIAL.deck].sort().join() === [...suggestSetup(current.mine).deckIds].sort().join(),
     'first game: 22 different cards, and its deck is the suggested split of its 11')
-  check(judge(current) !== null, 'first game: following the suggestions shows a plain fight, then suit ×2, then an ace beating a king, and wins a close game in 7 to 11 rounds')
+  check(judge(current) !== null, 'first game: following the suggestions shows a plain fight, then suit ×2, then an ace beating a king, and a small card of yours runs, and wins a close game in 6 to 11 rounds')
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nall checks passed')

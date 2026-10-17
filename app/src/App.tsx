@@ -528,11 +528,11 @@ const RULES: Topic[] = [
     <p>The dots on a card say how much of your turn it uses: a small card <b>one dot</b>, any other card <b>two</b>, your whole turn. The bar under the ✓ button, right of your hand, shows what is left of your turn: two halves, a small card uses one, any other card both. Nothing carries over to the next round.</p>
     <p>The enemy plays <b>2 cards every round</b>, the top two of its pile, whatever they are.</p>
   </> },
-  { id: 'round', icon: <Repeat />, title: 'A round', line: 'You play, the enemy defends, the front cards fight, all move up.', body: <ol className="m-0 list-decimal pl-5">
+  { id: 'round', icon: <Repeat />, title: 'A round', line: 'You play, the enemy defends, the front cards fight, all move up: small cards run 2.', body: <ol className="m-0 list-decimal pl-5">
     <li><b>You play</b> cards into a lane.</li>
     <li>The <b>enemy</b> plays 2 cards: the first into the lane where you have <b>more</b> cards (on a tie, where your highest card is, then left), the second into the <b>other</b> lane.</li>
     <li>The front cards <b>fight</b> where they stand. When one falls, the card behind it steps up and fights the winner.</li>
-    <li>Every card that hasn't moved <b>moves</b> one slot. A card that reaches the other end hits a tower.</li>
+    <li>Every card that hasn't moved <b>moves</b> one slot, and small cards (A to 5) <b>run</b> two. A card that reaches the other end hits a tower.</li>
   </ol> },
   { id: 'towers', icon: <CastleIcon />, title: 'Towers', line: 'Every tower card takes two hits: the first cracks it, the next breaks it.', body: <>
     <p>A tower card is <b>armored</b>: the first hit only <b>cracks</b> it (turn it sideways), and the next hit <b>breaks</b> it, whatever card hits it.</p>
@@ -556,7 +556,7 @@ const RULES: Topic[] = [
 // The goal comes first, so every rule after it has something to serve; each tip says one thing. The fight rules come one at a time,
 // each when it first decides a fight (the first game's fixed deal shows them in this order: rank, then suit, then ace).
 // (the turn, enemy and armor tips are new with the 22-card rules: their ids are new too, so players who saw the old ones see them)
-type TipId = 'goal' | 'drag' | 'turn' | 'change' | 'enemy2' | 'rank' | 'suit' | 'ace' | 'armor' | 'crack' | 'next' | 'stand'
+type TipId = 'goal' | 'drag' | 'turn' | 'change' | 'enemy2' | 'rank' | 'suit' | 'ace' | 'run' | 'armor' | 'crack' | 'next' | 'stand'
 const TIPS: Record<TipId, string> = {
   goal: "Goal: break the enemy's king, the crowned castle at the top. Your cards are soldiers.",
   drag: 'Drag a card from your hand onto a lane. Each round: 1 card, or 2 small ones (A to 5).',
@@ -566,6 +566,7 @@ const TIPS: Record<TipId, string> = {
   rank: 'Cards fight where they meet: the higher number wins (J is 11, Q 12, K 13). Equal? The enemy wins. The loser goes back to its pile.',
   suit: 'Suits beat each other in a circle:\n♠ beats ♥ beats ♦ beats ♣ beats ♠. The winning suit counts ×2. The ⚔ button, top right, shows it again.',
   ace: 'Aces beat Kings! The smallest card beats the biggest, whatever the suits.',
+  run: 'Small cards (A to 5) run: they move 2 slots a round, so they reach a tower fast. The enemy\'s small cards run too.',
   armor: 'Tower cards are armored: the first hit cracks them, the next breaks them. A card that wins its hit stays for that next hit. The king is safe until its side tower falls.',
   crack: 'Lost at a tower? The card goes back to its pile, but the tower card still cracks: the next hit breaks it.',
   next: 'Your Next card, left of your hand, comes into your hand each time you play one. Cards that die go to the bottom of their pile and come back later.',
@@ -579,6 +580,7 @@ const TABLE_TIPS: Partial<Record<TipId, string>> = {
   change: 'Wrong card? Undo, top right, takes back any step.',
   armor: 'Tower cards are armored: the first hit cracks them (turn it sideways), the next breaks them. A card that wins its hit stays for that next hit. The king is safe until its side tower falls.',
   crack: 'Lost at a tower? The card goes back to its pile, but turn the tower card sideways anyway: the next hit breaks it.',
+  run: 'Small cards (A to 5) run: move them 2 slots instead of 1, yours and the enemy\'s, unless an enemy card is in their slot after the first.',
   next: 'When you play a card, draw the top of your pile. Cards that die go to the bottom of it.',
 }
 const DEBUG = import.meta.env.DEV || new URLSearchParams(location.search).has('debug')
@@ -733,6 +735,7 @@ export default function App() {
       ['rank', happened(e => e.type === 'fight')],
       ['suit', happened(e => e.type === 'fight' && !!e.double)],
       ['ace', happened(e => e.type === 'fight' && !!e.ace)],
+      ['run', happened(e => e.type === 'move' && !!e.ran?.length)],
       ['armor', happened(e => e.type === 'tower')],
       ['crack', happened(e => e.type === 'tower' && e.result === 'crack' && !e.armor)],
       ['next', game.stage === 'my_play' && game.round >= 2],
@@ -784,7 +787,7 @@ export default function App() {
     const help = mode === 'play' ? (suggestOn ? 'suggestions on' : 'suggestions off') : (explainOn ? 'explanations on' : 'explanations off')
     const head = [
       'Suitkeep game log', new Date().toLocaleString(), `Mode: ${mode === 'guide' ? 'real cards' : 'on screen'} (${help}${intro?.deck ? ', first game' : ''})`,
-      `Rules: 22 cards, aces beat kings${g.rules.aceMin === 13 ? ' only' : ''}, the enemy plays ${g.rules.enemyPlays ?? 1} a round${g.rules.armor ? ', armored towers' : ''}, lanes of ${g.rules.laneLen}`,
+      `Rules: 22 cards, aces beat kings${g.rules.aceMin === 13 ? ' only' : ''}, the enemy plays ${g.rules.enemyPlays ?? 1} a round${g.rules.armor ? ', armored towers' : ''}${g.rules.runners ? ', small cards run 2 slots' : ''}, lanes of ${g.rules.laneLen}`,
       g.stage === 'over' ? `Result: ${g.winner === 'P' ? 'you won' : g.winner === 'E' ? 'you lost' : 'draw'} after ${g.round} rounds` : `Unfinished: round ${g.round}`,
       `Your ${g.dealt.length} cards: ${g.dealt.map(label).join(' ')} (${g.dealt.filter(c => c.rank === 1).length} aces)`,
       deckIds.length ? `Your deck: ${cards(deckIds)}` : '', slotIds.length ? `Your towers (left, right, king): ${cards(slotIds)}` : '',
@@ -800,7 +803,7 @@ export default function App() {
     setCounted(true); setPlayed(n); writeJSON(PLAYED_KEY, n)
     const won = game.winner === 'P', best = won && (record.best === undefined || game.round < record.best)
     const rec: GameRecord = { games: record.games + 1, wins: record.wins + (won ? 1 : 0), best: best ? game.round : record.best }
-    setPast(addGame({ at: new Date().toISOString(), mode, result: won ? 'win' : game.winner === 'E' ? 'loss' : 'draw', rounds: game.round, text: logText(game) }))
+    setPast(addGame({ at: new Date().toISOString(), mode, result: won ? 'win' : game.winner === 'E' ? 'loss' : 'draw', rounds: game.round, runners: !!game.rules.runners, text: logText(game) }))
     setRecord(rec); writeJSON(RECORD_KEY, rec); setNewBest(best && record.wins > 0) // a first win is its own news
     track('game-end', { mode: modeName(mode), result: won ? 'win' : game.winner === 'E' ? 'loss' : 'draw', rounds: game.round })
     // eslint-disable-next-line react-hooks/exhaustive-deps
