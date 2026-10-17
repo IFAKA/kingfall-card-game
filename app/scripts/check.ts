@@ -2,7 +2,7 @@
 // Plays full games through the same code the app uses and fails if a rule invariant breaks or balance drifts.
 import { autoTowers, breaksTower, canPlay as engineCanPlay, compare, cost, fightResult, HAND_SIZE, DECK_SIZE, DEFAULT_RULES, endRound, freshDeck, newGame, PER_SIDE, playCard as enginePlay, shuffle, splitDeal, suggestDeck, suggestSetup } from '../src/engine.ts'
 import type { Card } from '../src/engine.ts'
-import { advise, canPlay, describe, endMyTurn, enterEnemyCard, enterTowerCard, extendBatch, fightingNext, lastStandPlay, makeGame, next, playCard, startRound, summary, switchCards, takeBack } from '../src/guide.ts'
+import { advise, canPlay, describe, stackOrder, endMyTurn, enterEnemyCard, enterTowerCard, extendBatch, fightingNext, lastStandPlay, makeGame, next, playCard, startRound, summary, switchCards, takeBack } from '../src/guide.ts'
 import type { Advice, GuideState } from '../src/guide.ts'
 import { TUTORIAL } from '../src/tutorial.ts'
 import { current, judge } from './tutorial.ts'
@@ -336,6 +336,46 @@ const NO_ARMOR = { ...DEFAULT_RULES, armor: false }
   const b: GuideState = { ...g, units: [{ uid: 1, card: c(3, 0), side: 'P', lane: 0, pos: 0, tid: 'run' }, { uid: 3, card: c(9, 1), side: 'E', lane: 0, pos: 2, tid: 'foe' }] }
   check(pos(next(b), 'run') === 1, 'a runner stops after one slot when an enemy card is in its slot')
   check(pos(next({ ...g, rules: { ...g.rules, runners: false } }), 'run') === 1, 'a game saved before small cards ran keeps its rules: the small card walks 1')
+}
+
+{
+  // cards in a slot stack like plates, in the order they got there: through whole games (plays, moves, runs, step-ups, fights, last
+  // stands, towers, a card moved to the other lane), cards that stay keep their order and a card that arrives lands on top
+  const slots = (g: GuideState) => {
+    const m = new Map<string, number[]>()
+    for (const u of stackOrder(g.units, g.rules.laneLen)) { const k = `${u.lane}/${Math.max(0, Math.min(g.rules.laneLen - 1, u.pos))}`; m.set(k, [...(m.get(k) ?? []), u.uid]) }
+    return m
+  }
+  let bad = 0
+  const same = (a: GuideState, b: GuideState) => {
+    const A = slots(a)
+    for (const [k, list] of slots(b)) {
+      const before = A.get(k) ?? [], stayed = list.filter(id => before.includes(id)), came = list.filter(id => !before.includes(id))
+      if (list.join() !== [...stayed, ...came].join() || stayed.join() !== before.filter(id => stayed.includes(id)).join()) bad++
+    }
+  }
+  const rnd = mulberry(11)
+  for (let k = 0; k < 80; k++) {
+    const { mine, theirs } = splitDeal(shuffle(freshDeck(), rnd))
+    const deck = suggestDeck(mine), towers = autoTowers(mine.filter(c => !deck.includes(c)))
+    const s = shuffle(theirs, rnd), real = new Map<string, Card>()
+    s.slice(0, DECK_SIZE).forEach((c, i) => real.set(`ep${i}`, c)); s.slice(DECK_SIZE).forEach((c, i) => real.set(`et${i}`, c))
+    let g = startRound(makeGame(deck, towers, mine, DEFAULT_RULES)), plays = 0
+    for (let n = 0; g.stage !== 'over' && n < 20000; n++) {
+      const before = g
+      if (g.stage === 'my_play') {
+        const a = plays++ < 8 ? advise(g) : { kind: 'wait' as const }
+        if (g.turn?.length && rnd() < 0.25) g = takeBack(g, g.turn[0].id, g.turn[0].lane === 0 ? 1 : 0)
+        else if (a.kind === 'play') g = playCard(g, a.handIndex, a.lane)
+        else { g = endMyTurn(g); plays = 0 }
+      } else if (g.stage === 'enemy_enter' || g.stage === 'last_stand_enter') g = enterEnemyCard(g, real.get(g.E.queue[0].tid)!)
+      else if (g.stage === 'tower_enter') { const u = g.units.find(x => x.uid === g.hitQueue[0])!, lk = u.lane === 0 ? 'L' : 'R'; g = enterTowerCard(g, real.get(g.E.towers[g.E.towers[lk].length ? lk : 'K'][0].tid)!) }
+      else if (g.stage === 'my_last_stand') g = lastStandPlay(g, 0)
+      else g = next(g)
+      same(before, g)
+    }
+  }
+  check(bad === 0, `cards in a slot stack in the order they got there, through 80 games (${bad} slots out of order)`)
 }
 
 // The first game's fixed deal still teaches in order: rules or advice changes can quietly break it (re-pick with scripts/tutorial.ts).

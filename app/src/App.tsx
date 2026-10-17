@@ -4,8 +4,7 @@ import confetti from 'canvas-confetti'
 import { DECK_SIZE, DEFAULT_RULES, HAND_SIZE, PER_SIDE, RANKS, SUITS, aceWins, compare, cost, deal, effective, fightResult, freshDeck, isRed, label, randomSetup, secureRandom, shuffle, suggestSetup } from './engine'
 import type { Card, Rules, Unit } from './engine'
 import {
-  advise, adviseLastStand, autoReveal, canPlay, describe, endMyTurn, extendBatch, fightingNext, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary, switchCards, takeBack,
-} from './guide'
+  advise, adviseLastStand, autoReveal, canPlay, describe, endMyTurn, extendBatch, fightingNext, enterEnemyCard, enterTowerCard, excludedIds, lastStandPlay, makeGame, next, options, playCard, startRound, summary, switchCards, takeBack, stackOrder } from './guide'
 import type { ESlot, GuideState } from './guide'
 import { quick, useFx, usePops } from './fx'
 import { AnimatePresence, motion, useAnimate, useReducedMotion } from 'framer-motion'
@@ -255,9 +254,10 @@ function ArenaLane({ idx, units, fighting, laneLen, blocked, dragging, hint, sug
   // one shared space per slot: the colour says whose card it is (yours black, the enemy's red). Its cards stack like plates, in the
   // order they arrived, whoever's they are: each new one lands on top of the last, shifted right so the ones under it still show their
   // rank and suit (g.units is in arrival order: a played or moved card goes to its end). The bottom one fights first.
-  // A crowded slot spreads them less.
+  // A card at a tower is drawn in this slot too, at the bottom: it passed through the slot before any card now in it (cards never
+  // pass each other), even when it reached the tower in the same move as a card that came into the slot. A crowded slot spreads them less.
   const here = (pred: (u: Unit) => boolean) => {
-    const list = units.filter(u => u.lane === idx && pred(u))
+    const list = stackOrder(units.filter(u => u.lane === idx && pred(u)), laneLen)
     return <div className="half" style={{ '--n': list.length } as CSSProperties}>{list.map(card)}</div>
   }
   return (

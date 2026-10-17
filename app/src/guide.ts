@@ -217,6 +217,7 @@ export function takeBack(g0: GuideState, id: string, lane?: 0 | 1): GuideState {
   const u = g.units.find(x => x.side === 'P' && x.tid === id)!
   relog(g, u.card, u.lane, lane)
   u.lane = g.turn![j].lane = lane
+  g.units = [...g.units.filter(x => x !== u), u] // picked up and put down in the other lane: it lands on top of the cards there (and fights after them)
   g.lastAction = []
   return g
 }
@@ -245,6 +246,14 @@ export function switchCards(g0: GuideState, a: string, b: string): GuideState {
   const swapIn = { id: hand, lane: turn[j].lane }, later = turn.slice(j + 1)
   // in its turn order if it was in your hand then, or else last, once the later plays have drawn it again
   return rework(g0, j, [swapIn, ...later], { [hand]: placed }) ?? rework(g0, j, [...later, swapIn], { [hand]: placed }) ?? g0
+}
+
+/** The cards drawn in one slot, bottom first, stacked like plates in the order they got there: g.units is in arrival order (a card
+ *  played or moved goes to its end), and a card at a tower, drawn in the slot next to it, is at the bottom (it passed through the slot
+ *  before any card now in it: cards never pass each other). */
+export const stackOrder = (us: Unit[], laneLen: number) => {
+  const tower = (u: Unit) => (u.side === 'P' && u.pos >= laneLen) || (u.side === 'E' && u.pos < 0)
+  return [...us].sort((a, b) => +tower(b) - +tower(a))
 }
 
 const relog = (g: GuideState, c: Card, from: 0 | 1, to: 0 | 1) => {
