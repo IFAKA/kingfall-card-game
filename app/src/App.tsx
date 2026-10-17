@@ -614,6 +614,7 @@ const autoDelay = (events: number, fast = false) => Math.min(4000, 700 + 600 * e
 const FAST_KEY = 'suitkeep-fast'
 const BATCH_KEY = 'suitkeep-batch' // real cards: a round's fights and moves as one checklist (unset: on after 2 games at the table)
 const RECORD_KEY = 'suitkeep-record'
+const FEED_KEY = 'suitkeep-feed' // the line under the board, once chosen in Hints (true or false); unset, it shows while suggestions are on
 const DEAL_KEY = 'suitkeep-deal' // on screen: the deal you were given and haven't played yet
 const STARTED_KEY = 'suitkeep-games-started' // games begun, every mode together: the stats count first and second games
 const modeName = (m: 'guide' | 'play') => (m === 'play' ? 'screen' : 'cards')
@@ -632,6 +633,10 @@ export default function App() {
   const [explainOn, setExplainOn] = useState(saved ? saved.help === 'explain' : false)
   const [suggestOn, setSuggestOn] = useState(saved ? saved.help === 'suggest' : false)
   const help: Help = suggestOn ? 'suggest' : explainOn ? 'explain' : 'off'
+  // the line under the board follows the suggestions (the first game turns them on, and its line teaches) until you choose it in Hints
+  const [feedPref, setFeedPref] = useState<boolean | null>(() => readJSON<boolean | null>(FEED_KEY, null))
+  const feedOn = feedPref ?? suggestOn
+  const setFeed = (on: boolean) => { setFeedPref(on); writeJSON(FEED_KEY, on) }
   // with real cards the player shuffles their own deck and taps its 8 cards here as they come: the hand cards, then the queue top first
   const [order, setOrder] = useState<string[]>(saved?.order ?? [])
   const [game, setGame] = useState<GuideState | null>(saved?.game ?? null)
@@ -1186,6 +1191,7 @@ export default function App() {
       <Section title="Turn on">
         <Choice id="explain" title="Explain my options" description="List every card you can play and where" checked={explainOn} onChange={setExplainOn} />
         <Choice id="suggest" title="Suggest moves" description="The suggested card and lane glow green, or the ✓ button does" checked={suggestOn} onChange={setSuggestOn} />
+        <Choice id="feed" title="Show the line under the board" description="What just happened, what the card you hold would do, and the suggestion when that's on" checked={feedOn} onChange={setFeed} />
       </Section>
     </>
   )
@@ -1420,7 +1426,7 @@ export default function App() {
         <div className="tray">
           {stage === 'over' && overSeen
             ? <div className="overbtns"><button className="big" onClick={playAgain}>Play again</button><button onClick={() => setOverSeen(false)}>Result</button></div>
-            : <div className="feed" aria-live="polite">
+            : (feedOn || standing || stood) && <div className="feed" aria-live="polite">{/* off in Hints: only a last stand still says what to do */}
               {lines.map((l, i) => <div key={i}>{l}</div>)}
             </div>}
           <div className="handwrap">
