@@ -237,14 +237,13 @@ function TurnBar({ n, spend, max }: { n: number; spend: number; max: number }) {
 // Each slot is one shared space, as on the table: the colour says whose card it is (yours black, the enemy's red).
 // A soldier at a tower is drawn smaller, against that tower; a wounded one (it broke a card, one hit left) leans like a cracked card.
 // The two cards that fight next tremble a little, so you see who meets whom before one of them is gone.
-// A card at a tower is drawn in the lane slot next to that tower, first in the slot: new cards in that lane
-// fight it there. A wounded one (it broke a tower card, one hit left) leans like a cracked card.
+// A card at a tower is drawn in the lane slot next to that tower, stacked with the cards there in the order they arrived: new
+// cards in that lane fight it there. A wounded one (it broke a tower card, one hit left) leans like a cracked card.
 // On screen, the cards you placed this turn (grabbable) can be dragged out of their slot again until you end your turn.
 // Tapped, one of them is picked (picked): tapping another card then switches the two.
 // x2: while you hold a hand card, an enemy card it counts double against glows green ('good'), one that counts double against it red ('bad')
 function ArenaLane({ idx, units, fighting, laneLen, blocked, dragging, hint, suggested, over, onPlace, grabbable = [], lifted, picked, onGrab, onTap, x2 }: { idx: 0 | 1; units: Unit[]; fighting: string[]; laneLen: number; blocked?: boolean; dragging: boolean; hint: boolean; suggested: boolean; over: boolean; onPlace: () => void; grabbable?: string[]; lifted?: string | null; picked?: string | null; onGrab?: (e: React.PointerEvent<HTMLElement>, tid: string) => void; onTap?: (tid: string) => void; x2?: (c: Card) => X2 }) {
   const atTower = (u: Unit) => (u.side === 'P' && u.pos >= laneLen) || (u.side === 'E' && u.pos < 0)
-  const cards = (pred: (u: Unit) => boolean) => units.filter(u => u.lane === idx && pred(u)).sort((a, b) => +atTower(b) - +atTower(a))
   const card = (u: Unit, i: number) => (
     <div key={u.uid} style={{ '--i': i } as CSSProperties} className={`unit ${u.side} ${atTower(u) ? 'atk' : ''} ${u.wounded ? 'wounded' : ''} ${u.free ? 'free' : ''} ${fighting.includes(u.tid!) ? 'tremble' : ''} ${grabbable.includes(u.tid!) ? 'grab' : ''} ${lifted === u.tid ? 'lifted' : ''} ${u.side === 'E' && x2?.(u.card) ? `x2${x2(u.card)}` : ''}`}
       title={atTower(u) ? `${u.side === 'P' ? 'Your' : 'Enemy'} card at the tower: ${u.wounded ? 'wounded, it hits once more, then goes back to its pile' : 'it hits the tower this round'}` : u.free ? `${u.side === 'P' ? 'Your' : 'Enemy'} last stand: a tower in this lane fell, so this card came in free. It fights in the next round.` : grabbable.includes(u.tid!) ? 'Changed your mind? Drag it back to your hand or onto the other lane, or tap it, then tap another card to switch them' : undefined}
@@ -253,10 +252,12 @@ function ArenaLane({ idx, units, fighting, laneLen, blocked, dragging, hint, sug
       <TCard tid={u.tid!} card={u.card} down={false} side={u.side} selected={picked === u.tid} />
     </div>
   )
-  // one shared space per slot: the colour says whose card it is (yours black, the enemy's red); yours first, then the enemy's
-  // the cards of a slot are stacked, each shifted right so its rank and suit show; a crowded slot spreads them less
+  // one shared space per slot: the colour says whose card it is (yours black, the enemy's red). Its cards stack like plates, in the
+  // order they arrived, whoever's they are: each new one lands on top of the last, shifted right so the ones under it still show their
+  // rank and suit (g.units is in arrival order: a played or moved card goes to its end). The bottom one fights first.
+  // A crowded slot spreads them less.
   const here = (pred: (u: Unit) => boolean) => {
-    const list = [...cards(u => u.side === 'P' && pred(u)), ...cards(u => u.side === 'E' && pred(u))]
+    const list = units.filter(u => u.lane === idx && pred(u))
     return <div className="half" style={{ '--n': list.length } as CSSProperties}>{list.map(card)}</div>
   }
   return (
