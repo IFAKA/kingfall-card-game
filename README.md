@@ -46,7 +46,7 @@ Full rules: [RULEBOOK.md](RULEBOOK.md) · Printable rulebook (3 pages, A4): [pri
 - **Balanced by simulation and real games:** thousands of simulated games, checked against a first-time player's playtests, tuned the rules. The newest rule, small cards run (October 2026), came from a player's feedback that small cards were useless; it is checked in simulation and being playtested now. Games last about 6 rounds. A first-time player who thinks wins a bit more than half, a careless one about 4 in 10, and decks with 4 to 6 big cards win about as often: skill is in the playing. One deal per game, as at the table.
 
 <p align="center">
-  <img src="docs/screenshots/deck.png?v=5" alt="Suitkeep deck building screen: the 8 deck cards on top (Q♠ Q♣ J♠ 10♣ 8♣ 6♣ and the runners 3♣ 2♣), each with a one- or two-dot turn badge, the small ones marked », the three towers of one card each under blue castles, and the big/small meter reading balanced, 6 big and 2 small, with Start the game at the bottom" width="420" />
+  <img src="docs/screenshots/deck-mobile.png?v=5" alt="Suitkeep deck building screen on a phone: the 8 deck cards in two rows (J♠ J♣ 10♣ 9♠, then 7♠ and the runners 5♠ 5♣ 4♠), each with a one- or two-dot turn badge, the small ones marked », the three towers of one card each under blue castles, and the big/small meter reading balanced, 5 big and 3 small, with Start the game at the bottom" width="240" />
   &nbsp;
   <img src="docs/screenshots/real-cards-setup.png?v=5" alt="Suitkeep real-cards setup, first step: split the deck by colour, black cards for you and red cards for the enemy" width="420" />
 </p>

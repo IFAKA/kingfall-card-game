@@ -109,7 +109,7 @@ This round finds the problems for free. CrazyGames (Phase 4) only gives you one 
   3. **Pricing:** "$0 or donate", suggested donation $2.
   4. **Uploads:** `app/suitkeep-itch.zip` and tick **"This file will be played in the browser"**. Then `print/Suitkeep-Rulebook.pdf` as a download.
   5. **Embed options:** viewport 480 × 860, tick **Mobile friendly** (orientation: portrait) and **Fullscreen button**.
-  6. **Cover image:** `docs/itch-cover.png`. **Screenshots:** `docs/screenshots/arena.png`, `deck.png`, `title.png`, `real-cards-setup.png`.
+  6. **Cover image:** `docs/itch-cover.png`. **Screenshots:** `docs/screenshots/arena.png`, `deck-mobile.png`, `title.png`, `real-cards-setup.png`.
   7. **Genre:** Card Game. **Tags:** from [itch.io page](#itchio-page). **Visibility:** Draft. Save, open the page, play one game on it, then switch to **Public**.
   Done when: the page is public.
   ✅ Done 2026-10-16: https://zfaka.itch.io/suitkeep
