@@ -402,7 +402,8 @@ function Logo({ small }: { small?: boolean }) {
 }
 
 // Every rule is drawn as a real fight between cards. Suits: same rank, so only the wheel decides (the winner counts double).
-const WHEEL: [number, number][] = [[0, 1], [1, 2], [2, 3], [3, 0]]
+// you play black and the enemy red, so only two of the four suit matchups ever happen: your ♠ over its ♥, its ♦ over your ♣
+const WHEEL: [number, number][] = [[0, 1], [2, 3]]
 const Beats = ({ win, lose, winText, loseText }: { win: ReactNode; lose: ReactNode; winText?: ReactNode; loseText?: ReactNode }) => (
   <div className="fight">
     <span className="side win">{win}{winText && <em>{winText}</em>}</span><i>&gt;</i><span className="side"><span className="lose">{lose}</span>{loseText && <em>{loseText}</em>}</span>
@@ -494,8 +495,8 @@ function Cheat({ g }: { g?: GuideState }) {
       <p><small>A=1 · J=11 · Q=12 · K=13. Same number: the enemy wins.</small></p>
     </>}
     {page === 0 && <>
-      <div className="loop" role="img" aria-label="Spades beat hearts, hearts beat diamonds, diamonds beat clubs, clubs beat spades">
-        {WHEEL.map(([w, l]) => <span key={w}><b className={isRed({ id: '', rank: 1, suit: w }) ? 'rs' : ''}>{SUITS[w]}</b> beats <b className={isRed({ id: '', rank: 1, suit: l }) ? 'rs' : ''}>{SUITS[l]}</b></span>)}
+      <div className="loop" role="img" aria-label="Your spades beat the enemy's hearts, the enemy's diamonds beat your clubs">
+        {WHEEL.map(([w, l]) => <span key={w}><b className={isRed({ id: '', rank: 1, suit: w }) ? 'rs' : ''}>{SUITS[w]}</b> beats <b className={isRed({ id: '', rank: 1, suit: l }) ? 'rs' : ''}>{SUITS[l]}</b><small>{isRed({ id: '', rank: 1, suit: w }) ? 'theirs' : 'yours'}</small></span>)}
       </div>
       <p><b>The suit that beats the other doubles its number.</b></p>
       <div className="suitwheel"><Beats win={show(x[0])} lose={show(x[1])} winText={<>{x[0].rank} ×{wheel} = <b>{x[0].rank * wheel}</b></>} loseText={x[1].rank} /></div>
