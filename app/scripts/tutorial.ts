@@ -60,6 +60,7 @@ function lessons(events: Timed[]) {
     myBreak: first(e => e.type === 'tower' && e.side === 'P' && e.result === 'break'),
     crack: first(e => e.type === 'tower' && e.result === 'crack'),
     stand: first(e => e.type === 'play' && !!e.free),
+    myStand: first(e => e.type === 'play' && e.side === 'P' && !!e.free), // your own last stand
     run: first(e => e.type === 'move' && !!e.ran?.some(r => r.side === 'P')), // one of your small cards runs 2 slots
   }
 }
@@ -77,6 +78,7 @@ export function judge(deal: Deal) {
     L.suit > L.plainWin && L.suit <= 5 && L.suitFirstMine,      // then the suit rule, on your side
     L.ace > L.suit && L.aceMine && L.enemyAceKills === 0,       // then your ace beats a king; theirs never beats yours
     L.myBreak <= 5, L.crack < r, L.stand < r,                   // a tower breaks early, a card cracks, a last stand comes before the end
+    L.myStand < r,                                              // one of them yours: you lose a side tower and hold on (the trailer cuts to it too)
     L.run <= 4,                                                 // early on, one of your small cards runs
     trap <= 3,                                                  // early on, your strongest card is the wrong play and the suggestion says why
     lost >= 1 && lost <= 3,                                     // the enemy hurts you, so the win feels earned
