@@ -7,7 +7,7 @@ _Written 2026-10-16 for this game as it is today. Update it when a step is done 
 - The game works and is live at suitkeep.vercel.app (on screen + with real cards).
 - The printable rulebook exists (`print/Suitkeep-Rulebook.pdf`).
 - The trailer is finished: `trailer/out/suitkeep-trailer-tall.mp4` (vertical) and `trailer/out/suitkeep-trailer-wide.mp4` (wide), 33 seconds each.
-- **The rules changed on 2026-10-16** (the 22-card rules: no elixir, 1 card or 2 small ones a round, the enemy plays 2 cards, towers of 1 armored card). All the texts below are updated. The itch.io upload and the trailer still show the old rules until you redo them (see the list under "Before you post").
+- **The rules changed on 2026-10-16** (the 22-card rules: no elixir, 1 card or 2 small ones a round, the enemy plays 2 cards, towers of 1 armored card). All the texts below are updated. The itch.io page and the trailers were redone for them on 2026-10-17.
 - **Nobody else has played it yet**, and you don't know anyone to test with.
 - **The stats are built into the game but switched off** until you make the free Umami account (step 5).
 - **The posts, the itch.io page text, its cover and the upload file are ready** (see [Ready-to-post texts](#ready-to-post-texts) at the end). Nothing has been posted.
@@ -28,14 +28,14 @@ _Written 2026-10-16 for this game as it is today. Update it when a step is done 
 - [x] Stats work (Umami shows a played game) and `?nostats` is opened on your own devices.
 - [x] itch.io page is public and the game runs in fullscreen.
 - [x] The screenshots on GitHub and itch show SUITKEEP, not the old name.
-- [ ] **Tax interview on itch.io** done (Settings → Tax information → Exit Interview), so donations can be paid out.
+- [x] **Tax interview on itch.io** done (Settings → Tax information → Exit Interview), so donations can be paid out. ✅ 2026-10-17: W-8BEN as an individual, Spain, 0% on royalties, status "On File". The one-time validation happens when you open your first payout request.
 - [ ] **About 10 comments** on other people's games in r/playmygame and r/WebGames (2–3 days). No Suitkeep, no links in them. Details below, under "How to leave the comments".
 - [ ] **Table photo** taken (cards in both lanes, black against red, the three towers on each side, daylight, no flash). Needed for the card-game posts (step 9), not for r/playmygame.
 - [ ] **A quick game on your phone** at suitkeep.vercel.app, to check it feels right.
 - [ ] **Read r/playmygame's Community Highlighted Posts** once, and post only with their **Make A Post** button.
-- [ ] **New itch.io upload** with the 22-card rules: `cd app && npm run itch`, then on itch.io → Edit game → Uploads, delete the old zip and upload `app/suitkeep-itch.zip` (tick "This file will be played in the browser"). Paste the updated description and short description from this file.
-- [ ] **Rebuild both trailers** with the new rules (`cd trailer && npm run rebuild`, about an hour): the current ones show the old elixir bar and towers of 2 cards.
-- [ ] **Watch both trailers** (`trailer/out/`) and tell Claude if anything should change.
+- [x] **New itch.io upload** with the 22-card rules (zip, PDF, description, screenshots, cover). ✅ 2026-10-17, game runs on the page and is the new version.
+- [x] **Rebuild both trailers** with the current game. ✅ 2026-10-17 (`cd trailer && npm run rebuild`; needs the trailer-kit repo cloned at `../../trailer-kit` from the repo root, i.e. `games/trailer-kit`, and Docker/Colima).
+- [ ] **Watch both trailers** (`trailer/out/`) and tell Claude if anything should change. Then add the wide one to the itch.io page.
 
 ### How to leave the comments
 
